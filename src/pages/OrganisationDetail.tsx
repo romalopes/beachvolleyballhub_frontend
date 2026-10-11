@@ -10,6 +10,7 @@ import {
   type OrganisationMemberInput,
   type OrganisationMembershipRole,
   type OrganisationType,
+  type Group as GroupRecord,
 } from "../api";
 
 const ORGANISATION_TYPES: Array<{ value: OrganisationType; label: string }> = [
@@ -39,6 +40,7 @@ export default function OrganisationDetail() {
   const organisationId = Number(id);
   const [organisation, setOrganisation] = useState<Organisation | null>(null);
   const [organisations, setOrganisations] = useState<Organisation[]>([]);
+  const [groups, setGroups] = useState<GroupRecord[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
   const [busy, setBusy] = useState<string | null>(null);
@@ -47,12 +49,14 @@ export default function OrganisationDetail() {
   const load = useCallback(async () => {
     if (!Number.isFinite(organisationId)) return;
     try {
-      const [detail, page] = await Promise.all([
+      const [detail, page, groupsRes] = await Promise.all([
         api.organisation(organisationId),
         api.organisations(undefined, undefined, true),
+        api.groups({ organisation_id: organisationId, status: "active" }),
       ]);
       setOrganisation(detail);
       setOrganisations(page.data);
+      setGroups(groupsRes.data);
       setError(null);
     } catch (reason) {
       setError(reason instanceof Error ? reason.message : "Failed to load organisation.");
@@ -219,6 +223,30 @@ export default function OrganisationDetail() {
           {!organisation.can_edit && !organisation.can_delete && <p>You do not have management rights for this organisation.</p>}
         </div>
       </section>
+
+      {groups.length > 0 && (
+        <section className="detail-section">
+          <div className="organisations-detail-section-head">
+            <h2>Groups</h2>
+            <Link className="admin-btn" to={`/groups?organisation_id=${organisation.id}`}>
+              View all groups
+            </Link>
+          </div>
+          <ul className="organisations-roster-list">
+            {groups.map((group) => (
+              <li key={group.id} className="organisations-roster-group">
+                <Link className="identity-link" to={`/groups/${group.id}`}>
+                  {group.name}
+                </Link>
+                <span className="organisations-roster-meta">
+                  {group.player_count} player{group.player_count !== 1 ? "s" : ""} · {group.visibility}
+                  {group.status === "archived" && " · archived"}
+                </span>
+              </li>
+            ))}
+          </ul>
+        </section>
+      )}
 
       <OrganisationRoster organisation={organisation} />
     </div>

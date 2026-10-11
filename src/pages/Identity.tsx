@@ -506,7 +506,7 @@ export default function IdentityPage() {
     setError(null);
     setNotice(null);
     try {
-      await api.endOrganisationMembership(orgId, membershipId);
+      await api.leaveOrganisation(orgId);
       window.location.reload();
     } catch (err) {
       setError(

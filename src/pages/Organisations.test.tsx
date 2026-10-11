@@ -31,6 +31,7 @@ vi.mock("../api", async (importOriginal) => {
       endOrganisationMembership: vi.fn(),
       approveOrganisationMembership: vi.fn(),
       rejectOrganisationMembership: vi.fn(),
+      groups: vi.fn(),
     },
   };
 });
@@ -169,6 +170,7 @@ describe("Organisation detail", () => {
     mockedApi.organisation.mockResolvedValue(organisation({ can_edit: true, can_delete: true, can_manage_members: true }));
     mockedApi.organisations.mockResolvedValue(paginated([organisation({ can_edit: true, can_delete: true, can_manage_members: true })]));
     mockedApi.organisationMembers.mockResolvedValue({ organisation: { id: 1, name: "FIVB" }, data: [membership()] });
+    mockedApi.groups.mockResolvedValue(paginated([]));
   });
 
   it("loads details and roster", async () => {
@@ -228,6 +230,7 @@ describe("Pending organisation requests", () => {
     mockedApi.organisation.mockResolvedValue(organisation({ can_approve_members: true }));
     mockedApi.organisations.mockResolvedValue(paginated([organisation()]));
     mockedApi.organisationMembers.mockResolvedValue({ organisation: { id: 1, name: "FIVB" }, data: [membership({ id: 42, person_id: 10, status: "pending", status_label: "Pending" })] });
+    mockedApi.groups.mockResolvedValue(paginated([]));
   });
 
   it("approves by membership ID and moves the request into active members", async () => {

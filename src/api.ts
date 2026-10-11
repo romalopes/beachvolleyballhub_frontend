@@ -2366,6 +2366,16 @@ export const api = {
       "DELETE",
     ),
   /**
+   * Ends the current user's own organisation membership (self-service leave).
+   * Counterpart to `joinOrganisation` — no admin authority required.
+   */
+  leaveOrganisation: (id: number) =>
+    postJSON<OrganisationMembershipEnded>(
+      `/organisations/${id}/memberships/leave`,
+      {},
+      "DELETE",
+    ),
+  /**
    * Uploads or replaces a logo. Multipart, and on its own route so the JSON
    * `update` above keeps a single content-type contract. The server validates
    * content type, size and pixel dimensions.
@@ -2485,12 +2495,14 @@ export const api = {
     status?: GroupStatus | "all";
     include_private?: boolean;
     mine?: boolean;
+    organisation_id?: number;
   }) => {
     const qs = new URLSearchParams();
     if (params?.q) qs.set("q", params.q);
     if (params?.status) qs.set("status", params.status);
     if (params?.include_private) qs.set("include_private", "1");
     if (params?.mine) qs.set("mine", "1");
+    if (params?.organisation_id) qs.set("organisation_id", String(params.organisation_id));
     const query = qs.toString();
     const response = await fetchAPI<Group[] | PaginatedResponse<Group>>(
       `/groups${query ? `?${query}` : ""}`,
@@ -2592,6 +2604,30 @@ export const api = {
     postJSON<{ removed: boolean; membership_id: number }>(
       `/groups/${id}/memberships/${membershipId}/reject`,
       {},
+    ),
+
+  /**
+   * Update a group member's role (owner, coach, member).
+   * Only the group owner (or admin/curator) can change roles.
+   * Cannot change your own role or demote the owner without assigning a new one.
+   */
+  updateGroupMember: (id: number, membershipId: number, role: "owner" | "coach" | "member") =>
+    postJSON<{ membership: GroupMember }>(
+      `/groups/${id}/memberships/${membershipId}`,
+      { role },
+      "PATCH",
+    ),
+
+  /**
+   * Remove a member from the group (end membership).
+   * Only the group owner (or admin/curator) can remove members.
+   * Cannot remove yourself or the owner.
+   */
+  endGroupMember: (id: number, membershipId: number) =>
+    postJSON<{ removed: boolean; membership_id: number }>(
+      `/groups/${id}/memberships/${membershipId}`,
+      {},
+      "DELETE",
     ),
 
   // ---------- Ranking consolidations (Phase 4) ----------
