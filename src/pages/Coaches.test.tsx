@@ -18,6 +18,9 @@ vi.mock("../api", async (importOriginal) => {
       createCoach: vi.fn(),
       updateCoach: vi.fn(),
       organisations: vi.fn(),
+      groups: vi.fn(),
+      addOrganisationMember: vi.fn(),
+      addGroupMember: vi.fn(),
     },
   };
 });
@@ -68,6 +71,9 @@ beforeEach(() => {
   mockedApi.coaches.mockResolvedValue(paginated([]));
   mockedApi.people.mockResolvedValue([]);
   mockedApi.organisations.mockResolvedValue(paginated([]));
+  mockedApi.groups.mockResolvedValue(paginated([]));
+  mockedApi.addOrganisationMember.mockResolvedValue({} as never);
+  mockedApi.addGroupMember.mockResolvedValue({} as never);
 });
 
 afterEach(() => vi.clearAllMocks());
@@ -83,6 +89,58 @@ describe("Coaches", () => {
     expect(screen.queryByLabelText("Search people")).not.toBeInTheDocument();
     expect(screen.queryByLabelText("Contact email")).not.toBeInTheDocument();
     expect(mockedApi.people).not.toHaveBeenCalled();
+  });
+
+  it("offers optional organisation and group membership pickers", async () => {
+    mockedApi.organisations.mockResolvedValue(
+      paginated([{ id: 3, name: "Sydney Club" }]) as never,
+    );
+    mockedApi.groups.mockResolvedValue(
+      paginated([{ id: 7, name: "U19 squad" }]) as never,
+    );
+    renderCoaches();
+
+    await userEvent.click(await screen.findByRole("button", { name: "New coach" }));
+
+    expect(screen.getByLabelText("Organisation")).toBeInTheDocument();
+    expect(screen.queryByLabelText("Group")).not.toBeInTheDocument();
+
+    await userEvent.selectOptions(screen.getByLabelText("Organisation"), "3");
+
+    expect(await screen.findByLabelText("Group")).toBeInTheDocument();
+    expect(mockedApi.groups).toHaveBeenCalledWith(
+      expect.objectContaining({ organisation_id: 3 }),
+    );
+  });
+
+  it("adds the new coach to the chosen organisation and group", async () => {
+    mockedApi.organisations.mockResolvedValue(
+      paginated([{ id: 3, name: "Sydney Club" }]) as never,
+    );
+    mockedApi.groups.mockResolvedValue(
+      paginated([{ id: 7, name: "U19 squad" }]) as never,
+    );
+    mockedApi.createCoach.mockResolvedValue({
+      ...coach({ id: 4, person_id: null, display_name: "New Coach" }),
+      possible_duplicates: [],
+    });
+    renderCoaches();
+
+    await userEvent.click(await screen.findByRole("button", { name: "New coach" }));
+    await userEvent.type(screen.getByLabelText("Display name"), "New Coach");
+    await userEvent.selectOptions(screen.getByLabelText("Organisation"), "3");
+    await userEvent.selectOptions(await screen.findByLabelText("Group"), "7");
+    await userEvent.click(screen.getByRole("button", { name: "Add coach" }));
+
+    expect(mockedApi.addOrganisationMember).toHaveBeenCalledWith(
+      3,
+      { memberable_type: "CoachProfile", memberable_id: 4 },
+      { role: "member", status: "active" },
+    );
+    expect(mockedApi.addGroupMember).toHaveBeenCalledWith(7, {
+      memberableType: "CoachProfile",
+      memberableId: 4,
+    });
   });
 
   it("lists coaches with their details and account status", async () => {

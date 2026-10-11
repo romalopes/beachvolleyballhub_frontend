@@ -2531,13 +2531,24 @@ export const api = {
   deleteGroup: (id: number) =>
     postJSON<{ message: string; id: number }>(`/groups/${id}`, {}, "DELETE"),
   /**
-   * Adds people to the roster by **person**, not by player profile: a squad can
-   * hold somebody who has never registered as one (§2.2). The server refuses
-   * anybody who is not an active member of the group's organisation.
+   * Adds a member to a group's roster. A member is either an Account
+   * (`accountIds`) or an accountless PlayerProfile/CoachProfile
+   * (`memberableType` + `memberableId`) — the roster is keyed on a polymorphic
+   * subject (§4.4), so a profile with no account can be added in its own right.
+   * The server refuses anybody who is not an active member of the group's
+   * organisation.
    */
-  addGroupMembers: (id: number, personIds: number[]) =>
+  addGroupMember: (
+    id: number,
+    member:
+      | { accountIds: number[] }
+      | { memberableType: "PlayerProfile" | "CoachProfile"; memberableId: number },
+  ) =>
     postJSON<{ group: GroupDetail; added: number }>(`/groups/${id}/members`, {
-      person_ids: personIds,
+      ...("accountIds" in member ? { account_ids: member.accountIds } : {}),
+      ...("memberableType" in member
+        ? { memberable_type: member.memberableType, memberable_id: member.memberableId }
+        : {}),
     }),
   /**
    * Ends the membership rather than deleting the row (§2.5). Refused with 422 for

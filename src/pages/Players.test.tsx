@@ -22,6 +22,9 @@ vi.mock("../api", async (importOriginal) => {
       createPlayer: vi.fn(),
       updatePlayer: vi.fn(),
       organisations: vi.fn(),
+      groups: vi.fn(),
+      addOrganisationMember: vi.fn(),
+      addGroupMember: vi.fn(),
     },
   };
 });
@@ -72,6 +75,9 @@ beforeEach(() => {
   mockedApi.players.mockResolvedValue(paginated([]));
   mockedApi.people.mockResolvedValue([]);
   mockedApi.organisations.mockResolvedValue(paginated([]));
+  mockedApi.groups.mockResolvedValue(paginated([]));
+  mockedApi.addOrganisationMember.mockResolvedValue({} as never);
+  mockedApi.addGroupMember.mockResolvedValue({} as never);
 });
 
 afterEach(() => vi.clearAllMocks());
@@ -96,6 +102,78 @@ describe("Players", () => {
         visibility: "shared",
       }),
     });
+  });
+
+  it("offers optional organisation and group membership pickers", async () => {
+    mockedApi.organisations.mockResolvedValue(
+      paginated([{ id: 3, name: "Sydney Club" }]) as never,
+    );
+    mockedApi.groups.mockResolvedValue(
+      paginated([{ id: 7, name: "U19 squad" }]) as never,
+    );
+    renderPlayers();
+
+    await userEvent.click(await screen.findByRole("button", { name: "New player" }));
+
+    // The organisation picker is offered, and the group picker only appears once
+    // an organisation has been chosen.
+    expect(screen.getByLabelText("Organisation")).toBeInTheDocument();
+    expect(screen.queryByLabelText("Group")).not.toBeInTheDocument();
+
+    await userEvent.selectOptions(screen.getByLabelText("Organisation"), "3");
+
+    expect(await screen.findByLabelText("Group")).toBeInTheDocument();
+    expect(mockedApi.groups).toHaveBeenCalledWith(
+      expect.objectContaining({ organisation_id: 3 }),
+    );
+  });
+
+  it("adds the new player to the chosen organisation and group", async () => {
+    mockedApi.organisations.mockResolvedValue(
+      paginated([{ id: 3, name: "Sydney Club" }]) as never,
+    );
+    mockedApi.groups.mockResolvedValue(
+      paginated([{ id: 7, name: "U19 squad" }]) as never,
+    );
+    mockedApi.createPlayer.mockResolvedValue({
+      ...player({ id: 9, person_id: null, display_name: "Pedro Santos" }),
+      possible_duplicates: [],
+    });
+    renderPlayers();
+
+    await userEvent.click(await screen.findByRole("button", { name: "New player" }));
+    await userEvent.type(screen.getByLabelText(/display name/i), "Pedro Santos");
+    await userEvent.selectOptions(screen.getByLabelText("Organisation"), "3");
+    await userEvent.selectOptions(await screen.findByLabelText("Group"), "7");
+    await userEvent.click(screen.getByRole("button", { name: "Add player" }));
+
+    expect(mockedApi.addOrganisationMember).toHaveBeenCalledWith(
+      3,
+      { memberable_type: "PlayerProfile", memberable_id: 9 },
+      { role: "member", status: "active" },
+    );
+    expect(mockedApi.addGroupMember).toHaveBeenCalledWith(7, {
+      memberableType: "PlayerProfile",
+      memberableId: 9,
+    });
+  });
+
+  it("records the player even when no membership is chosen", async () => {
+    mockedApi.createPlayer.mockResolvedValue({
+      ...player({ id: 9, person_id: null, display_name: "Pedro Santos" }),
+      possible_duplicates: [],
+    });
+    renderPlayers();
+
+    await userEvent.click(await screen.findByRole("button", { name: "New player" }));
+    await userEvent.type(screen.getByLabelText(/display name/i), "Pedro Santos");
+    await userEvent.click(screen.getByRole("button", { name: "Add player" }));
+
+    expect(mockedApi.addOrganisationMember).not.toHaveBeenCalled();
+    expect(mockedApi.addGroupMember).not.toHaveBeenCalled();
+    expect(
+      await screen.findByText("Pedro Santos is now a player profile"),
+    ).toBeInTheDocument();
   });
 
   

@@ -6003,6 +6003,32 @@
   grid-column: 1 / -1;
 }
 
+/* Optional organisation + group membership pickers on the create form. Same
+   card treatment as the profile fields; the meta hint spans the grid. */
+.person-membership-fields {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 0.75rem;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  padding: 0.75rem 1rem 1rem;
+  margin: 0 0 1rem;
+}
+
+.person-membership-fields legend {
+  grid-column: 1 / -1;
+  display: flex;
+  align-items: center;
+  gap: 0.375rem;
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: var(--charcoal);
+}
+
+.person-membership-fields .related-item-meta {
+  grid-column: 1 / -1;
+}
+
 .person-duplicates {
   padding: 0.75rem 1rem;
   background: var(--white);

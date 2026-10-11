@@ -524,6 +524,25 @@ describe("people, players and coaches", () => {
       coach: { coach_profile: { coaching_level: "national" } },
     });
   });
+
+  it("adds an accountless profile to a group by memberable", async () => {
+    const fetchMock = mockFetchOnce({ ok: true, status: 200, body: { group: {}, added: 1 } });
+    await api.addGroupMember(7, { memberableType: "PlayerProfile", memberableId: 9 });
+    const [url, init] = fetchMock.mock.calls[0] as [string, RequestInit];
+    expect(url).toBe("/api/v1/groups/7/members");
+    expect(init.method).toBe("POST");
+    expect(JSON.parse(init.body as string)).toEqual({
+      memberable_type: "PlayerProfile",
+      memberable_id: 9,
+    });
+  });
+
+  it("adds accounts to a group by account id", async () => {
+    const fetchMock = mockFetchOnce({ ok: true, status: 200, body: { group: {}, added: 1 } });
+    await api.addGroupMember(7, { accountIds: [3, 4] });
+    const [, init] = fetchMock.mock.calls[0] as [string, RequestInit];
+    expect(JSON.parse(init.body as string)).toEqual({ account_ids: [3, 4] });
+  });
 });
 
 describe("identity API contracts", () => {
