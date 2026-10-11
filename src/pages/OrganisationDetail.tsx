@@ -369,6 +369,26 @@ function OrganisationRoster({ organisation }: { organisation: Organisation }) {
     }
   };
 
+
+  const addFormerMember = async (membership: OrganisationMembership) => {
+    if (!window.confirm(`Add ${membership.person_name ?? "this member"} back to ${organisation.name}?`)) return;
+    setBusyId(membership.id);
+    setError(null);
+    setNotice(null);
+    try {
+      const savedMembership = await api.updateOrganisationMembership(
+        organisation.id,
+        membership.id,
+        { status: "active" }
+      );
+      setMemberships((current) => current.map((item) => item.id === savedMembership.id ? savedMembership : item));
+      setNotice(`${savedMembership.person_name ?? "Member"} added back to the roster.`);
+    } catch (reason) {
+      setError(reason instanceof Error ? reason.message : "Failed to add member back.");
+    } finally {
+      setBusyId(null);
+    }
+  };
   const review = async (membership: OrganisationMembership, decision: "approve" | "reject") => {
     setBusyId(membership.id);
     setError(null);
@@ -407,7 +427,7 @@ function OrganisationRoster({ organisation }: { organisation: Organisation }) {
       {pending.length > 0 && <RosterGroup title={`Pending requests (${pending.length})`} memberships={pending} canManage={false} canApprove={organisation.can_approve_members} busyId={busyId} onRoleChange={changeRole} onRemove={remove} onReview={review} />}
       {suspended.length > 0 && <RosterGroup title={`Suspended members (${suspended.length})`} memberships={suspended} canManage={organisation.can_manage_members} busyId={busyId} onRoleChange={changeRole} onRemove={remove} />}
       <RosterGroup title={`Active members (${active.length})`} memberships={active} canManage={organisation.can_manage_members} busyId={busyId} onRoleChange={changeRole} onRemove={remove} />
-      {former.length > 0 && <RosterGroup title={`Former members (${former.length})`} memberships={former} canManage={false} busyId={busyId} onRoleChange={changeRole} onRemove={remove} />}
+      {former.length > 0 && <RosterGroup title={`Former members (${former.length})`} memberships={former} canManage={organisation.can_manage_members} busyId={busyId} onRoleChange={changeRole} onAdd={addFormerMember} />}
     </section>
   );
 }
@@ -421,6 +441,7 @@ function RosterGroup({
   busyId,
   onRoleChange,
   onRemove,
+  onAdd,
 }: {
   title: string;
   memberships: OrganisationMembership[];
@@ -429,7 +450,8 @@ function RosterGroup({
   onReview?: (membership: OrganisationMembership, decision: "approve" | "reject") => void;
   busyId: number | null;
   onRoleChange: (membership: OrganisationMembership, role: OrganisationMembershipRole) => void;
-  onRemove: (membership: OrganisationMembership) => void;
+  onRemove?: (membership: OrganisationMembership) => void;
+  onAdd?: (membership: OrganisationMembership) => void;
 }) {
   return (
     <div className="organisations-roster-group">
@@ -446,7 +468,16 @@ function RosterGroup({
                 <button type="button" className="admin-btn admin-btn-primary" disabled={busyId !== null} onClick={() => onReview(membership, "approve")}>Approve</button>
                 <button type="button" className="admin-btn admin-btn-danger" disabled={busyId !== null} onClick={() => onReview(membership, "reject")}>Reject</button>
               </>}
-              {canManage && <button type="button" className="admin-btn admin-btn-danger" disabled={busyId !== null} onClick={() => onRemove(membership)}>Remove</button>}
+              {canManage && onAdd && (
+                <button type="button" className="admin-btn admin-btn-primary" disabled={busyId !== null} onClick={() => onAdd(membership)}>
+                  Add
+                </button>
+              )}
+              {canManage && onRemove && (
+                <button type="button" className="admin-btn admin-btn-danger" disabled={busyId !== null} onClick={() => onRemove(membership)}>
+                  Remove
+                </button>
+              )}
             </li>
           ))}
         </ul>

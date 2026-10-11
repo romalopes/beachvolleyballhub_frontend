@@ -137,6 +137,47 @@ describe("CoachDetail", () => {
     expect(screen.getByText("Visibility: Shared")).toBeInTheDocument();
   });
 
+  it("renders linked account memberships through the shared membership sections", async () => {
+    mockedApi.coach.mockResolvedValue(coach({
+      organisation_memberships: [{
+        id: 1,
+        account_id: 9,
+        organisation_id: 4,
+        person_id: 0,
+        person_name: null,
+        role: "owner",
+        role_label: "Owner",
+        status: "active",
+        status_label: "Active",
+        joined_at: "2026-09-01T00:00:00.000Z",
+        left_at: null,
+        manages: true,
+        created_at: "2026-09-01T00:00:00.000Z",
+        updated_at: "2026-09-01T00:00:00.000Z",
+        organisation: { id: 4, name: "Sydney Beach Volleyball Club" },
+      }],
+      group_memberships: [{
+        id: 2,
+        account_id: 9,
+        group_id: 8,
+        role: "owner",
+        status: "active",
+        joined_at: "2026-09-01T00:00:00.000Z",
+        left_at: null,
+        group: {
+          id: 8,
+          name: "U19 squad",
+          status: "active",
+          organisation: null,
+        },
+      }],
+    }));
+    renderDetail();
+
+    expect((await screen.findAllByRole("link", { name: "Sydney Beach Volleyball Club" }))[0]).toHaveAttribute("href", "/organisations/4");
+    expect(screen.getByRole("link", { name: "U19 squad" })).toHaveAttribute("href", "/groups/8");
+  });
+
   it("loads the coach by id", async () => {
     renderDetail();
 

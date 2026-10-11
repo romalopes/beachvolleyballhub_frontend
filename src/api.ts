@@ -1294,6 +1294,10 @@ export interface Player {
   training_session_count?: number;
   assessment_count?: number;
   assessments?: Assessment[];
+  /** Linked account memberships, included by the profile detail endpoint. */
+  organisation_memberships?: OrganisationMembership[];
+  /** Linked account group memberships, included by the profile detail endpoint. */
+  group_memberships?: UserGroupMembership[];
   person: ProfilePerson | null;
   /** Only on show: the sessions this player is attached to. */
   training_session_participants?: {
@@ -1465,6 +1469,10 @@ export interface Coach {
   coach_profile_id?: number;
   assessments_recorded_count?: number;
   recent_assessments?: Assessment[];
+  /** Linked account memberships, included by the profile detail endpoint. */
+  organisation_memberships?: OrganisationMembership[];
+  /** Linked account group memberships, included by the profile detail endpoint. */
+  group_memberships?: UserGroupMembership[];
   person: ProfilePerson | null;
 }
 
@@ -2639,6 +2647,18 @@ export const api = {
       `/groups/${id}/memberships/${membershipId}`,
       {},
       "DELETE",
+    ),
+
+  /** Update a group membership's role or status. */
+  updateGroupMembership: (
+    id: number,
+    membershipId: number,
+    data: { role?: GroupMember["role"]; status?: GroupMember["status"] }
+  ) =>
+    postJSON<{ membership: GroupMember }>(
+      `/groups/${id}/memberships/${membershipId}`,
+      { membership: data },
+      "PATCH",
     ),
 
   // ---------- Ranking consolidations (Phase 4) ----------
