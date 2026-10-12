@@ -135,6 +135,9 @@ export default function CoachDetail() {
   const canManageOwnMemberships = Boolean(
     coach.account?.id && user?.account_id === coach.account.id,
   );
+  const canManageCreatedProfileMemberships = Boolean(
+    !canManageOwnMemberships && coach.created_by?.id === user?.id,
+  );
 
   return (
     <div className="page">
@@ -287,7 +290,8 @@ export default function CoachDetail() {
       <MembershipSections
         organisationMemberships={coach.organisation_memberships}
         groupMemberships={coach.group_memberships}
-        canManageOwnMemberships={canManageOwnMemberships}
+        canManageOwnMemberships={canManageOwnMemberships || canManageCreatedProfileMemberships}
+        managedProfile={canManageCreatedProfileMemberships ? { type: "CoachProfile", id: coach.id } : undefined}
         onMembershipsChanged={() => window.location.reload()}
       />
       <CoachingRelationships

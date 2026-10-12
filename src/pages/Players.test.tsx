@@ -23,8 +23,6 @@ vi.mock("../api", async (importOriginal) => {
       updatePlayer: vi.fn(),
       organisations: vi.fn(),
       groups: vi.fn(),
-      addOrganisationMember: vi.fn(),
-      addGroupMember: vi.fn(),
     },
   };
 });
@@ -76,13 +74,32 @@ beforeEach(() => {
   mockedApi.people.mockResolvedValue([]);
   mockedApi.organisations.mockResolvedValue(paginated([]));
   mockedApi.groups.mockResolvedValue(paginated([]));
-  mockedApi.addOrganisationMember.mockResolvedValue({} as never);
-  mockedApi.addGroupMember.mockResolvedValue({} as never);
 });
 
 afterEach(() => vi.clearAllMocks());
 
 describe("Players", () => {
+  it("shows New player to player and curator roles", async () => {
+    mockedApi.me.mockResolvedValue({ ...coachUser, roles: ["player"] });
+    const { unmount } = renderPlayers();
+
+    expect(await screen.findByRole("button", { name: "New player" })).toBeInTheDocument();
+    unmount();
+
+    mockedApi.me.mockResolvedValue({ ...coachUser, roles: ["curator"] });
+    renderPlayers();
+
+    expect(await screen.findByRole("button", { name: "New player" })).toBeInTheDocument();
+  });
+
+  it("hides New player from roles without player-profile creation permission", async () => {
+    mockedApi.me.mockResolvedValue({ ...coachUser, roles: [] });
+    renderPlayers();
+
+    await screen.findByLabelText("Search players");
+    expect(screen.queryByRole("button", { name: "New player" })).not.toBeInTheDocument();
+  });
+
   it("records a player without an account so they can claim it later", async () => {
     // Keep the personless form available alongside profiles recorded on a
     // Person; both accountless states can now receive profile invitations.
@@ -96,12 +113,12 @@ describe("Players", () => {
     await userEvent.type(screen.getByLabelText(/display name/i), "Pedro Santos");
     await userEvent.click(screen.getByRole("button", { name: "Add player" }));
 
-    expect(mockedApi.createPlayer).toHaveBeenCalledWith({
+    expect(mockedApi.createPlayer).toHaveBeenCalledWith(expect.objectContaining({
       player_profile: expect.objectContaining({
         display_name: "Pedro Santos",
         visibility: "shared",
       }),
-    });
+    }));
   });
 
   it("offers optional organisation and group membership pickers", async () => {
@@ -128,7 +145,7 @@ describe("Players", () => {
     );
   });
 
-  it("adds the new player to the chosen organisation and group", async () => {
+  it("creates the player with the chosen organisation and group atomically", async () => {
     mockedApi.organisations.mockResolvedValue(
       paginated([{ id: 3, name: "Sydney Club" }]) as never,
     );
@@ -147,15 +164,11 @@ describe("Players", () => {
     await userEvent.selectOptions(await screen.findByLabelText("Group"), "7");
     await userEvent.click(screen.getByRole("button", { name: "Add player" }));
 
-    expect(mockedApi.addOrganisationMember).toHaveBeenCalledWith(
-      3,
-      { memberable_type: "PlayerProfile", memberable_id: 9 },
-      { role: "member", status: "active" },
-    );
-    expect(mockedApi.addGroupMember).toHaveBeenCalledWith(7, {
-      memberableType: "PlayerProfile",
-      memberableId: 9,
-    });
+    expect(mockedApi.createPlayer).toHaveBeenCalledWith(expect.objectContaining({
+      organisation_id: 3,
+      group_id: 7,
+      player_profile: expect.objectContaining({ display_name: "Pedro Santos" }),
+    }));
   });
 
   it("records the player even when no membership is chosen", async () => {
@@ -169,8 +182,10 @@ describe("Players", () => {
     await userEvent.type(screen.getByLabelText(/display name/i), "Pedro Santos");
     await userEvent.click(screen.getByRole("button", { name: "Add player" }));
 
-    expect(mockedApi.addOrganisationMember).not.toHaveBeenCalled();
-    expect(mockedApi.addGroupMember).not.toHaveBeenCalled();
+    expect(mockedApi.createPlayer).toHaveBeenCalledWith(expect.objectContaining({
+      organisation_id: null,
+      group_id: null,
+    }));
     expect(
       await screen.findByText("Pedro Santos is now a player profile"),
     ).toBeInTheDocument();
@@ -186,6 +201,7 @@ describe("Players", () => {
           preferred_position: "setter",
           level: "intermediate",
           account_status: "connected",
+          account: { id: 11, full_name: "Maria Silva" },
         }),
       ]),
     );
@@ -193,7 +209,7 @@ describe("Players", () => {
 
     expect(await screen.findByText("Maria Silva")).toBeInTheDocument();
     expect(screen.getByText("setter · intermediate")).toBeInTheDocument();
-    expect(screen.getByText("Account connected")).toBeInTheDocument();
+    expect(screen.getByText("Account: Maria Silva")).toBeInTheDocument();
   });
 
   it("offers an invite link for an accountless player already linked to a Person", async () => {
@@ -399,7 +415,7 @@ describe("Players", () => {
     ).toBeInTheDocument();
   });
 
-  it("hides the create button from a player account", async () => {
+  it("shows the create button to a player account without management controls", async () => {
     mockedApi.me.mockResolvedValue({
       id: 5,
       name: "Player",
@@ -409,8 +425,8 @@ describe("Players", () => {
     renderPlayers();
 
     await screen.findByLabelText("Search players");
-    expect(
-      screen.queryByRole("button", { name: /New player/ }),
-    ).not.toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /New player/ })).toBeInTheDocument();
+    expect(screen.queryByLabelText("Show private players")).not.toBeInTheDocument();
+    expect(screen.queryByLabelText("My players only")).not.toBeInTheDocument();
   });
 });

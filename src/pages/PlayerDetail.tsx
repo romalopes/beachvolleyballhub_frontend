@@ -130,6 +130,9 @@ export default function PlayerDetail() {
   const canManageOwnMemberships = Boolean(
     player.account?.id && user?.account_id === player.account.id,
   );
+  const canManageCreatedProfileMemberships = Boolean(
+    !canManageOwnMemberships && player.created_by?.id === user?.id,
+  );
 
   // Mirrors the API's `profile_owner?` (an admin, or the coach who recorded the
   // profile) so the panel can explain *why* it is unavailable instead of
@@ -304,7 +307,8 @@ export default function PlayerDetail() {
         <MembershipSections
           organisationMemberships={player.organisation_memberships}
           groupMemberships={player.group_memberships}
-          canManageOwnMemberships={canManageOwnMemberships}
+        canManageOwnMemberships={canManageOwnMemberships || canManageCreatedProfileMemberships}
+        managedProfile={canManageCreatedProfileMemberships ? { type: "PlayerProfile", id: player.id } : undefined}
           onMembershipsChanged={() => window.location.reload()}
         />
         <CoachingRelationships

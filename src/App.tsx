@@ -96,6 +96,16 @@ function ManagerRoute({ children }: { children: React.ReactNode }) {
   return <>{children}</>;
 }
 
+function GroupCreatorRoute({ children }: { children: React.ReactNode }) {
+  const { user, loading } = useAuth();
+  if (loading) return null;
+  const canCreateGroups = user?.roles?.some(
+    (role) => role === "player" || role === "coach" || role === "curator" || role === "admin",
+  );
+  if (!canCreateGroups) return <Navigate to="/" replace />;
+  return <>{children}</>;
+}
+
 function AuthenticatedRoute({ children }: { children: React.ReactNode }) {
   const { user, loading } = useAuth();
   if (loading) return null;
@@ -272,9 +282,9 @@ export default function App() {
                 <Route
                   path="/groups"
                   element={
-                    <ManagerRoute>
+                    <GroupCreatorRoute>
                       <Groups />
-                    </ManagerRoute>
+                    </GroupCreatorRoute>
                   }
                 />
                 <Route

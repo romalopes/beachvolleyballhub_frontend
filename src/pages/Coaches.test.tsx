@@ -19,8 +19,6 @@ vi.mock("../api", async (importOriginal) => {
       updateCoach: vi.fn(),
       organisations: vi.fn(),
       groups: vi.fn(),
-      addOrganisationMember: vi.fn(),
-      addGroupMember: vi.fn(),
     },
   };
 });
@@ -72,13 +70,26 @@ beforeEach(() => {
   mockedApi.people.mockResolvedValue([]);
   mockedApi.organisations.mockResolvedValue(paginated([]));
   mockedApi.groups.mockResolvedValue(paginated([]));
-  mockedApi.addOrganisationMember.mockResolvedValue({} as never);
-  mockedApi.addGroupMember.mockResolvedValue({} as never);
 });
 
 afterEach(() => vi.clearAllMocks());
 
 describe("Coaches", () => {
+  it("shows New coach to curator roles", async () => {
+    mockedApi.me.mockResolvedValue({ ...coachUser, roles: ["curator"] });
+    renderCoaches();
+
+    expect(await screen.findByRole("button", { name: "New coach" })).toBeInTheDocument();
+  });
+
+  it("hides New coach from player roles", async () => {
+    mockedApi.me.mockResolvedValue({ ...coachUser, roles: ["player"] });
+    renderCoaches();
+
+    await screen.findByLabelText("Search coaches");
+    expect(screen.queryByRole("button", { name: "New coach" })).not.toBeInTheDocument();
+  });
+
   it("records a profile without a Person lookup or contact fields", async () => {
     renderCoaches();
     await userEvent.click(
@@ -113,7 +124,7 @@ describe("Coaches", () => {
     );
   });
 
-  it("adds the new coach to the chosen organisation and group", async () => {
+  it("creates the coach with the chosen organisation and group atomically", async () => {
     mockedApi.organisations.mockResolvedValue(
       paginated([{ id: 3, name: "Sydney Club" }]) as never,
     );
@@ -132,15 +143,11 @@ describe("Coaches", () => {
     await userEvent.selectOptions(await screen.findByLabelText("Group"), "7");
     await userEvent.click(screen.getByRole("button", { name: "Add coach" }));
 
-    expect(mockedApi.addOrganisationMember).toHaveBeenCalledWith(
-      3,
-      { memberable_type: "CoachProfile", memberable_id: 4 },
-      { role: "member", status: "active" },
-    );
-    expect(mockedApi.addGroupMember).toHaveBeenCalledWith(7, {
-      memberableType: "CoachProfile",
-      memberableId: 4,
-    });
+    expect(mockedApi.createCoach).toHaveBeenCalledWith(expect.objectContaining({
+      organisation_id: 3,
+      group_id: 7,
+      coach_profile: expect.objectContaining({ display_name: "New Coach" }),
+    }));
   });
 
   it("lists coaches with their details and account status", async () => {
@@ -268,14 +275,15 @@ describe("Coaches", () => {
     await userEvent.type(screen.getByLabelText("Coaching level"), "national");
     await userEvent.click(screen.getByRole("button", { name: "Add coach" }));
 
-    expect(mockedApi.createCoach).toHaveBeenCalledWith({
+    expect(mockedApi.createCoach).toHaveBeenCalledWith(expect.objectContaining({
       coach_profile: {
         display_name: "New Coach",
         coaching_level: "national",
+        email: null,
         qualifications: null,
         visibility: "shared",
       },
-    });
+    }));
     expect(
       await screen.findByText("New Coach is now a coach profile"),
     ).toBeInTheDocument();
@@ -291,14 +299,13 @@ describe("Coaches", () => {
     await userEvent.click(screen.getByRole("button", { name: "Add coach" }));
 
     await waitFor(() =>
-      expect(mockedApi.createCoach).toHaveBeenCalledWith({
-        coach_profile: {
+      expect(mockedApi.createCoach).toHaveBeenCalledWith(expect.objectContaining({
+        coach_profile: expect.objectContaining({
           display_name: "Sam Coach",
           coaching_level: "national",
-          qualifications: null,
           visibility: "shared",
-        },
-      }),
+        }),
+      })),
     );
   });
 
@@ -313,7 +320,7 @@ describe("Coaches", () => {
     ).toHaveAttribute("href", "/coaches/1/edit");
   });
 
-  it("hides the create button from a curator", async () => {
+  it("shows the create button to a curator without edit controls", async () => {
     mockedApi.me.mockResolvedValue({
       id: 4,
       name: "Curator",
@@ -324,9 +331,7 @@ describe("Coaches", () => {
     renderCoaches();
 
     await screen.findByLabelText("Search coaches");
-    expect(
-      screen.queryByRole("button", { name: /New coach/ }),
-    ).not.toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /New coach/ })).toBeInTheDocument();
     expect(screen.queryByRole("link", { name: /^Edit / })).not.toBeInTheDocument();
   });
 });

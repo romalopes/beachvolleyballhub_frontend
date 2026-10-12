@@ -21,6 +21,7 @@ import ProfileCreatePanel from "../components/people/ProfileCreatePanel";
 import ProfileInviteLinkButton from "../components/people/ProfileInviteLinkButton";
 import {
   archiveCoach,
+  canCreateCoachProfile,
   canManageProfiles,
   deleteCoachProfile,
   isArchived,
@@ -42,6 +43,7 @@ const PER_PAGE = 20;
 export default function Coaches() {
   const { user } = useAuth();
   const canEdit = canManageProfiles(user);
+  const canRecord = canCreateCoachProfile(user);
   const [coaches, setCoaches] = useState<Coach[]>([]);
   const [search, setSearch] = useState("");
   const [page, setPage] = useState(1);
@@ -185,7 +187,7 @@ export default function Coaches() {
             }}
           />
         </label>
-        {canEdit && (
+        {canRecord && (
           <button
             type="button"
             className="admin-btn admin-btn-add"

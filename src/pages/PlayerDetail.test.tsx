@@ -26,6 +26,10 @@ vi.mock("../api", async (importOriginal) => {
       joinGroup: vi.fn(),
       leaveOrganisation: vi.fn(),
       leaveGroup: vi.fn(),
+      addProfileToOrganisation: vi.fn(),
+      addProfileToGroup: vi.fn(),
+      removeProfileFromOrganisation: vi.fn(),
+      removeProfileFromGroup: vi.fn(),
     },
   };
 });
@@ -169,12 +173,22 @@ describe("PlayerDetail", () => {
     mockedApi.player.mockResolvedValue(player({
       account_status: "connected",
       account: { id: 10, full_name: "Other player" },
+      created_by: { id: 99, name: "Other creator" },
     }));
     renderDetail();
 
     await screen.findByRole("heading", { name: "Pedro Santos" });
     expect(screen.queryByRole("button", { name: "Join Organisation" })).not.toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "Join Group" })).not.toBeInTheDocument();
+  });
+
+  it("shows membership controls to the coach who created an unlinked player profile", async () => {
+    mockedApi.me.mockResolvedValue(coachUser);
+    mockedApi.player.mockResolvedValue(player({ account_status: "profile_only" }));
+    renderDetail();
+
+    expect(await screen.findByRole("button", { name: "Join Organisation" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Join Group" })).toBeInTheDocument();
   });
 
   describe("claim invitations", () => {
@@ -312,6 +326,7 @@ describe("PlayerDetail", () => {
 
   it("renders linked account memberships through the shared membership sections", async () => {
     mockedApi.player.mockResolvedValue(player({
+      created_by: { id: 99, name: "Other creator" },
       organisation_memberships: [{
         id: 1,
         account_id: 9,
@@ -349,6 +364,50 @@ describe("PlayerDetail", () => {
 
     expect((await screen.findAllByRole("link", { name: "Sydney Beach Volleyball Club" }))[0]).toHaveAttribute("href", "/organisations/4");
     expect(screen.getByRole("link", { name: "U19 squad" })).toHaveAttribute("href", "/groups/8");
+  });
+
+  it("renders unclaimed-profile memberships without self-service controls", async () => {
+    mockedApi.player.mockResolvedValue(player({
+      account: null,
+      created_by: { id: 99, name: "Other creator" },
+      organisation_memberships: [{
+        id: 1,
+        account_id: null,
+        memberable_type: "PlayerProfile",
+        memberable_id: 12,
+        organisation_id: 4,
+        person_id: 0,
+        person_name: "Pedro Santos",
+        role: "member",
+        role_label: "Member",
+        status: "active",
+        status_label: "Active",
+        joined_at: "2026-09-01T00:00:00.000Z",
+        left_at: null,
+        manages: false,
+        created_at: "2026-09-01T00:00:00.000Z",
+        updated_at: "2026-09-01T00:00:00.000Z",
+        organisation: { id: 4, name: "Sydney Beach Volleyball Club" },
+      }],
+      group_memberships: [{
+        id: 2,
+        account_id: null,
+        memberable_type: "PlayerProfile",
+        memberable_id: 12,
+        group_id: 8,
+        role: "member",
+        status: "active",
+        joined_at: "2026-09-01T00:00:00.000Z",
+        left_at: null,
+        group: { id: 8, name: "U19 squad", status: "active", organisation: null },
+      }],
+    }));
+    renderDetail();
+
+    expect((await screen.findAllByRole("link", { name: "Sydney Beach Volleyball Club" }))[0]).toHaveAttribute("href", "/organisations/4");
+    expect(screen.getByRole("link", { name: "U19 squad" })).toHaveAttribute("href", "/groups/8");
+    expect(screen.queryByRole("button", { name: "Join Organisation" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Join Group" })).not.toBeInTheDocument();
   });
 
   it("offers Edit to a coach", async () => {

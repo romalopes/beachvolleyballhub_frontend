@@ -3,6 +3,7 @@ import userEvent from "@testing-library/user-event";
 import { MemoryRouter } from "react-router-dom";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { api, type Group as GroupRecord } from "../api";
+import { AuthContext, type AuthContextValue } from "../auth/AuthContext";
 import Groups from "./Groups";
 
 vi.mock("../api", async (importOriginal) => {
@@ -52,11 +53,25 @@ const page = <T,>(data: T[]) => ({
   meta: { page: 1, per_page: 20, total: data.length, total_pages: 1 },
 });
 
-const renderPage = () =>
+const authValue = (roles: string[] = ["coach"]): AuthContextValue => ({
+  user: { id: 1, email: "coach@example.com", roles } as unknown as AuthContextValue["user"],
+  loading: false,
+  login: vi.fn(),
+  register: vi.fn(),
+  resetPassword: vi.fn(),
+  logout: vi.fn(),
+  impersonation: { active: false, realAdmin: null },
+  startImpersonating: vi.fn(),
+  stopImpersonating: vi.fn(),
+});
+
+const renderPage = (roles?: string[]) =>
   render(
-    <MemoryRouter>
-      <Groups />
-    </MemoryRouter>,
+    <AuthContext.Provider value={authValue(roles)}>
+      <MemoryRouter>
+        <Groups />
+      </MemoryRouter>
+    </AuthContext.Provider>,
   );
 
 beforeEach(() => {
@@ -157,6 +172,28 @@ describe("Groups catalogue", () => {
 
 
 describe("Groups editor", () => {
+  it("shows every active organisation to an admin creating a group", async () => {
+    const user = userEvent.setup();
+    mockedApi.organisations.mockResolvedValue(
+      page([
+        { id: 1, name: "Volleyball Club", slug: "volleyball-club", description: null, status: "active", status_label: "Active", organisation_type: "club", parent_organisation_id: null, child_count: 0, member_count: 2, created_at: "2026-09-01T00:00:00Z", updated_at: "2026-09-01T00:00:00Z" },
+        { id: 2, name: "Northern Club", slug: "northern-club", description: null, status: "active", status_label: "Active", organisation_type: "club", parent_organisation_id: null, child_count: 0, member_count: 0, created_at: "2026-09-01T00:00:00Z", updated_at: "2026-09-01T00:00:00Z" },
+      ]) as never,
+    );
+    renderPage(["admin"]);
+    await screen.findByText("U19 squad");
+
+    await user.click(screen.getByRole("button", { name: /new group/i }));
+
+    expect(await screen.findByRole("option", { name: "Northern Club" })).toBeInTheDocument();
+    expect(mockedApi.organisations).toHaveBeenCalledWith(
+      "active",
+      undefined,
+      false,
+      false,
+    );
+  });
+
   it("creates a group with the players ticked in the roster picker", async () => {
     const user = userEvent.setup();
     mockedApi.createGroup.mockResolvedValue({ group: squad() } as never);

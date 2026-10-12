@@ -11,6 +11,7 @@ import {
   type Organisation,
   type OrganisationMembership,
 } from "../api";
+import { useAuth } from "../auth/AuthContext";
 import EmptyState from "../components/EmptyState";
 import PageHeader from "../components/PageHeader";
 
@@ -22,6 +23,7 @@ import PageHeader from "../components/PageHeader";
  * has already run sessions is archived rather than deleted.
  */
 export default function Groups() {
+  const { user } = useAuth();
   const [groups, setGroups] = useState<GroupRecord[]>([]);
   const [error, setError] = useState<string | null>(null);
 
@@ -84,11 +86,21 @@ export default function Groups() {
 
   
 
-  const loadMyOrganisations = async () => {
+  const loadAvailableOrganisations = async () => {
     if (myOrganisations.length > 0) return;
     setLoadingOrgs(true);
     try {
-      const res = await api.organisations("active", undefined, false, true);
+      // Site oversight can create groups for any organisation; other creators
+      // remain limited to organisations they actively belong to.
+      const canCreateForAnyOrganisation = Boolean(
+        user?.roles.some((role) => role === "admin" || role === "curator"),
+      );
+      const res = await api.organisations(
+        "active",
+        undefined,
+        false,
+        !canCreateForAnyOrganisation,
+      );
       setMyOrganisations(res.data);
     } catch (err) {
       setFormError(
@@ -136,7 +148,7 @@ export default function Groups() {
     });
     setMemberIds([]);
     setFormError(null);
-    await loadMyOrganisations();
+    await loadAvailableOrganisations();
   };
 
   const openEdit = async (group: GroupRecord) => {
@@ -144,7 +156,7 @@ export default function Groups() {
     setIsCreating(false);
     setFormError(null);
     try {
-      await loadMyOrganisations();
+      await loadAvailableOrganisations();
       const detail = await api.group(group.id);
       setEditing(detail.group);
       setForm({

@@ -21,6 +21,7 @@ import ProfileCreatePanel from "../components/people/ProfileCreatePanel";
 import ProfileInviteLinkButton from "../components/people/ProfileInviteLinkButton";
 import {
   archivePlayer,
+  canCreatePlayerProfile,
   canManageProfiles,
   deletePlayerProfile,
   isArchived,
@@ -43,7 +44,8 @@ const playerName = (player: Player) =>
  */
 export default function Players() {
   const { user } = useAuth();
-  const canRecord = canManageProfiles(user);
+  const canRecord = canCreatePlayerProfile(user);
+  const canManage = canManageProfiles(user);
   const [players, setPlayers] = useState<Player[]>([]);
   const [search, setSearch] = useState("");
   const [page, setPage] = useState(1);
@@ -223,7 +225,7 @@ export default function Players() {
             Archived players keep their training history — nothing was deleted.
           </span>
         )}
-        {canRecord && (
+        {canManage && (
           <>
             <label className="people-filter-toggle">
               <input
@@ -349,7 +351,7 @@ export default function Players() {
                     profileName={playerName(player)}
                   />
                 )}
-              {canRecord && (
+              {canManage && (
                 <Link
                   to={`/players/${player.id}/edit`}
                   className="admin-btn"
@@ -359,7 +361,7 @@ export default function Players() {
                   Edit
                 </Link>
               )}
-              {canRecord &&
+              {canManage &&
                 (isArchived(player) ? (
                   <button
                     type="button"

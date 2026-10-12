@@ -537,6 +537,14 @@ describe("people, players and coaches", () => {
     });
   });
 
+  it("adds a creator-managed profile through the scoped organisation endpoint", async () => {
+    const fetchMock = mockFetchOnce({ ok: true, status: 201, body: { id: 3 } });
+    await api.addProfileToOrganisation(7, { type: "PlayerProfile", id: 9 });
+    const [url, init] = fetchMock.mock.calls[0] as [string, RequestInit];
+    expect(url).toBe("/api/v1/organisations/7/memberships/profile");
+    expect(JSON.parse(init.body as string)).toEqual({ memberable_type: "PlayerProfile", memberable_id: 9 });
+  });
+
   it("adds accounts to a group by account id", async () => {
     const fetchMock = mockFetchOnce({ ok: true, status: 200, body: { group: {}, added: 1 } });
     await api.addGroupMember(7, { accountIds: [3, 4] });

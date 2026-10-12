@@ -1215,6 +1215,8 @@ export interface UserGroupMembership {
   id: number;
   group_id: number;
   account_id?: number | null;
+  memberable_type?: OrganisationMemberableType;
+  memberable_id?: number;
   role: "owner" | "coach" | "member";
   status: "active" | "ended";
   joined_at: string | null;
@@ -1294,9 +1296,9 @@ export interface Player {
   training_session_count?: number;
   assessment_count?: number;
   assessments?: Assessment[];
-  /** Linked account memberships, included by the profile detail endpoint. */
+  /** Roster memberships held by this profile or, after claim, its linked account. */
   organisation_memberships?: OrganisationMembership[];
-  /** Linked account group memberships, included by the profile detail endpoint. */
+  /** Group roster memberships held by this profile or, after claim, its linked account. */
   group_memberships?: UserGroupMembership[];
   person: ProfilePerson | null;
   /** Only on show: the sessions this player is attached to. */
@@ -1336,6 +1338,10 @@ export interface ProfileMergeResult {
  * issued against; a profile linked to a Person never needs one.
  */
 export interface PlayerInput {
+  /** Optional initial roster context; profile and memberships are created atomically. */
+  organisation_id?: number | null;
+  /** Must belong to `organisation_id` when supplied. */
+  group_id?: number | null;
   person_id?: number;
   person?: {
     first_name: string;
@@ -1469,14 +1475,18 @@ export interface Coach {
   coach_profile_id?: number;
   assessments_recorded_count?: number;
   recent_assessments?: Assessment[];
-  /** Linked account memberships, included by the profile detail endpoint. */
+  /** Roster memberships held by this profile or, after claim, its linked account. */
   organisation_memberships?: OrganisationMembership[];
-  /** Linked account group memberships, included by the profile detail endpoint. */
+  /** Group roster memberships held by this profile or, after claim, its linked account. */
   group_memberships?: UserGroupMembership[];
   person: ProfilePerson | null;
 }
 
 export interface CoachInput {
+  /** Optional initial roster context; profile and memberships are created atomically. */
+  organisation_id?: number | null;
+  /** Must belong to `organisation_id` when supplied. */
+  group_id?: number | null;
   person_id?: number;
   person?: {
     first_name: string;
@@ -2262,7 +2272,8 @@ export const api = {
    * nothing to be drawn under, and a client walking from the roots loses it.
    *
    * `mine` narrows to the organisations the caller actively belongs to — the
-   * choices worth offering somebody creating a group.
+   * choices worth offering an ordinary person creating a group. Admins and
+   * curators instead receive every active organisation they may create for.
    */
   organisations: (
     status?: string,
@@ -2333,6 +2344,21 @@ export const api = {
     postJSON<OrganisationMembership>(`/organisations/${id}/members`, {
       membership: typeof member === "number" ? { account_id: member, ...data } : { ...member, ...data },
     }),
+  /** Adds the caller-created player/coach profile; the server scopes this to that profile only. */
+  addProfileToOrganisation: (
+    id: number,
+    profile: { type: "PlayerProfile" | "CoachProfile"; id: number },
+  ) => postJSON<OrganisationMembership>(`/organisations/${id}/memberships/profile`, {
+    memberable_type: profile.type,
+    memberable_id: profile.id,
+  }),
+  removeProfileFromOrganisation: (
+    id: number,
+    profile: { type: "PlayerProfile" | "CoachProfile"; id: number },
+  ) => postJSON<OrganisationMembershipEnded>(`/organisations/${id}/memberships/profile`, {
+    memberable_type: profile.type,
+    memberable_id: profile.id,
+  }, "DELETE"),
   updateOrganisationMember: (
     id: number,
     accountId: number,
@@ -2495,7 +2521,8 @@ export const api = {
     }>(`/assessment_sessions/${id}/ranking`),
 
   // ---------- Groups (Phase A / D23) ----------
-  // Read is open to training managers; create/update/delete need coach or admin.
+  // Read is open to training managers; any player, coach, curator, or admin
+  // can create a group. Update/delete retain the server's ownership rules.
   // The picker asks for `include_private` because visibility is presentation
   // only — a coach may schedule any group they can see the name of.
   groups: async (params?: {
@@ -2606,6 +2633,21 @@ export const api = {
    */
   joinGroup: (id: number) =>
     postJSON<{ membership: GroupMember }>(`/groups/${id}/join`, {}),
+  /** Adds the caller-created player/coach profile; the server scopes this to that profile only. */
+  addProfileToGroup: (
+    id: number,
+    profile: { type: "PlayerProfile" | "CoachProfile"; id: number },
+  ) => postJSON<{ group: Group; added: number }>(`/groups/${id}/memberships/profile`, {
+    memberable_type: profile.type,
+    memberable_id: profile.id,
+  }),
+  removeProfileFromGroup: (
+    id: number,
+    profile: { type: "PlayerProfile" | "CoachProfile"; id: number },
+  ) => postJSON<{ removed: boolean; membership_id: number }>(`/groups/${id}/memberships/profile`, {
+    memberable_type: profile.type,
+    memberable_id: profile.id,
+  }, "DELETE"),
   /**
    * Approve a pending group join request. The group's owner plus curator/admin
    * oversight may approve; anyone else gets a 403 from the server.

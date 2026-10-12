@@ -1,15 +1,28 @@
 import type { ProfileStatus, User } from "../api";
 import { api } from "../api";
 
-/**
- * Recording and editing player/coach profiles is what coaches and admins do —
- * a curator manages the shared schedule but not the club's roster. Mirrors the
- * backend's `require_content_creator!`, so the UI never offers a button that
- * would come back 403.
- */
+/** Editing player/coach profiles is limited to coaches and admins. */
 export function canManageProfiles(user: User | null | undefined): boolean {
   return Boolean(
     user?.roles?.some((role) => role === "coach" || role === "admin"),
+  );
+}
+
+/** Mirrors the API permission to record a player profile. */
+export function canCreatePlayerProfile(user: User | null | undefined): boolean {
+  return Boolean(
+    user?.roles?.some((role) =>
+      ["player", "coach", "curator", "admin"].includes(role),
+    ),
+  );
+}
+
+/** Mirrors the API permission to record a coach profile. */
+export function canCreateCoachProfile(user: User | null | undefined): boolean {
+  return Boolean(
+    user?.roles?.some((role) =>
+      ["coach", "curator", "admin"].includes(role),
+    ),
   );
 }
 

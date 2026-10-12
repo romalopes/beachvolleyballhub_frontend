@@ -21,6 +21,10 @@ vi.mock("../api", async (importOriginal) => {
       joinGroup: vi.fn(),
       leaveOrganisation: vi.fn(),
       leaveGroup: vi.fn(),
+      addProfileToOrganisation: vi.fn(),
+      addProfileToGroup: vi.fn(),
+      removeProfileFromOrganisation: vi.fn(),
+      removeProfileFromGroup: vi.fn(),
     },
   };
 });
@@ -106,12 +110,22 @@ describe("CoachDetail", () => {
     mockedApi.coach.mockResolvedValue(coach({
       account_status: "connected",
       account: { id: 10, full_name: "Other coach" },
+      created_by: { id: 99, name: "Other creator" },
     }));
     renderDetail();
 
     await screen.findByRole("heading", { name: "Olga Reyes" });
     expect(screen.queryByRole("button", { name: "Join Organisation" })).not.toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "Join Group" })).not.toBeInTheDocument();
+  });
+
+  it("shows membership controls to the coach who created an unlinked coach profile", async () => {
+    mockedApi.me.mockResolvedValue(coachUser);
+    mockedApi.coach.mockResolvedValue(coach({ account_status: "profile_only" }));
+    renderDetail();
+
+    expect(await screen.findByRole("button", { name: "Join Organisation" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Join Group" })).toBeInTheDocument();
   });
 
   describe("claim invitations", () => {

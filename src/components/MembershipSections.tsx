@@ -14,6 +14,8 @@ interface MembershipSectionsProps {
   groupMemberships?: UserGroupMembership[];
   /** Enables self-service controls for the authenticated account only. */
   canManageOwnMemberships?: boolean;
+  /** Lets the profile's recorded creator manage that exact profile's memberships. */
+  managedProfile?: { type: "PlayerProfile" | "CoachProfile"; id: number };
   /** Called after a successful self-service membership change. */
   onMembershipsChanged?: () => void;
 }
@@ -23,6 +25,7 @@ export default function MembershipSections({
   organisationMemberships,
   groupMemberships,
   canManageOwnMemberships = false,
+  managedProfile,
   onMembershipsChanged,
 }: MembershipSectionsProps) {
   const [showJoinOrganisation, setShowJoinOrganisation] = useState(false);
@@ -93,7 +96,11 @@ export default function MembershipSections({
     setJoining("organisation");
     setError(null);
     try {
-      await api.joinOrganisation(id);
+      if (managedProfile) {
+        await api.addProfileToOrganisation(id, managedProfile);
+      } else {
+        await api.joinOrganisation(id);
+      }
       closeOrganisationDialog();
       notifyChanged();
     } catch (joinError) {
@@ -112,7 +119,11 @@ export default function MembershipSections({
     setJoining("group");
     setError(null);
     try {
-      await api.joinGroup(id);
+      if (managedProfile) {
+        await api.addProfileToGroup(id, managedProfile);
+      } else {
+        await api.joinGroup(id);
+      }
       closeGroupDialog();
       notifyChanged();
     } catch (joinError) {
@@ -126,7 +137,11 @@ export default function MembershipSections({
     setJoining("organisation");
     setError(null);
     try {
-      await api.leaveOrganisation(id);
+      if (managedProfile) {
+        await api.removeProfileFromOrganisation(id, managedProfile);
+      } else {
+        await api.leaveOrganisation(id);
+      }
       notifyChanged();
     } catch (leaveError) {
       setError(leaveError instanceof Error ? leaveError.message : "Could not leave organisation.");
@@ -139,7 +154,11 @@ export default function MembershipSections({
     setJoining("group");
     setError(null);
     try {
-      await api.leaveGroup(id);
+      if (managedProfile) {
+        await api.removeProfileFromGroup(id, managedProfile);
+      } else {
+        await api.leaveGroup(id);
+      }
       notifyChanged();
     } catch (leaveError) {
       setError(leaveError instanceof Error ? leaveError.message : "Could not leave group.");
