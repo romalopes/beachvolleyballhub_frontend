@@ -2624,6 +2624,16 @@ export const api = {
       `/groups/${id}/memberships/${membershipId}/reject`,
       {},
     ),
+  /**
+   * Ends the current user's own non-owner group membership (self-service leave).
+   * Counterpart to `joinGroup` — no group-management authority required.
+   */
+  leaveGroup: (id: number) =>
+    postJSON<{ removed: boolean; membership_id: number }>(
+      `/groups/${id}/memberships/leave`,
+      {},
+      "DELETE",
+    ),
 
   /**
    * Update a group member's role (owner, coach, member).

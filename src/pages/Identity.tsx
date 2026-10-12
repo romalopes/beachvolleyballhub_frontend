@@ -12,12 +12,10 @@ import {
   type PlayerClaim,
   type PlayerProfileCandidate,
   type PaginationMeta,
-  type Organisation,
-  type Group,
-  type PaginatedResponse,
 } from "../api";
 import { useAuth } from "../auth/AuthContext";
 import EmptyState from "../components/EmptyState";
+import MembershipSections from "../components/MembershipSections";
 import ProfileManagementDashboard from "../components/identity/ProfileManagementDashboard";
 import {
   clearClaimInvitationPath,
@@ -62,18 +60,6 @@ export default function IdentityPage() {
   const [showCreateCoachModal, setShowCreateCoachModal] = useState(false);
   const [createCoachLoading, setCreateCoachLoading] = useState(false);
   const [createCoachError, setCreateCoachError] = useState<string | null>(null);
-  const [showJoinOrgModal, setShowJoinOrgModal] = useState(false);
-  const [joinOrgLoading, setJoinOrgLoading] = useState(false);
-  const [joinOrgError, setJoinOrgError] = useState<string | null>(null);
-  const [joinOrgId, setJoinOrgId] = useState("");
-  const [showJoinGroupModal, setShowJoinGroupModal] = useState(false);
-  const [joinGroupLoading, setJoinGroupLoading] = useState(false);
-  const [joinGroupError, setJoinGroupError] = useState<string | null>(null);
-  const [joinGroupId, setJoinGroupId] = useState("");
-  const [organisations, setOrganisations] = useState<Organisation[]>([]);
-  const [groups, setGroups] = useState<Group[]>([]);
-  const [orgsLoading, setOrgsLoading] = useState(false);
-  const [groupsLoading, setGroupsLoading] = useState(false);
   const [token, setToken] = useState(() => {
     const fragmentToken = new URLSearchParams(
       location.hash.replace(/^#/, ""),
@@ -95,43 +81,6 @@ export default function IdentityPage() {
   useEffect(() => {
     if (token) rememberClaimInvitationPath(invitationReturnPath);
   }, [token, invitationReturnPath]);
-
-  // fetch organisations and groups for join modals
-  useEffect(() => {
-    const fetchLists = async () => {
-      setOrgsLoading(true);
-      setGroupsLoading(true);
-      try {
-        const orgsResp = await api.organisations(
-          "active",
-          undefined,
-          false,
-          false,
-        );
-        // api returns PaginatedResponse<Organisation>
-        const orgsData =
-          (orgsResp as PaginatedResponse<Organisation>).data ?? orgsResp;
-        setOrganisations(Array.isArray(orgsData) ? orgsData : []);
-      } catch (e) {
-        console.error("Failed to load organisations", e);
-        setOrganisations([]);
-      } finally {
-        setOrgsLoading(false);
-      }
-      try {
-        const groupsResp = await api.groups({ status: "active", mine: false });
-        const groupsData =
-          (groupsResp as PaginatedResponse<Group>).data ?? groupsResp;
-        setGroups(Array.isArray(groupsData) ? groupsData : []);
-      } catch (e) {
-        console.error("Failed to load groups", e);
-        setGroups([]);
-      } finally {
-        setGroupsLoading(false);
-      }
-    };
-    fetchLists();
-  }, []);
 
   const reloadClaims = async () => {
     const mine = await api.playerClaims();
@@ -234,66 +183,6 @@ export default function IdentityPage() {
   const handleCloseCreateCoachModal = () => {
     setShowCreateCoachModal(false);
     setCreateCoachError(null);
-  };
-
-  const handleJoinOrganisation = async () => {
-    const orgId = parseInt(joinOrgId, 10);
-    if (isNaN(orgId)) {
-      setJoinOrgError("Please enter a valid organisation ID");
-      return;
-    }
-    setJoinOrgError(null);
-    setJoinOrgLoading(true);
-    try {
-      await api.joinOrganisation(orgId);
-      setNotice("Organisation membership request sent!");
-      setShowJoinOrgModal(false);
-      setJoinOrgId("");
-      // Reload the page to reflect the new organisation membership
-      window.location.reload();
-    } catch (err: unknown) {
-      const message =
-        err instanceof Error ? err.message : "Failed to join organisation";
-      setJoinOrgError(message);
-    } finally {
-      setJoinOrgLoading(false);
-    }
-  };
-
-  const handleCloseJoinOrgModal = () => {
-    setShowJoinOrgModal(false);
-    setJoinOrgError(null);
-    setJoinOrgId("");
-  };
-
-  const handleJoinGroup = async () => {
-    const groupId = parseInt(joinGroupId, 10);
-    if (isNaN(groupId)) {
-      setJoinGroupError("Please enter a valid group ID");
-      return;
-    }
-    setJoinGroupError(null);
-    setJoinGroupLoading(true);
-    try {
-      await api.joinGroup(groupId);
-      setNotice("Group membership request sent!");
-      setShowJoinGroupModal(false);
-      setJoinGroupId("");
-      // Reload the page to reflect the new group membership
-      window.location.reload();
-    } catch (err: unknown) {
-      const message =
-        err instanceof Error ? err.message : "Failed to join group";
-      setJoinGroupError(message);
-    } finally {
-      setJoinGroupLoading(false);
-    }
-  };
-
-  const handleCloseJoinGroupModal = () => {
-    setShowJoinGroupModal(false);
-    setJoinGroupError(null);
-    setJoinGroupId("");
   };
 
   useEffect(() => {
@@ -501,36 +390,6 @@ export default function IdentityPage() {
     }
   };
 
-  const leaveOrganisation = async (orgId: number, membershipId: number) => {
-    setBusy(true);
-    setError(null);
-    setNotice(null);
-    try {
-      await api.leaveOrganisation(orgId);
-      window.location.reload();
-    } catch (err) {
-      setError(
-        err instanceof Error ? err.message : "Could not leave organisation.",
-      );
-    } finally {
-      setBusy(false);
-    }
-  };
-
-  const leaveGroup = async (groupId: number, membershipId: number) => {
-    setBusy(true);
-    setError(null);
-    setNotice(null);
-    try {
-      await api.rejectGroupMembership(groupId, membershipId);
-      window.location.reload();
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Could not leave group.");
-    } finally {
-      setBusy(false);
-    }
-  };
-
   if (!user)
     return (
       <div className="page">
@@ -647,86 +506,12 @@ export default function IdentityPage() {
             </>
           )}
         </section>
-        <section className="detail-section">
-          <h2>Organisation memberships</h2>
-          {user.organisation_memberships?.length ? (
-            <ul className="identity-link-list">
-              {user.organisation_memberships.map((membership) => (
-                <li key={membership.id}>
-                  <Link
-                    className="identity-link"
-                    to={`/organisations/${membership.organisation_id}`}
-                  >
-                    {membership.organisation?.name ||
-                      `Organisation #${membership.organisation_id}`}
-                  </Link>{" "}
-                  · {membership.role} · {membership.status}
-                  {membership.status === "active" && (
-                    <button
-                      className="admin-btn"
-                      onClick={() =>
-                        leaveOrganisation(
-                          membership.organisation_id,
-                          membership.id,
-                        )
-                      }
-                    >
-                      Leave
-                    </button>
-                  )}
-                </li>
-              ))}
-            </ul>
-          ) : (
-            <p>No organisation memberships.</p>
-          )}
-          <button
-            className="auth-submit"
-            type="button"
-            onClick={() => setShowJoinOrgModal(true)}
-          >
-            Join Organisation
-          </button>
-        </section>
-        <section className="detail-section">
-          <h2>Group memberships</h2>
-          {user.group_memberships?.length ? (
-            <ul className="identity-link-list">
-              {user.group_memberships.map((membership) => (
-                <li key={membership.id}>
-                  <Link
-                    className="identity-link"
-                    to={`/groups/${membership.group_id}`}
-                  >
-                    {membership.group.name}
-                  </Link>{" "}
-                  · {membership.role} · {membership.status} ·{" "}
-                  {membership.group.organisation?.name}
-                  {membership.status === "active" &&
-                    membership.role !== "owner" && (
-                      <button
-                        className="admin-btn"
-                        onClick={() =>
-                          leaveGroup(membership.group_id, membership.id)
-                        }
-                      >
-                        Leave
-                      </button>
-                    )}
-                </li>
-              ))}
-            </ul>
-          ) : (
-            <p>No group memberships.</p>
-          )}
-          <button
-            className="auth-submit"
-            type="button"
-            onClick={() => setShowJoinGroupModal(true)}
-          >
-            Join Group
-          </button>
-        </section>
+        <MembershipSections
+          organisationMemberships={user.organisation_memberships}
+          groupMemberships={user.group_memberships}
+          canManageOwnMemberships
+          onMembershipsChanged={() => window.location.reload()}
+        />
 
         <section className="detail-section">
           <h2>Redeem a claim invitation</h2>
@@ -1286,180 +1071,6 @@ export default function IdentityPage() {
                     disabled={createCoachLoading}
                   >
                     {createCoachLoading ? "Creating…" : "Create Coach Profile"}
-                  </button>
-                </div>
-              </form>
-            </div>
-          </div>
-        </div>
-      )}
-      {showJoinOrgModal && (
-        <div
-          className="modal-overlay"
-          onClick={handleCloseJoinOrgModal}
-          role="dialog"
-          aria-modal="true"
-          aria-labelledby="join-org-title"
-        >
-          <div className="modal-content" onClick={(e) => e.stopPropagation()}>
-            <header className="modal-header">
-              <h2 id="join-org-title">Join Organisation</h2>
-              <button
-                className="modal-close"
-                onClick={handleCloseJoinOrgModal}
-                aria-label="Close"
-              >
-                ×
-              </button>
-            </header>
-            <div className="modal-body">
-              <form
-                onSubmit={(e) => {
-                  e.preventDefault();
-                  handleJoinOrganisation();
-                }}
-              >
-                {joinOrgError && (
-                  <div className="auth-flash auth-flash-error" role="alert">
-                    {joinOrgError}
-                  </div>
-                )}
-                <div className="auth-field">
-                  <label htmlFor="org_id">
-                    Organisation <span aria-hidden="true">*</span>
-                  </label>
-                  <select
-                    id="org_id"
-                    name="org_id"
-                    required
-                    value={joinOrgId}
-                    onChange={(e) => setJoinOrgId(e.target.value)}
-                    disabled={joinOrgLoading || orgsLoading}
-                  >
-                    <option value="">Select organisation</option>
-                    {orgsLoading ? (
-                      <option disabled>Loading organisations…</option>
-                    ) : organisations.length === 0 ? (
-                      <option disabled>No organisations available</option>
-                    ) : (
-                      organisations.map((org) => (
-                        <option key={org.id} value={String(org.id)}>
-                          {org.name}
-                        </option>
-                      ))
-                    )}
-                  </select>
-                </div>
-                <div
-                  className="modal-actions"
-                  style={{
-                    display: "flex",
-                    gap: "0.75rem",
-                    justifyContent: "flex-end",
-                    marginTop: "1.5rem",
-                  }}
-                >
-                  <button
-                    type="button"
-                    className="admin-btn"
-                    onClick={handleCloseJoinOrgModal}
-                    disabled={joinOrgLoading}
-                  >
-                    Cancel
-                  </button>
-                  <button
-                    type="submit"
-                    className="auth-submit"
-                    disabled={joinOrgLoading || !joinOrgId}
-                  >
-                    {joinOrgLoading ? "Requesting…" : "Request Membership"}
-                  </button>
-                </div>
-              </form>
-            </div>
-          </div>
-        </div>
-      )}
-      {showJoinGroupModal && (
-        <div
-          className="modal-overlay"
-          onClick={handleCloseJoinGroupModal}
-          role="dialog"
-          aria-modal="true"
-          aria-labelledby="join-group-title"
-        >
-          <div className="modal-content" onClick={(e) => e.stopPropagation()}>
-            <header className="modal-header">
-              <h2 id="join-group-title">Join Group</h2>
-              <button
-                className="modal-close"
-                onClick={handleCloseJoinGroupModal}
-                aria-label="Close"
-              >
-                ×
-              </button>
-            </header>
-            <div className="modal-body">
-              <form
-                onSubmit={(e) => {
-                  e.preventDefault();
-                  handleJoinGroup();
-                }}
-              >
-                {joinGroupError && (
-                  <div className="auth-flash auth-flash-error" role="alert">
-                    {joinGroupError}
-                  </div>
-                )}
-                <div className="auth-field">
-                  <label htmlFor="group_id">
-                    Group <span aria-hidden="true">*</span>
-                  </label>
-                  <select
-                    id="group_id"
-                    name="group_id"
-                    required
-                    value={joinGroupId}
-                    onChange={(e) => setJoinGroupId(e.target.value)}
-                    disabled={joinGroupLoading || groupsLoading}
-                  >
-                    <option value="">Select group</option>
-                    {groupsLoading ? (
-                      <option disabled>Loading groups…</option>
-                    ) : groups.length === 0 ? (
-                      <option disabled>No groups available</option>
-                    ) : (
-                      groups.map((g) => (
-                        <option key={g.id} value={String(g.id)}>
-                          {g.name}
-                        </option>
-                      ))
-                    )}
-                  </select>
-                </div>
-                <div
-                  className="modal-actions"
-                  style={{
-                    display: "flex",
-                    gap: "0.75rem",
-                    justifyContent: "flex-end",
-                    marginTop: "1.5rem",
-                  }}
-                >
-                  <button
-                    type="button"
-                    className="admin-btn"
-                    onClick={handleCloseJoinGroupModal}
-                    disabled={joinGroupLoading}
-                  >
-                    Cancel
-                  </button>
-                  <button
-                    type="submit"
-                    className="auth-submit"
-                    disabled={joinGroupLoading || !joinGroupId}
-                  >
-                    {joinGroupLoading ? "Requesting…" : "Request Membership"}
                   </button>
                 </div>
               </form>

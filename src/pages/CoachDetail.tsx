@@ -132,6 +132,9 @@ export default function CoachDetail() {
       ? "Only an administrator or the coach who recorded this profile can invite a coach to claim it."
       : null;
   const coachName = coach.full_name ?? coach.person?.first_name ?? coach.display_name ?? `Coach profile #${coach.id}`;
+  const canManageOwnMemberships = Boolean(
+    coach.account?.id && user?.account_id === coach.account.id,
+  );
 
   return (
     <div className="page">
@@ -284,6 +287,8 @@ export default function CoachDetail() {
       <MembershipSections
         organisationMemberships={coach.organisation_memberships}
         groupMemberships={coach.group_memberships}
+        canManageOwnMemberships={canManageOwnMemberships}
+        onMembershipsChanged={() => window.location.reload()}
       />
       <CoachingRelationships
         side="coach"

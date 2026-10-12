@@ -1,6 +1,15 @@
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
-import { Archive, ArchiveRestore, Eye, EyeOff, Pencil, Search, Trash2, UserPlus } from "lucide-react";
+import {
+  Archive,
+  ArchiveRestore,
+  Eye,
+  EyeOff,
+  Pencil,
+  Search,
+  Trash2,
+  UserPlus,
+} from "lucide-react";
 import { api, type PaginationMeta, type Player } from "../api";
 import { useAuth } from "../auth/AuthContext";
 import EmptyState from "../components/EmptyState";
@@ -88,7 +97,9 @@ export default function Players() {
       .catch((err: unknown) => {
         if (cancelled) return;
         console.error(err);
-        setError(err instanceof Error ? err.message : "Failed to load players.");
+        setError(
+          err instanceof Error ? err.message : "Failed to load players.",
+        );
       })
       .finally(() => {
         if (!cancelled) setLoading(false);
@@ -149,7 +160,12 @@ export default function Players() {
       setConfirmingDelete(null);
       reload();
     } catch (err: unknown) {
-      setActionError(profileDeletionErrorMessage(err, "Failed to delete the player profile."));
+      setActionError(
+        profileDeletionErrorMessage(
+          err,
+          "Failed to delete the player profile.",
+        ),
+      );
     } finally {
       setWorking(false);
     }
@@ -237,14 +253,14 @@ export default function Players() {
         )}
       </div>
 
-      {actionError && !confirmingDelete && <div className="admin-error">{actionError}</div>}
+      {actionError && !confirmingDelete && (
+        <div className="admin-error">{actionError}</div>
+      )}
 
       {confirmingArchive && (
         <DeleteConfirm
           entityName={playerName(confirmingArchive)}
-          title={`Archive “${
-            playerName(confirmingArchive)
-          }”?`}
+          title={`Archive “${playerName(confirmingArchive)}”?`}
           warning="The player leaves the catalogue and cannot be added to new trainings. Their training history is kept, and this can be undone."
           confirmLabel="Archive"
           pendingLabel="Archiving..."
@@ -320,10 +336,13 @@ export default function Players() {
               )}
               {isArchived(player) && <Tag>Archived</Tag>}
               {player.visibility === "private" && <Tag>Private</Tag>}
-              {player.status === "active" && player.account_status !== "connected" &&
-                (player.full_name?.trim() || player.display_name?.trim()) && user &&
+              {player.status === "active" &&
+                player.account_status !== "connected" &&
+                (player.full_name?.trim() || player.display_name?.trim()) &&
+                user &&
                 (user.roles.includes("admin") ||
-                  (user.roles.includes("coach") && player.created_by?.id === user.id)) && (
+                  (user.roles.includes("coach") &&
+                    player.created_by?.id === user.id)) && (
                   <ProfileInviteLinkButton
                     claimableType="PlayerProfile"
                     claimableId={player.id}

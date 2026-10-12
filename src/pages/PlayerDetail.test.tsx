@@ -20,6 +20,12 @@ vi.mock("../api", async (importOriginal) => {
       claimInvitations: vi.fn().mockResolvedValue([]),
       createClaimInvitation: vi.fn(),
       revokeClaimInvitation: vi.fn(),
+      organisations: vi.fn(),
+      groups: vi.fn(),
+      joinOrganisation: vi.fn(),
+      joinGroup: vi.fn(),
+      leaveOrganisation: vi.fn(),
+      leaveGroup: vi.fn(),
     },
   };
 });
@@ -139,11 +145,38 @@ beforeEach(() => {
   mockedApi.coaches.mockResolvedValue({ data: [], meta: { page: 1, per_page: 100, total: 0, total_pages: 1 } });
   mockedApi.playerCoaches.mockResolvedValue([]);
   mockedApi.claimInvitations.mockResolvedValue([]);
+  mockedApi.organisations.mockResolvedValue({ data: [], meta: { page: 1, per_page: 20, total: 0, total_pages: 0 } });
+  mockedApi.groups.mockResolvedValue({ data: [], meta: { page: 1, per_page: 20, total: 0, total_pages: 0 } });
 });
 
 afterEach(() => vi.clearAllMocks());
 
 describe("PlayerDetail", () => {
+  it("shows self-service membership controls only on the signed-in account's profile", async () => {
+    mockedApi.me.mockResolvedValue({ ...playerUser, account_id: 9 });
+    mockedApi.player.mockResolvedValue(player({
+      account_status: "connected",
+      account: { id: 9, full_name: "Player" },
+    }));
+    renderDetail();
+
+    expect(await screen.findByRole("button", { name: "Join Organisation" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Join Group" })).toBeInTheDocument();
+  });
+
+  it("does not show self-service membership controls for another account's profile", async () => {
+    mockedApi.me.mockResolvedValue({ ...playerUser, account_id: 9 });
+    mockedApi.player.mockResolvedValue(player({
+      account_status: "connected",
+      account: { id: 10, full_name: "Other player" },
+    }));
+    renderDetail();
+
+    await screen.findByRole("heading", { name: "Pedro Santos" });
+    expect(screen.queryByRole("button", { name: "Join Organisation" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Join Group" })).not.toBeInTheDocument();
+  });
+
   describe("claim invitations", () => {
     it("offers the owner a claim invitation for an unlinked profile and reveals the link", async () => {
       mockedApi.me.mockResolvedValue({ ...coachUser });

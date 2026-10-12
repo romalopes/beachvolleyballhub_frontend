@@ -15,6 +15,12 @@ vi.mock("../api", async (importOriginal) => {
       coach: vi.fn(),
       updateCoach: vi.fn(),
       playerCoaches: vi.fn(),
+      organisations: vi.fn(),
+      groups: vi.fn(),
+      joinOrganisation: vi.fn(),
+      joinGroup: vi.fn(),
+      leaveOrganisation: vi.fn(),
+      leaveGroup: vi.fn(),
     },
   };
 });
@@ -76,11 +82,38 @@ beforeEach(() => {
   mockedApi.me.mockResolvedValue(coachUser);
   mockedApi.coach.mockResolvedValue(coach());
   mockedApi.playerCoaches.mockResolvedValue([]);
+  mockedApi.organisations.mockResolvedValue({ data: [], meta: { page: 1, per_page: 20, total: 0, total_pages: 0 } });
+  mockedApi.groups.mockResolvedValue({ data: [], meta: { page: 1, per_page: 20, total: 0, total_pages: 0 } });
 });
 
 afterEach(() => vi.clearAllMocks());
 
 describe("CoachDetail", () => {
+  it("shows self-service membership controls only on the signed-in account's profile", async () => {
+    mockedApi.me.mockResolvedValue({ ...coachUser, account_id: 9 });
+    mockedApi.coach.mockResolvedValue(coach({
+      account_status: "connected",
+      account: { id: 9, full_name: "Coach" },
+    }));
+    renderDetail();
+
+    expect(await screen.findByRole("button", { name: "Join Organisation" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Join Group" })).toBeInTheDocument();
+  });
+
+  it("does not show self-service membership controls for another account's profile", async () => {
+    mockedApi.me.mockResolvedValue({ ...coachUser, account_id: 9 });
+    mockedApi.coach.mockResolvedValue(coach({
+      account_status: "connected",
+      account: { id: 10, full_name: "Other coach" },
+    }));
+    renderDetail();
+
+    await screen.findByRole("heading", { name: "Olga Reyes" });
+    expect(screen.queryByRole("button", { name: "Join Organisation" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Join Group" })).not.toBeInTheDocument();
+  });
+
   describe("claim invitations", () => {
     const unlinkedCoach = (overrides = {}) =>
       coach({

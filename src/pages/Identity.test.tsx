@@ -8,7 +8,7 @@ import IdentityPage from "./Identity";
 
 vi.mock("../api", async (importOriginal) => {
   const actual = await importOriginal<typeof import("../api")>();
-  return { ...actual, api: { ...actual.api, playerProfileCandidates: vi.fn(), searchProfileCandidates: vi.fn(), receivedClaimInvitations: vi.fn(), acceptReceivedClaimInvitation: vi.fn(), declineReceivedClaimInvitation: vi.fn(), claimInvitations: vi.fn(), managementPlayerClaims: vi.fn(), managementClaimInvitations: vi.fn(), managementClaimables: vi.fn(), playerClaims: vi.fn(), requestPlayerClaim: vi.fn(), approvePlayerClaim: vi.fn(), rejectPlayerClaim: vi.fn(), redeemClaimInvitation: vi.fn(), people: vi.fn(), personConsolidationPreview: vi.fn(), createPlayer: vi.fn() } };
+  return { ...actual, api: { ...actual.api, playerProfileCandidates: vi.fn(), searchProfileCandidates: vi.fn(), receivedClaimInvitations: vi.fn(), acceptReceivedClaimInvitation: vi.fn(), declineReceivedClaimInvitation: vi.fn(), claimInvitations: vi.fn(), managementPlayerClaims: vi.fn(), managementClaimInvitations: vi.fn(), managementClaimables: vi.fn(), playerClaims: vi.fn(), requestPlayerClaim: vi.fn(), approvePlayerClaim: vi.fn(), rejectPlayerClaim: vi.fn(), redeemClaimInvitation: vi.fn(), people: vi.fn(), personConsolidationPreview: vi.fn(), createPlayer: vi.fn(), organisations: vi.fn(), groups: vi.fn(), joinOrganisation: vi.fn(), joinGroup: vi.fn(), leaveOrganisation: vi.fn(), leaveGroup: vi.fn() } };
 });
 
 const mockedApi = vi.mocked(api, true);
@@ -33,17 +33,29 @@ beforeEach(() => {
   mockedApi.managementClaimInvitations.mockResolvedValue({ data: [], meta: { page: 1, per_page: 20, total: 0, total_pages: 0 } });
   mockedApi.managementClaimables.mockResolvedValue({ data: [], meta: { page: 1, per_page: 20, total: 0, total_pages: 0 } });
   mockedApi.playerClaims.mockResolvedValue([]);
+  mockedApi.organisations.mockResolvedValue({ data: [], meta: { page: 1, per_page: 20, total: 0, total_pages: 0 } });
+  mockedApi.groups.mockResolvedValue({ data: [], meta: { page: 1, per_page: 20, total: 0, total_pages: 0 } });
 });
 
 describe("Identity", () => {
   it("keeps account and profile context distinct and explains empty suggestions", async () => {
     renderPage();
     expect(await screen.findByRole("heading", { name: "Account" })).toBeInTheDocument();
-    expect(screen.getByText("#9")).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "View account #9" })).toHaveAttribute("href", "/accounts/9");
     expect(screen.getByText("Player profiles")).toBeInTheDocument();
     expect(await screen.findByText(/no eligible profiles found/i)).toBeInTheDocument();
     expect(screen.getByText("You have no claim requests.")).toBeInTheDocument();
     expect(screen.queryByRole("heading", { name: "Profile management" })).not.toBeInTheDocument();
+  });
+
+  it("uses the shared membership sections with self-service join controls", async () => {
+    renderPage();
+
+    expect(await screen.findByRole("button", { name: "Join Organisation" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Join Group" })).toBeInTheDocument();
+
+    await userEvent.click(screen.getByRole("button", { name: "Join Organisation" }));
+    expect(await screen.findByRole("dialog", { name: "Join Organisation" })).toBeInTheDocument();
   });
 
   it("shows the management dashboard to a coach account", async () => {

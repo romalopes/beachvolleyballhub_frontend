@@ -127,6 +127,9 @@ export default function PlayerDetail() {
     return <EmptyState title="Player not found" description={error ?? undefined} />;
 
   const playerName = player.full_name?.trim() || player.person?.first_name || player.display_name || "Unnamed player";
+  const canManageOwnMemberships = Boolean(
+    player.account?.id && user?.account_id === player.account.id,
+  );
 
   // Mirrors the API's `profile_owner?` (an admin, or the coach who recorded the
   // profile) so the panel can explain *why* it is unavailable instead of
@@ -301,6 +304,8 @@ export default function PlayerDetail() {
         <MembershipSections
           organisationMemberships={player.organisation_memberships}
           groupMemberships={player.group_memberships}
+          canManageOwnMemberships={canManageOwnMemberships}
+          onMembershipsChanged={() => window.location.reload()}
         />
         <CoachingRelationships
           side="player"
