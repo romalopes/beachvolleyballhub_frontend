@@ -8,19 +8,17 @@ export default defineConfig({
   server: {
     proxy: {
       "/api": {
-        target: "https://127.0.0.1:3001",
+        target: "http://127.0.0.1:3001",
         changeOrigin: true,
-        secure: false,
       },
       "/rails": {
         // Active Storage serves organisation logos via its blob-proxy route.
         // The API returns that route as a relative path, so the SPA's origin
         // must forward it to the API — same trick as "/api", and for the same
-        // reason: the browser must never talk to the API's self-signed
-        // certificate directly.
-        target: "https://127.0.0.1:3001",
+        // reason: the browser talks to Vite and Vite forwards local HTTP
+        // requests to Rails.
+        target: "http://127.0.0.1:3001",
         changeOrigin: true,
-        secure: false,
       },
     },
   },
