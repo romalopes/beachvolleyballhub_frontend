@@ -762,7 +762,10 @@ export interface OrganisationMembershipList {
   data: OrganisationMembership[];
 }
 
-export type OrganisationMemberableType = "Account" | "PlayerProfile" | "CoachProfile";
+export type OrganisationMemberableType =
+  | "Account"
+  | "PlayerProfile"
+  | "CoachProfile";
 
 export interface OrganisationMemberCandidate {
   id: string;
@@ -1623,7 +1626,7 @@ export interface LogsResponse {
  */
 export interface AppConfiguration {
   logs_saved_to_database: boolean;
-  test: boolean;
+  use_test_email: boolean;
   test_email: string;
 }
 
@@ -2342,23 +2345,35 @@ export const api = {
     data: { role?: OrganisationMembershipRole; status?: string } = {},
   ) =>
     postJSON<OrganisationMembership>(`/organisations/${id}/members`, {
-      membership: typeof member === "number" ? { account_id: member, ...data } : { ...member, ...data },
+      membership:
+        typeof member === "number"
+          ? { account_id: member, ...data }
+          : { ...member, ...data },
     }),
   /** Adds the caller-created player/coach profile; the server scopes this to that profile only. */
   addProfileToOrganisation: (
     id: number,
     profile: { type: "PlayerProfile" | "CoachProfile"; id: number },
-  ) => postJSON<OrganisationMembership>(`/organisations/${id}/memberships/profile`, {
-    memberable_type: profile.type,
-    memberable_id: profile.id,
-  }),
+  ) =>
+    postJSON<OrganisationMembership>(
+      `/organisations/${id}/memberships/profile`,
+      {
+        memberable_type: profile.type,
+        memberable_id: profile.id,
+      },
+    ),
   removeProfileFromOrganisation: (
     id: number,
     profile: { type: "PlayerProfile" | "CoachProfile"; id: number },
-  ) => postJSON<OrganisationMembershipEnded>(`/organisations/${id}/memberships/profile`, {
-    memberable_type: profile.type,
-    memberable_id: profile.id,
-  }, "DELETE"),
+  ) =>
+    postJSON<OrganisationMembershipEnded>(
+      `/organisations/${id}/memberships/profile`,
+      {
+        memberable_type: profile.type,
+        memberable_id: profile.id,
+      },
+      "DELETE",
+    ),
   updateOrganisationMember: (
     id: number,
     accountId: number,
@@ -2425,9 +2440,10 @@ export const api = {
     if (params?.page) qs.set("page", String(params.page));
     if (params?.per_page) qs.set("per_page", String(params.per_page));
     const query = qs.toString();
-    return fetchAPI<{ assessment_sessions: AssessmentSession[]; meta: PaginationMeta }>(
-      `/assessment_sessions${query ? `?${query}` : ""}`,
-    );
+    return fetchAPI<{
+      assessment_sessions: AssessmentSession[];
+      meta: PaginationMeta;
+    }>(`/assessment_sessions${query ? `?${query}` : ""}`);
   },
   assessmentSession: (id: number) =>
     fetchAPI<{ assessment_session: AssessmentSession }>(
@@ -2537,7 +2553,8 @@ export const api = {
     if (params?.status) qs.set("status", params.status);
     if (params?.include_private) qs.set("include_private", "1");
     if (params?.mine) qs.set("mine", "1");
-    if (params?.organisation_id) qs.set("organisation_id", String(params.organisation_id));
+    if (params?.organisation_id)
+      qs.set("organisation_id", String(params.organisation_id));
     const query = qs.toString();
     const response = await fetchAPI<Group[] | PaginatedResponse<Group>>(
       `/groups${query ? `?${query}` : ""}`,
@@ -2577,12 +2594,18 @@ export const api = {
     id: number,
     member:
       | { accountIds: number[] }
-      | { memberableType: "PlayerProfile" | "CoachProfile"; memberableId: number },
+      | {
+          memberableType: "PlayerProfile" | "CoachProfile";
+          memberableId: number;
+        },
   ) =>
     postJSON<{ group: GroupDetail; added: number }>(`/groups/${id}/members`, {
       ...("accountIds" in member ? { account_ids: member.accountIds } : {}),
       ...("memberableType" in member
-        ? { memberable_type: member.memberableType, memberable_id: member.memberableId }
+        ? {
+            memberable_type: member.memberableType,
+            memberable_id: member.memberableId,
+          }
         : {}),
     }),
   /**
@@ -2637,17 +2660,26 @@ export const api = {
   addProfileToGroup: (
     id: number,
     profile: { type: "PlayerProfile" | "CoachProfile"; id: number },
-  ) => postJSON<{ group: Group; added: number }>(`/groups/${id}/memberships/profile`, {
-    memberable_type: profile.type,
-    memberable_id: profile.id,
-  }),
+  ) =>
+    postJSON<{ group: Group; added: number }>(
+      `/groups/${id}/memberships/profile`,
+      {
+        memberable_type: profile.type,
+        memberable_id: profile.id,
+      },
+    ),
   removeProfileFromGroup: (
     id: number,
     profile: { type: "PlayerProfile" | "CoachProfile"; id: number },
-  ) => postJSON<{ removed: boolean; membership_id: number }>(`/groups/${id}/memberships/profile`, {
-    memberable_type: profile.type,
-    memberable_id: profile.id,
-  }, "DELETE"),
+  ) =>
+    postJSON<{ removed: boolean; membership_id: number }>(
+      `/groups/${id}/memberships/profile`,
+      {
+        memberable_type: profile.type,
+        memberable_id: profile.id,
+      },
+      "DELETE",
+    ),
   /**
    * Approve a pending group join request. The group's owner plus curator/admin
    * oversight may approve; anyone else gets a 403 from the server.
@@ -2682,7 +2714,11 @@ export const api = {
    * Only the group owner (or admin/curator) can change roles.
    * Cannot change your own role or demote the owner without assigning a new one.
    */
-  updateGroupMember: (id: number, membershipId: number, role: "owner" | "coach" | "member") =>
+  updateGroupMember: (
+    id: number,
+    membershipId: number,
+    role: "owner" | "coach" | "member",
+  ) =>
     postJSON<{ membership: GroupMember }>(
       `/groups/${id}/memberships/${membershipId}`,
       { role },
@@ -2705,7 +2741,7 @@ export const api = {
   updateGroupMembership: (
     id: number,
     membershipId: number,
-    data: { role?: GroupMember["role"]; status?: GroupMember["status"] }
+    data: { role?: GroupMember["role"]; status?: GroupMember["status"] },
   ) =>
     postJSON<{ membership: GroupMember }>(
       `/groups/${id}/memberships/${membershipId}`,

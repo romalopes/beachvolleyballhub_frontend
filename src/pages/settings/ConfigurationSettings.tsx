@@ -6,7 +6,7 @@ import CustomSettingsTable from "../../components/settings/CustomSettingsTable";
 
 const DEFAULT_FORM: AppConfiguration = {
   logs_saved_to_database: true,
-  test: false,
+  use_test_email: false,
   test_email: "romalopes@yahoo.com.br",
 };
 
@@ -50,7 +50,7 @@ export default function ConfigurationSettings() {
         if (cancelled) return;
         const next = {
           logs_saved_to_database: data?.logs_saved_to_database !== false,
-          test: data?.test === true,
+          use_test_email: data?.use_test_email === true,
           test_email: data?.test_email ?? "romalopes@yahoo.com.br",
         };
         setForm(next);
@@ -97,7 +97,7 @@ export default function ConfigurationSettings() {
       const data = await api.updateConfiguration(form);
       const next = {
         logs_saved_to_database: data?.logs_saved_to_database !== false,
-        test: data?.test === true,
+        use_test_email: data?.use_test_email === true,
         test_email: data?.test_email ?? form.test_email,
       };
       setForm(next);
@@ -108,7 +108,7 @@ export default function ConfigurationSettings() {
           row.key === "logs_enabled"
             ? { ...row, value: String(next.logs_saved_to_database) }
             : row.key === "test"
-              ? { ...row, value: String(next.test) }
+              ? { ...row, value: String(next.use_test_email) }
               : row.key === "test_email"
                 ? { ...row, value: next.test_email }
                 : row,
@@ -235,9 +235,9 @@ export default function ConfigurationSettings() {
           >
             <input
               type="checkbox"
-              checked={form.test}
+              checked={form.use_test_email}
               onChange={(e) =>
-                setForm((f) => ({ ...f, test: e.target.checked }))
+                setForm((f) => ({ ...f, use_test_email: e.target.checked }))
               }
               disabled={saving}
             />
