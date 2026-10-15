@@ -3330,9 +3330,37 @@ export const api = {
   },
   tournamentOptions: () => fetchAPI<TournamentOptions>("/tournaments/options"),
   tournament: (id: number | string) => fetchAPI<Tournament>(`/tournaments/${encodeURIComponent(String(id))}`),
-  createTournament: (data: Omit<Tournament, "id" | "organisation" | "divisions" | "participations" | "watch_links" | "created_by_account_id">) =>
-    postJSON<Tournament>("/tournaments", { tournament: data }),
-  updateTournament: (id: number | string, data: Partial<Omit<Tournament, "id" | "organisation" | "divisions" | "participations" | "watch_links" | "created_by_account_id">>) =>
+  createTournament: (
+    data: Omit<
+      Tournament,
+      | "id"
+      | "organisation"
+      | "divisions"
+      | "participations"
+      | "watch_links"
+      | "created_by_account_id"
+    > & { organisation_id: number; created_by_account_id?: number },
+  ) =>
+    postJSON<Tournament>("/tournaments", {
+      tournament: data,
+      // The controller authorises against a top-level organisation_id before
+      // it reads the nested tournament attributes, so mirror it here.
+      organisation_id: data.organisation_id,
+    }),
+  updateTournament: (
+    id: number | string,
+    data: Partial<
+      Omit<
+        Tournament,
+        | "id"
+        | "organisation"
+        | "divisions"
+        | "participations"
+        | "watch_links"
+        | "created_by_account_id"
+      >
+    > & { organisation_id?: number },
+  ) =>
     postJSON<Tournament>(
       `/tournaments/${encodeURIComponent(String(id))}`,
       { tournament: data },

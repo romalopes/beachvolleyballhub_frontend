@@ -30,7 +30,7 @@ const mockedApi = vi.mocked(api, true);
 
 const config = {
   logs_saved_to_database: true,
-  test: false,
+  use_test_email: false,
   test_email: "romalopes@yahoo.com.br",
 };
 
@@ -71,7 +71,7 @@ describe("ConfigurationSettings page", () => {
     const user = userEvent.setup();
     mockedApi.updateConfiguration.mockResolvedValue({
       ...config,
-      test: true,
+      use_test_email: true,
     });
     renderPage();
 
@@ -84,7 +84,7 @@ describe("ConfigurationSettings page", () => {
 
     expect(mockedApi.updateConfiguration).toHaveBeenCalledWith({
       logs_saved_to_database: true,
-      test: true,
+      use_test_email: true,
       test_email: "romalopes@yahoo.com.br",
     });
     expect(await screen.findByText(/saved at/i)).toBeInTheDocument();
