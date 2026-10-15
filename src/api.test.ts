@@ -76,6 +76,29 @@ describe("fetchAPI (GET helpers)", () => {
   });
 });
 
+describe("tournaments client", () => {
+  it("normalizes the Rails tournament list payload and serializes filters", async () => {
+    const fetchMock = mockFetchOnce({
+      ok: true,
+      status: 200,
+      body: {
+        tournaments: [{ id: 7, name: "Sand Series" }],
+        meta: { page: 2, per_page: 25, total: 26, total_pages: 2 },
+      },
+    });
+
+    await expect(
+      api.tournaments({ search: "sand", mine: true, page: 2, per_page: 25 }),
+    ).resolves.toEqual({
+      data: [{ id: 7, name: "Sand Series" }],
+      meta: { page: 2, per_page: 25, total: 26, total_pages: 2 },
+    });
+
+    const [url] = fetchMock.mock.calls[0] as [string, RequestInit];
+    expect(url).toBe("/api/v1/tournaments?search=sand&mine=1&page=2&per_page=25");
+  });
+});
+
 describe("postJSON (auth + mutations)", () => {
   it("login stores the returned token and returns the user", async () => {
     const user = {

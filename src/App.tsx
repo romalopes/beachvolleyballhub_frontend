@@ -23,6 +23,8 @@ import TrainingDetail from "./pages/TrainingDetail";
 import TrainingCalendar from "./pages/TrainingCalendar";
 import TrainingFormPage from "./pages/TrainingFormPage";
 import Schedule from "./pages/Schedule";
+import Tournaments from "./pages/Tournaments";
+import TournamentDetail from "./pages/TournamentDetail";
 import Players from "./pages/Players";
 import PlayerDetail from "./pages/PlayerDetail";
 import Coaches from "./pages/Coaches";
@@ -215,6 +217,8 @@ export default function App() {
                 />
                 <Route path="/calendar" element={<TrainingCalendar />} />
                 <Route path="/schedule" element={<Schedule />} />
+                <Route path="/tournaments" element={<Tournaments />} />
+                <Route path="/tournaments/:id" element={<TournamentDetail />} />
                 <Route
                   path="/players"
                   element={

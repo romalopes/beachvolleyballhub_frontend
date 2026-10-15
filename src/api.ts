@@ -1648,6 +1648,11 @@ export interface PaginatedResponse<T> {
   meta: PaginationMeta;
 }
 
+interface TournamentListResponse {
+  tournaments: Tournament[];
+  meta: PaginationMeta;
+}
+
 export interface AccountAddress {
   street_address: string | null;
   city: string | null;
@@ -1746,6 +1751,86 @@ export const testAccessApi = {
   /** Verify the stored token (used on boot to detect expiry). */
   verify: () => fetchAPI<TestAccessResponse>("/test_access"),
 };
+
+// ===== Tournament API Types =====
+export type TournamentScope = 'club' | 'state' | 'national' | 'international' | 'other';
+export type PublicationState = 'draft' | 'active' | 'cancelled' | 'archived';
+export type DivisionScheme = 'letter' | 'numbered';
+export type TemporalStatus = 'upcoming' | 'ongoing' | 'completed';
+
+export interface TournamentFilters {
+  search?: string;
+  scope?: TournamentScope;
+  organisation_id?: string;
+  division_scheme?: DivisionScheme;
+  letter_levels?: string[];
+  division_numbers?: number[];
+  location?: string;
+  temporal_status?: TemporalStatus;
+  mine?: boolean;
+  publication_state?: PublicationState;
+  starts_at?: string; // ISO string
+  ends_at?: string; // ISO string
+  page?: number;
+  per_page?: number;
+}
+
+export interface TournamentOptions {
+  scopes: TournamentScope[];
+  schemes: DivisionScheme[];
+  ordered_levels: string[]; // e.g., ['AAAA', 'AAA', 'AA', 'A', 'BBB', 'BB', 'B']
+  participation_roles: ParticipationRole[];
+}
+
+export type ParticipationRole = 'player' | 'coach' | 'referee' | 'organiser';
+
+export interface Division {
+  id: number;
+  letter_level: string | null;
+  division_number: number | null;
+  active: boolean;
+  strength_order: number;
+  division_code: string;
+}
+
+export interface Participation {
+  id: number;
+  account_id: number;
+  role: ParticipationRole;
+  created_at: string; // ISO string
+}
+
+export interface WatchLink {
+  id: number;
+  url: string;
+  link_type: string;
+  position: number;
+  active: boolean;
+}
+
+export interface Tournament {
+  id: number;
+  name: string;
+  organisation: Organisation;
+  scope: TournamentScope;
+  division_scheme: DivisionScheme;
+  publication_state: PublicationState;
+  website_url: string | null;
+  description: string | null;
+  location_name: string | null;
+  city: string | null;
+  state: string | null;
+  country: string | null;
+  timezone: string;
+  all_day: boolean;
+  starts_at: string; // ISO string
+  ends_at: string; // ISO string
+  created_by_account_id: number;
+  divisions: Division[];
+  participations: Participation[];
+  watch_links: WatchLink[];
+}
+// ===== End Tournament API Types =====
 
 export const api = {
   categories: () => fetchAPI<Category[]>("/categories"),
@@ -3216,4 +3301,48 @@ export const api = {
     password_confirmation: string;
   }): Promise<{ message: string }> =>
     postJSON<{ message: string }>("/account/password", data, "PATCH"),
+  // ===== Tournament API Methods =====
+  tournaments: (filters?: TournamentFilters) => {
+    const params = new URLSearchParams();
+    if (filters?.search) params.set("search", filters.search);
+    if (filters?.scope) params.set("scope", filters.scope);
+    if (filters?.organisation_id) params.set("organisation_id", filters.organisation_id);
+    if (filters?.division_scheme) params.set("division_scheme", filters.division_scheme);
+    if (filters?.letter_levels?.length) params.set("letter_levels", filters.letter_levels.join(","));
+    if (filters?.division_numbers?.length) params.set("division_numbers", filters.division_numbers.join(","));
+    if (filters?.location) params.set("location", filters.location);
+    if (filters?.temporal_status) params.set("temporal_status", filters.temporal_status);
+    if (filters?.mine !== undefined) params.set("mine", filters.mine ? "1" : "0");
+    if (filters?.publication_state) params.set("publication_state", filters.publication_state);
+    if (filters?.starts_at) params.set("starts_at", filters.starts_at);
+    if (filters?.ends_at) params.set("ends_at", filters.ends_at);
+    if (filters?.page !== undefined) params.set("page", String(filters.page));
+    if (filters?.per_page !== undefined) params.set("per_page", String(filters.per_page));
+    const query = params.toString();
+    return fetchAPI<TournamentListResponse>(
+      `/tournaments${query ? `?${query}` : ""}`,
+    ).then(({ tournaments, meta }) => ({ data: tournaments, meta }));
+  },
+  tournamentOptions: () => fetchAPI<TournamentOptions>("/tournaments/options"),
+  tournament: (id: number | string) => fetchAPI<Tournament>(`/tournaments/${encodeURIComponent(String(id))}`),
+  createTournament: (data: Omit<Tournament, "id" | "organisation" | "divisions" | "participations" | "watch_links" | "created_by_account_id">) =>
+    postJSON<Tournament>("/tournaments", { tournament: data }),
+  updateTournament: (id: number | string, data: Partial<Omit<Tournament, "id" | "organisation" | "divisions" | "participations" | "watch_links" | "created_by_account_id">>) =>
+    postJSON<Tournament>(
+      `/tournaments/${encodeURIComponent(String(id))}`,
+      { tournament: data },
+      "PATCH"
+    ),
+  archiveTournament: (id: number | string) =>
+    postJSON<Tournament>(`/tournaments/${encodeURIComponent(String(id))}/archive`, {}),
+  publishTournament: (id: number | string) =>
+    postJSON<Tournament>(`/tournaments/${encodeURIComponent(String(id))}/publish`, {}),
+  participateTournament: (tournamentId: number | string, params: { role: ParticipationRole; division_ids: number[] }) =>
+    postJSON<Participation>(
+      `/tournaments/${encodeURIComponent(String(tournamentId))}/participate`,
+      { participation: params }
+    ),
+  leaveTournament: (tournamentId: number | string) =>
+    postJSON<void>(`/tournaments/${encodeURIComponent(String(tournamentId))}/participate`, {}, "DELETE"),
+  // ===== End Tournament API Methods =====
 };
