@@ -137,9 +137,10 @@ function throwApiError(status: number, data: unknown, fallback: string): Error {
   return err;
 }
 
-async function fetchAPI<T>(endpoint: string): Promise<T> {
+async function fetchAPI<T>(endpoint: string, init: RequestInit = {}): Promise<T> {
   const response = await fetch(`${API_BASE_URL}${endpoint}`, {
     headers: authHeaders({ "Content-Type": "application/json" }),
+    ...init,
   });
   if (!response.ok) {
     const data = await response.json().catch(() => null);
@@ -3302,14 +3303,14 @@ export const api = {
   }): Promise<{ message: string }> =>
     postJSON<{ message: string }>("/account/password", data, "PATCH"),
   // ===== Tournament API Methods =====
-  tournaments: (filters?: TournamentFilters) => {
+  tournaments: (filters?: TournamentFilters, request?: { signal?: AbortSignal }) => {
     const params = new URLSearchParams();
     if (filters?.search) params.set("search", filters.search);
     if (filters?.scope) params.set("scope", filters.scope);
     if (filters?.organisation_id) params.set("organisation_id", filters.organisation_id);
     if (filters?.division_scheme) params.set("division_scheme", filters.division_scheme);
-    if (filters?.letter_levels?.length) params.set("letter_levels", filters.letter_levels.join(","));
-    if (filters?.division_numbers?.length) params.set("division_numbers", filters.division_numbers.join(","));
+    filters?.letter_levels?.forEach((level) => params.append("letter_levels[]", level));
+    filters?.division_numbers?.forEach((number) => params.append("division_numbers[]", String(number)));
     if (filters?.location) params.set("location", filters.location);
     if (filters?.temporal_status) params.set("temporal_status", filters.temporal_status);
     if (filters?.mine !== undefined) params.set("mine", filters.mine ? "1" : "0");
@@ -3321,6 +3322,7 @@ export const api = {
     const query = params.toString();
     return fetchAPI<TournamentListResponse>(
       `/tournaments${query ? `?${query}` : ""}`,
+      request,
     ).then(({ tournaments, meta }) => ({ data: tournaments, meta }));
   },
   tournamentOptions: () => fetchAPI<TournamentOptions>("/tournaments/options"),

@@ -33,6 +33,13 @@ export default function TournamentFilterForm({
     });
   };
 
+  const toggleLetterLevel = (level: string, checked: boolean) => {
+    const levels = new Set(filters.letter_levels ?? []);
+    if (checked) levels.add(level);
+    else levels.delete(level);
+    onChange({ letter_levels: [...levels] });
+  };
+
   return (
     <form className="filter-form" onSubmit={e => e.preventDefault()}>
       <div className="form-group">
@@ -88,6 +95,21 @@ export default function TournamentFilterForm({
           ))}
         </select>
       </div>
+      <fieldset className="form-group">
+        <legend>Division levels</legend>
+        <div className="tournament-level-options">
+          {options?.ordered_levels.map(level => (
+            <label key={level}>
+              <input
+                type="checkbox"
+                checked={filters.letter_levels?.includes(level) ?? false}
+                onChange={e => toggleLetterLevel(level, e.target.checked)}
+              />
+              {level}
+            </label>
+          ))}
+        </div>
+      </fieldset>
       <div className="form-group">
         <label htmlFor="location">Location</label>
         <input
@@ -156,40 +178,16 @@ export default function TournamentFilterForm({
           onChange={e => handleChange('ends_at', e.target.value || undefined)}
         />
       </div>
-      <div className="form-group">
-        <label htmlFor="page">Page</label>
-        <input
-          type="number"
-          id="page"
-          min="1"
-          value={filters.page ?? 1}
-          onChange={e => {
-            const val = e.target.value;
-            handleChange('page', val ? Number(val) : undefined);
-          }}
-        />
-      </div>
-      <div className="form-group">
-        <label htmlFor="per_page">Per Page</label>
-        <select
-          id="per_page"
-          value={filters.per_page?.toString() || ''}
-          onChange={e => handleChange('per_page', Number(e.target.value))}
-        >
-          <option value={10}>10</option>
-          <option value={25}>25</option>
-          <option value={50}>50</option>
-          <option value={100}>100</option>
-        </select>
-      </div>
       <div className="form-actions">
-        <button type="submit" className="btn btn-primary">
-          Apply Filters
-        </button>
         <button
           type="button"
           className="btn btn-secondary"
-          onClick={() => onChange({})}
+          onClick={() => onChange({
+            search: undefined, scope: undefined, organisation_id: undefined,
+            division_scheme: undefined, letter_levels: undefined, division_numbers: undefined,
+            location: undefined, temporal_status: undefined, mine: undefined,
+            publication_state: undefined, starts_at: undefined, ends_at: undefined,
+          })}
         >
           Reset
         </button>

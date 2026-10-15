@@ -8379,6 +8379,55 @@
   grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
   gap: 1.5rem;
 }
+.tournament-directory-actions {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  flex-wrap: wrap;
+  margin-top: 1rem;
+}
+.tournament-timezone { color: var(--text-secondary); font-size: 0.875rem; }
+.tournament-calendar-grid {
+  display: grid;
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+  gap: 0.5rem;
+}
+.tournament-calendar-day {
+  min-height: 130px;
+  padding: 0.5rem;
+  background: var(--bg-secondary);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  display: flex;
+  flex-direction: column;
+  gap: 0.375rem;
+}
+.tournament-calendar-day.outside-month { opacity: 0.55; }
+.tournament-calendar-day.today { border-color: var(--amber-500); }
+.tournament-calendar-event {
+  border: 1px solid var(--border);
+  border-left: 3px solid var(--amber-500);
+  border-radius: var(--radius-sm);
+  background: var(--white);
+  color: var(--charcoal);
+  cursor: pointer;
+  padding: 0.375rem;
+  text-align: left;
+  font: inherit;
+}
+.tournament-calendar-event small { display: block; color: var(--text-secondary); margin-top: 0.125rem; }
+.tournament-calendar-event.cancelled { border-left-color: var(--danger, #b42318); text-decoration: line-through; opacity: 0.72; }
+.tournament-level-options { display: flex; flex-wrap: wrap; gap: 0.5rem; }
+.tournament-level-options label { display: inline-flex; align-items: center; gap: 0.25rem; margin: 0; font-weight: 400; }
+.tournament-level-options input { width: auto; }
+@media (max-width: 900px) {
+  .tournaments-page-content { flex-direction: column; }
+  .tournaments-filters { flex-basis: auto; }
+}
+@media (max-width: 640px) {
+  .tournament-calendar { overflow-x: auto; }
+  .training-calendar-weekdays, .tournament-calendar-grid { min-width: 630px; }
+}
 /* ===== Tournament Detail Page ===== */
 .tournament-detail {
   max-width: 800px;

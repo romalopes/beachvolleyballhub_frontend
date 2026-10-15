@@ -1,93 +1,98 @@
-import { useState, useEffect, useCallback } from 'react';
-import { useNavigate } from 'react-router-dom';
-import {
-  api,
-  type Tournament,
-  type TournamentFilters,
-  type TournamentOptions,
-} from '../api';
-import TournamentCard from '../components/TournamentCard';
-import FilterState from '../components/FilterState';
-import LoadingState from '../components/LoadingState';
-import ErrorState from '../components/ErrorState';
-import TournamentFilterForm from '../components/TournamentFilterForm';
+import { useCallback, useEffect, useMemo, useState } from "react";
+import { useNavigate, useSearchParams } from "react-router-dom";
+import { ChevronLeft, ChevronRight } from "lucide-react";
+import { api, type Tournament, type TournamentFilters, type TournamentOptions } from "../api";
+import EmptyState from "../components/EmptyState";
+import ErrorState from "../components/ErrorState";
+import FilterState from "../components/FilterState";
+import LoadingState from "../components/LoadingState";
+import PageHeader from "../components/PageHeader";
+import TournamentCard from "../components/TournamentCard";
+import TournamentFilterForm from "../components/TournamentFilterForm";
+import { addDays, addMonths, monthGridDays, toISODate } from "../utils/calendar";
+import { fetchAllTournamentPages, filtersFromSearchParams, isAbortError, monthFromSearchParam, tournamentSearchParams, tournamentsByDay, type TournamentView } from "../utils/tournaments";
+
+const WEEKDAY_LABELS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
 
 export default function TournamentsPage() {
-  const [filters, setFilters] = useState<TournamentFilters>({});
-  const [tournaments, setTournaments] = useState<Tournament[] | null>(null); // null means loading
-  const [error, setError] = useState<string | null>(null);
-  const [options, setOptions] = useState<TournamentOptions | null>(null);
   const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
+  const filters = useMemo(() => filtersFromSearchParams(searchParams), [searchParams]);
+  const view: TournamentView = searchParams.get("view") === "list" ? "list" : "calendar";
+  const month = useMemo(() => monthFromSearchParam(searchParams.get("month")), [searchParams]);
+  const days = useMemo(() => monthGridDays(month), [month]);
+  const [tournaments, setTournaments] = useState<Tournament[] | null>(null);
+  const [options, setOptions] = useState<TournamentOptions | null>(null);
+  const [error, setError] = useState<string | null>(null);
 
-  const fetchTournaments = useCallback(async () => {
+  const updateUrl = useCallback((nextFilters: TournamentFilters, nextView = view, nextMonth = month) => {
+    setSearchParams(tournamentSearchParams(nextFilters, nextView, nextMonth));
+  }, [month, setSearchParams, view]);
+  const rangeFilters = useMemo<TournamentFilters>(() => ({ ...filters, starts_at: toISODate(days[0]), ends_at: toISODate(addDays(days[days.length - 1], 1)) }), [days, filters]);
+  const loadTournaments = useCallback(async (signal?: AbortSignal) => {
     setError(null);
     try {
-      const response = await api.tournaments({
-        ...filters,
-        page: 1,
-        per_page: 100,
-      });
-      setTournaments(response.data);
+      const loaded = await fetchAllTournamentPages(rangeFilters, signal, api.tournaments);
+      if (!signal?.aborted) setTournaments(loaded);
     } catch (err) {
-      console.error('Failed to fetch tournaments:', err);
-      setError('Failed to load tournaments');
+      if (signal?.aborted || isAbortError(err)) return;
+      console.error("Failed to fetch tournaments:", err);
+      setError(err instanceof Error ? err.message : "Failed to load tournaments.");
+      setTournaments([]);
     }
-  }, [filters]);
+  }, [rangeFilters]);
 
-  // Fetch options for filter dropdowns (like scope, organisation, etc.)
   useEffect(() => {
-    api.tournamentOptions()
-      .then(setOptions)
-      .catch((err: unknown) => {
-        console.warn('Could not load tournament options:', err);
-        // Not critical, we can still filter without options
-      });
+    const controller = new AbortController();
+    // The asynchronous loader owns request-result state; invoking it here starts
+    // the external request and cleanup aborts it when URL-backed inputs change.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    void loadTournaments(controller.signal);
+    return () => controller.abort();
+  }, [loadTournaments]);
+  useEffect(() => {
+    let active = true;
+    api.tournamentOptions().then(loaded => { if (active) setOptions(loaded); }).catch(err => console.warn("Could not load tournament options:", err));
+    return () => { active = false; };
   }, []);
 
-  useEffect(() => {
-    fetchTournaments();
-  }, [fetchTournaments]);
-
-  if (tournaments === null) {
-    return <LoadingState />;
-  }
-
-  if (error) {
-    return <ErrorState error={error} onRetry={fetchTournaments} />;
-  }
-
-  if (tournaments.length === 0) {
-    return (
-      <div className="empty-state">
-        <h3>No tournaments found</h3>
-        <p>Try adjusting your filters.</p>
-      </div>
-    );
-  }
+  const grouped = useMemo(() => tournamentsByDay(tournaments ?? []), [tournaments]);
+  const title = month.toLocaleDateString("en-US", { month: "long", year: "numeric" });
+  const moveMonth = (offset: number) => updateUrl(filters, view, addMonths(month, offset));
 
   return (
-    <div className="page">
-      <h1>Tournaments</h1>
+    <div className="page tournament-directory-page">
+      <PageHeader title="Tournaments" description="Browse beach volleyball events in the visible calendar period.">
+        <div className="tournament-directory-actions">
+          <div className="training-view-toggle" role="tablist" aria-label="Tournament view">
+            {(["calendar", "list"] as TournamentView[]).map(mode => <button key={mode} type="button" role="tab" aria-selected={view === mode} className={`filter-btn${view === mode ? " active" : ""}`} onClick={() => updateUrl(filters, mode, month)}>{mode === "calendar" ? "Calendar" : "List"}</button>)}
+          </div>
+          <span className="tournament-timezone">Calendar dates use each tournament’s timezone.</span>
+        </div>
+      </PageHeader>
       <div className="tournaments-page-content">
-        <aside className="tournaments-filters">
+        <aside className="tournaments-filters" aria-label="Tournament filters">
           <h2>Filters</h2>
-          <TournamentFilterForm
-            filters={filters}
-            onChange={setFilters}
-            options={options ?? undefined}
-          />
+          <TournamentFilterForm filters={filters} options={options ?? undefined} onChange={changes => updateUrl({ ...filters, ...changes }, view, month)} />
         </aside>
         <main className="tournaments-list">
-          <FilterState filters={filters} onReset={() => setFilters({})} />
-          <div className="tournaments-grid">
-            {tournaments.map(tournament => (
-              <TournamentCard
-                key={tournament.id}
-                tournament={tournament}
-                onClick={() => navigate(`/tournaments/${tournament.id}`)}
-              />
-            ))}
+          <div className="training-calendar-nav tournament-calendar-nav">
+            <button type="button" className="admin-btn" onClick={() => moveMonth(-1)} aria-label="Previous month"><ChevronLeft size={16} /></button>
+            <button type="button" className="admin-btn" onClick={() => updateUrl(filters, view, new Date())}>Today</button>
+            <button type="button" className="admin-btn" onClick={() => moveMonth(1)} aria-label="Next month"><ChevronRight size={16} /></button><h2>{title}</h2>
           </div>
+          <FilterState filters={filters} onReset={() => updateUrl({}, view, month)} />
+          {tournaments === null ? <LoadingState /> : error ? <ErrorState error={error} onRetry={() => void loadTournaments()} /> : tournaments.length === 0 ? <EmptyState title="No tournaments found" description="Try adjusting your filters or browsing another month." /> : view === "list" ? (
+            <div className="tournaments-grid">{tournaments.map(tournament => <TournamentCard key={tournament.id} tournament={tournament} onClick={() => navigate(`/tournaments/${tournament.id}`)} />)}</div>
+          ) : (
+            <div className="tournament-calendar" aria-label={`${title} tournament calendar`}>
+              <div className="training-calendar-weekdays">{WEEKDAY_LABELS.map(label => <span key={label}>{label}</span>)}</div>
+              <div className="tournament-calendar-grid">{days.map(day => {
+                const key = toISODate(day); const events = grouped.get(key) ?? []; const outsideMonth = day.getMonth() !== month.getMonth();
+                return <section key={key} className={`tournament-calendar-day${outsideMonth ? " outside-month" : ""}${key === toISODate(new Date()) ? " today" : ""}`} aria-label={day.toLocaleDateString()}><span className="training-calendar-date">{day.getDate()}</span>{events.map(tournament => <button key={`${tournament.id}-${key}`} type="button" className={`tournament-calendar-event${tournament.publication_state === "cancelled" ? " cancelled" : ""}`} onClick={() => navigate(`/tournaments/${tournament.id}`)}><span>{tournament.name}</span><small>{tournament.organisation.name}{tournament.publication_state === "cancelled" ? " · Cancelled" : ""}</small></button>)}</section>;
+              })}</div>
+            </div>
+          )}
         </main>
       </div>
     </div>

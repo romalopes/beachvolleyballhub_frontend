@@ -9,7 +9,18 @@ interface TournamentCardProps {
 
 export default function TournamentCard({ tournament, onClick }: TournamentCardProps) {
   return (
-    <div className="card tournament-card" onClick={onClick}>
+    <div
+      className="card tournament-card"
+      onClick={onClick}
+      onKeyDown={event => {
+        if (onClick && (event.key === 'Enter' || event.key === ' ')) {
+          event.preventDefault();
+          onClick();
+        }
+      }}
+      role={onClick ? 'button' : undefined}
+      tabIndex={onClick ? 0 : undefined}
+    >
       <div className="card-header">
         <h3 className="card-title">{tournament.name}</h3>
         <div className="tournament-badges">
