@@ -1804,8 +1804,13 @@ export interface Participation {
 
 export interface WatchLink {
   id: number;
+  name: string;
   url: string;
+  provider: string;
+  /** `link_type` mirrors the backend `provider` column (Phase 5/7 contract). */
   link_type: string;
+  description: string | null;
+  starts_at: string;
   position: number;
   active: boolean;
 }
@@ -3377,5 +3382,76 @@ export const api = {
     ),
   leaveTournament: (tournamentId: number | string) =>
     postJSON<void>(`/tournaments/${encodeURIComponent(String(tournamentId))}/participate`, {}, "DELETE"),
+  createDivision: (
+    tournamentId: number | string,
+    data: { letter_level?: string | null; division_number?: number | null },
+  ) =>
+    postJSON<Division>(
+      `/tournaments/${encodeURIComponent(String(tournamentId))}/divisions`,
+      { division: data },
+    ),
+  updateDivision: (
+    tournamentId: number | string,
+    divisionId: number,
+    data: {
+      letter_level?: string | null;
+      division_number?: number | null;
+      active?: boolean;
+    },
+  ) =>
+    postJSON<Division>(
+      `/tournaments/${encodeURIComponent(String(tournamentId))}/divisions/${divisionId}`,
+      { division: data },
+      "PATCH",
+    ),
+  deleteDivision: (tournamentId: number | string, divisionId: number) =>
+    postJSON<Division | null>(
+      `/tournaments/${encodeURIComponent(String(tournamentId))}/divisions/${divisionId}`,
+      {},
+      "DELETE",
+    ),
+  createWatchLink: (
+    tournamentId: number | string,
+    data: {
+      name: string;
+      url: string;
+      provider: string;
+      description?: string | null;
+      starts_at?: string;
+    },
+  ) =>
+    postJSON<WatchLink>(
+      `/tournaments/${encodeURIComponent(String(tournamentId))}/watch_links`,
+      { watch_link: data },
+    ),
+  updateWatchLink: (
+    tournamentId: number | string,
+    linkId: number,
+    data: {
+      name?: string;
+      url?: string;
+      provider?: string;
+      description?: string | null;
+      starts_at?: string;
+      position?: number;
+    },
+  ) =>
+    postJSON<WatchLink>(
+      `/tournaments/${encodeURIComponent(String(tournamentId))}/watch_links/${linkId}`,
+      { watch_link: data },
+      "PATCH",
+    ),
+  deleteWatchLink: (tournamentId: number | string, linkId: number) =>
+    postJSON<void>(
+      `/tournaments/${encodeURIComponent(String(tournamentId))}/watch_links/${linkId}`,
+      {},
+      "DELETE",
+    ),
+  cancelTournament: (id: number | string) =>
+    postJSON<Tournament>(`/tournaments/${encodeURIComponent(String(id))}/cancel`, {}),
+  restoreTournament: (id: number | string) =>
+    postJSON<Tournament>(`/tournaments/${encodeURIComponent(String(id))}/restore`, {}),
+  deleteTournament: (id: number | string) =>
+    postJSON<void>(`/tournaments/${encodeURIComponent(String(id))}`, {}, "DELETE"),
   // ===== End Tournament API Methods =====
 };

@@ -1,12 +1,14 @@
 import { useEffect, useState, type FormEvent } from "react";
 import {
   api,
+  type Division,
   type DivisionScheme,
   type Organisation,
   type PublicationState,
   type Tournament,
   type TournamentOptions,
   type TournamentScope,
+  type WatchLink,
 } from "../../api";
 import { useAuth } from "../../auth/AuthContext";
 
@@ -198,6 +200,123 @@ export default function TournamentForm({
         ends = prev.all_day ? nextDay(value) : `${value.slice(0, 10)}T23:59`;
       }
       return { ...prev, starts_at: value, ends_at: ends };
+    });
+  }
+
+  // --- divisions & watch links & lifecycle (edit mode only) -----------------
+  const [divisions, setDivisions] = useState<Division[]>(initial?.divisions ?? []);
+  const [watchLinks, setWatchLinks] = useState<WatchLink[]>(initial?.watch_links ?? []);
+  const [newDivisionCode, setNewDivisionCode] = useState("");
+  const [newLink, setNewLink] = useState({ name: "", url: "", provider: "youtube" });
+  const [childBusy, setChildBusy] = useState<string | null>(null);
+  const [childError, setChildError] = useState<string | null>(null);
+
+  function runChildAction(key: string, action: () => Promise<void>) {
+    setChildBusy(key);
+    setChildError(null);
+    action()
+      .catch((err) =>
+        setChildError(err instanceof Error ? err.message : "The action could not be completed."),
+      )
+      .finally(() => setChildBusy(null));
+  }
+
+  function addDivision() {
+    if (!initial || !newDivisionCode.trim()) return;
+    const code = newDivisionCode.trim().toUpperCase();
+    const payload =
+      formData.division_scheme === "letter"
+        ? { letter_level: code }
+        : { division_number: Number(code) };
+    void runChildAction("add-division", async () => {
+      const division = await api.createDivision(initial.id, payload);
+      setDivisions((prev) => [...prev, division]);
+      setNewDivisionCode("");
+    });
+  }
+
+  function toggleDivision(division: Division) {
+    if (!initial) return;
+    void runChildAction(`division-${division.id}`, async () => {
+      const updated = await api.updateDivision(initial.id, division.id, {
+        active: !division.active,
+      });
+      setDivisions((prev) => prev.map((d) => (d.id === division.id ? updated : d)));
+    });
+  }
+
+  function removeDivision(division: Division) {
+    if (!initial) return;
+    void runChildAction(`division-${division.id}`, async () => {
+      await api.deleteDivision(initial.id, division.id);
+      setDivisions((prev) => prev.filter((d) => d.id !== division.id));
+    });
+  }
+
+  function addWatchLink() {
+    if (!initial || !newLink.name.trim() || !newLink.url.trim()) return;
+    void runChildAction("add-link", async () => {
+      const link = await api.createWatchLink(initial.id, {
+        name: newLink.name.trim(),
+        url: newLink.url.trim(),
+        provider: newLink.provider.trim() || "other",
+        starts_at: new Date().toISOString(),
+      });
+      setWatchLinks((prev) => [...prev, link]);
+      setNewLink({ name: "", url: "", provider: "youtube" });
+    });
+  }
+
+  function removeWatchLink(link: WatchLink) {
+    if (!initial) return;
+    void runChildAction(`link-${link.id}`, async () => {
+      await api.deleteWatchLink(initial.id, link.id);
+      setWatchLinks((prev) => prev.filter((l) => l.id !== link.id));
+    });
+  }
+
+  function moveWatchLink(link: WatchLink, direction: -1 | 1) {
+    if (!initial) return;
+    void runChildAction(`link-${link.id}`, async () => {
+      const updated = await api.updateWatchLink(initial.id, link.id, {
+        position: link.position + direction,
+      });
+      setWatchLinks((prev) =>
+        prev
+          .map((l) => (l.id === link.id ? updated : l))
+          .sort((a, b) => a.position - b.position),
+      );
+    });
+  }
+
+  function lifecycle(
+    action: "publish" | "archive" | "cancel" | "restore" | "delete",
+  ) {
+    if (!initial) return;
+    const confirmations: Record<string, string> = {
+      cancel: "Cancel this tournament? Participants will see it as cancelled.",
+      archive: "Archive this tournament? It will be hidden from public listings.",
+      delete: "Delete this tournament permanently? This cannot be undone.",
+    };
+    const message = confirmations[action];
+    if (message && !window.confirm(message)) return;
+    void runChildAction(action, async () => {
+      if (action === "delete") {
+        await api.deleteTournament(initial.id);
+        onCancel();
+        return;
+      }
+      const saved =
+        action === "publish"
+          ? await api.publishTournament(initial.id)
+          : action === "archive"
+            ? await api.archiveTournament(initial.id)
+            : action === "cancel"
+              ? await api.cancelTournament(initial.id)
+              : await api.restoreTournament(initial.id);
+      setFormData((prev) => ({ ...prev, publication_state: saved.publication_state }));
+      setDivisions(saved.divisions);
+      setWatchLinks(saved.watch_links);
     });
   }
 
@@ -496,6 +615,100 @@ export default function TournamentForm({
           An all-day tournament needs an end date after the start date — a
           single-day event runs from its start date to the following day.
         </p>
+      )}
+
+      {!isNew && (
+        <>
+          <section className="admin-form-section">
+            <h3>Divisions</h3>
+            {divisions.length === 0 ? (
+              <p className="video-form-note">No divisions yet.</p>
+            ) : (
+              <ul className="admin-child-list">
+                {divisions.map((division) => (
+                  <li key={division.id} className="admin-child-row">
+                    <span>
+                      {division.division_code}
+                      {division.active ? "" : " (inactive)"}
+                    </span>
+                    <span className="admin-child-actions">
+                      <button type="button" className="admin-btn" onClick={() => toggleDivision(division)} disabled={childBusy !== null}>
+                        {division.active ? "Deactivate" : "Activate"}
+                      </button>
+                      <button type="button" className="admin-btn" onClick={() => removeDivision(division)} disabled={childBusy !== null}>
+                        Remove
+                      </button>
+                    </span>
+                  </li>
+                ))}
+              </ul>
+            )}
+            <div className="admin-field-row">
+              <input
+                type={formData.division_scheme === "letter" ? "text" : "number"}
+                value={newDivisionCode}
+                onChange={(e) => setNewDivisionCode(e.target.value)}
+                placeholder={formData.division_scheme === "letter" ? "Letter level (e.g. A, BB)" : "Number (e.g. 1, 2)"}
+              />
+              <button type="button" className="admin-btn" onClick={addDivision} disabled={childBusy !== null || !newDivisionCode.trim()}>
+                Add division
+              </button>
+            </div>
+          </section>
+
+          <section className="admin-form-section">
+            <h3>Watch links</h3>
+            {watchLinks.length === 0 ? (
+              <p className="video-form-note">No watch links yet.</p>
+            ) : (
+              <ul className="admin-child-list">
+                {watchLinks.map((link, index) => (
+                  <li key={link.id} className="admin-child-row">
+                    <span>
+                      {link.name} — {link.url}
+                    </span>
+                    <span className="admin-child-actions">
+                      <button type="button" className="admin-btn" onClick={() => moveWatchLink(link, -1)} disabled={index === 0 || childBusy !== null} aria-label={`Move ${link.name} up`}>↑</button>
+                      <button type="button" className="admin-btn" onClick={() => moveWatchLink(link, 1)} disabled={index === watchLinks.length - 1 || childBusy !== null} aria-label={`Move ${link.name} down`}>↓</button>
+                      <button type="button" className="admin-btn" onClick={() => removeWatchLink(link)} disabled={childBusy !== null}>Remove</button>
+                    </span>
+                  </li>
+                ))}
+              </ul>
+            )}
+            <div className="admin-field-row">
+              <input type="text" value={newLink.name} onChange={(e) => setNewLink((p) => ({ ...p, name: e.target.value }))} placeholder="Name (e.g. Livestream)" />
+              <input type="url" value={newLink.url} onChange={(e) => setNewLink((p) => ({ ...p, url: e.target.value }))} placeholder="https://…" />
+              <input type="text" value={newLink.provider} onChange={(e) => setNewLink((p) => ({ ...p, provider: e.target.value }))} placeholder="provider (e.g. youtube)" />
+              <button type="button" className="admin-btn" onClick={addWatchLink} disabled={childBusy !== null || !newLink.name.trim() || !newLink.url.trim()}>
+                Add link
+              </button>
+            </div>
+          </section>
+
+          <section className="admin-form-section">
+            <h3>Lifecycle</h3>
+            <div className="admin-form-actions">
+              {formData.publication_state === "draft" && (
+                <button type="button" className="admin-btn" onClick={() => lifecycle("publish")} disabled={childBusy !== null}>Publish</button>
+              )}
+              {(formData.publication_state === "draft" || formData.publication_state === "active") && (
+                <button type="button" className="admin-btn" onClick={() => lifecycle("archive")} disabled={childBusy !== null}>Archive</button>
+              )}
+              {formData.publication_state === "active" && (
+                <button type="button" className="admin-btn" onClick={() => lifecycle("cancel")} disabled={childBusy !== null}>Cancel tournament</button>
+              )}
+              {(formData.publication_state === "cancelled" || formData.publication_state === "archived") && (
+                <button type="button" className="admin-btn" onClick={() => lifecycle("restore")} disabled={childBusy !== null}>Restore</button>
+              )}
+              <button type="button" className="admin-btn admin-btn-danger" onClick={() => lifecycle("delete")} disabled={childBusy !== null}>Delete permanently</button>
+            </div>
+          </section>
+
+          {childError && (
+            <div className="auth-flash auth-flash-error" role="alert">{childError}</div>
+          )}
+        </>
       )}
 
       <div className="admin-form-actions">
