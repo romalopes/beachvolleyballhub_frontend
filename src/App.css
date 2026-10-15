@@ -8484,6 +8484,15 @@
   margin-top: 2rem;
   text-align: right;
 }
+.tournament-notice { padding: 0.875rem 1rem; border-left: 4px solid var(--amber-500); background: var(--bg-secondary); }
+.participation-panel form { display: grid; gap: 1rem; }
+.participation-divisions { border: 0; margin: 0; padding: 0; display: grid; gap: 0.5rem; }
+.participation-divisions label { display: flex; align-items: center; gap: 0.5rem; font-weight: 400; }
+.participation-divisions input { width: auto; }
+.participation-error { color: var(--danger, #b42318); font-weight: 600; }
+.participation-unlink { margin-top: 1rem; }
+.my-tournaments { display: grid; gap: 2rem; }
+.my-tournaments h2 { margin-bottom: 1rem; }
 /* ===== Tournament List Page ===== */
 .tournaments-page-content {
   display: flex;

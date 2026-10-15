@@ -25,6 +25,7 @@ import TrainingFormPage from "./pages/TrainingFormPage";
 import Schedule from "./pages/Schedule";
 import Tournaments from "./pages/Tournaments";
 import TournamentDetail from "./pages/TournamentDetail";
+import MyTournaments from "./pages/MyTournaments";
 import Players from "./pages/Players";
 import PlayerDetail from "./pages/PlayerDetail";
 import Coaches from "./pages/Coaches";
@@ -42,6 +43,8 @@ import RankingConsolidationDetail from "./pages/RankingConsolidationDetail";
 import ProfileEditPage from "./pages/ProfileEditPage";
 import AdminUsers from "./pages/AdminUsers";
 import AdminUserDetail from "./pages/AdminUserDetail";
+import AdminTournamentsPage from "./pages/admin/Tournaments";
+import AdminTournamentFormPage from "./pages/admin/TournamentFormPage";
 import SettingsDashboard from "./pages/settings/SettingsDashboard";
 import SkillsSettings from "./pages/settings/Skills";
 import SkillFormPage from "./pages/settings/SkillFormPage";
@@ -102,7 +105,11 @@ function GroupCreatorRoute({ children }: { children: React.ReactNode }) {
   const { user, loading } = useAuth();
   if (loading) return null;
   const canCreateGroups = user?.roles?.some(
-    (role) => role === "player" || role === "coach" || role === "curator" || role === "admin",
+    (role) =>
+      role === "player" ||
+      role === "coach" ||
+      role === "curator" ||
+      role === "admin",
   );
   if (!canCreateGroups) return <Navigate to="/" replace />;
   return <>{children}</>;
@@ -218,6 +225,14 @@ export default function App() {
                 <Route path="/calendar" element={<TrainingCalendar />} />
                 <Route path="/schedule" element={<Schedule />} />
                 <Route path="/tournaments" element={<Tournaments />} />
+                <Route
+                  path="/my-tournaments"
+                  element={
+                    <AuthenticatedRoute>
+                      <MyTournaments />
+                    </AuthenticatedRoute>
+                  }
+                />
                 <Route path="/tournaments/:id" element={<TournamentDetail />} />
                 <Route
                   path="/players"
@@ -360,6 +375,30 @@ export default function App() {
                   element={
                     <AdminRoute>
                       <AdminUserDetail />
+                    </AdminRoute>
+                  }
+                />
+                <Route
+                  path="/admin/tournaments"
+                  element={
+                    <AdminRoute>
+                      <AdminTournamentsPage />
+                    </AdminRoute>
+                  }
+                />
+                <Route
+                  path="/admin/tournaments/new"
+                  element={
+                    <AdminRoute>
+                      <AdminTournamentFormPage />
+                    </AdminRoute>
+                  }
+                />
+                <Route
+                  path="/admin/tournaments/:id/edit"
+                  element={
+                    <AdminRoute>
+                      <AdminTournamentFormPage />
                     </AdminRoute>
                   }
                 />

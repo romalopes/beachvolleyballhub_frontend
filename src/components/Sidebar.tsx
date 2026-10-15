@@ -128,6 +128,8 @@ const identityLink: SidebarLink = {
   label: "Identity",
   icon: UsersRound,
 };
+const tournamentsLink: SidebarLink = { path: "/tournaments", label: "Tournaments", icon: Trophy };
+const myTournamentsLink: SidebarLink = { path: "/my-tournaments", label: "My Tournaments", icon: Trophy };
 
 /**
  * Remembers which groups were folded away. Storage can be unavailable (private
@@ -230,6 +232,7 @@ export default function Sidebar() {
       </div>
       <nav className="sidebar-nav" aria-label="Main">
         <SidebarNavLink link={homeLink} />
+        <SidebarNavLink link={tournamentsLink} />
         {visibleGroups.map((group) => {
           const GroupIcon = group.icon;
           const isCollapsed = collapsedGroups[group.id] === true;
@@ -269,6 +272,7 @@ export default function Sidebar() {
         })}
         {isAdmin && <SidebarNavLink link={settingsLink} />}
         {user && <SidebarNavLink link={identityLink} />}
+        {user && <SidebarNavLink link={myTournamentsLink} />}
         {user && <SidebarNavLink link={accountLink} />}
       </nav>
       <div className="sidebar-footer">

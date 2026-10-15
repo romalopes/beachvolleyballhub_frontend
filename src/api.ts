@@ -1799,6 +1799,7 @@ export interface Participation {
   account_id: number;
   role: ParticipationRole;
   created_at: string; // ISO string
+  division_ids: number[];
 }
 
 export interface WatchLink {
@@ -1829,6 +1830,8 @@ export interface Tournament {
   created_by_account_id: number;
   divisions: Division[];
   participations: Participation[];
+  /** Present on detail and authenticated mine responses; omitted by legacy list payloads. */
+  my_participation?: Participation | null;
   watch_links: WatchLink[];
 }
 // ===== End Tournament API Types =====
