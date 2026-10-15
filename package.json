@@ -12,6 +12,7 @@
     "preview": "vite preview"
   },
   "dependencies": {
+    "@sentry/react": "^11.8.0",
     "ajv": "^8.20.0",
     "lucide-react": "^1.41.0",
     "react": "^19.2.8",
