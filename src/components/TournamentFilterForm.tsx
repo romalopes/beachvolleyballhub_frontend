@@ -1,9 +1,11 @@
 import type {
+  Organisation,
   PublicationState,
   TemporalStatus,
   TournamentFilters,
   TournamentOptions,
 } from '../api';
+import OrganisationMultiSelect from './OrganisationMultiSelect';
 
 const TEMPORAL_STATUSES: TemporalStatus[] = ['upcoming', 'ongoing', 'completed'];
 const PUBLICATION_STATES: PublicationState[] = [
@@ -17,12 +19,14 @@ interface TournamentFilterFormProps {
   filters: TournamentFilters;
   onChange: (filters: Partial<TournamentFilters>) => void;
   options?: TournamentOptions;
+  organisations?: Organisation[];
 }
 
 export default function TournamentFilterForm({
   filters,
   onChange,
   options,
+  organisations,
 }: TournamentFilterFormProps) {
   const handleChange = (
     field: keyof TournamentFilters,
@@ -68,16 +72,12 @@ export default function TournamentFilterForm({
         </select>
       </div>
       <div className="form-group">
-        <label htmlFor="organisation_id">Organisation ID</label>
-        <input
-          type="number"
-          id="organisation_id"
-          value={filters.organisation_id ?? ''}
-          onChange={e => {
-            const val = e.target.value;
-            handleChange('organisation_id', val || undefined);
-          }}
-          placeholder="Organisation ID"
+        <OrganisationMultiSelect
+          id="tournament-organisations"
+          label="Organisations"
+          organisations={organisations ?? []}
+          value={filters.organisation_ids ?? (filters.organisation_id ? [filters.organisation_id] : [])}
+          onChange={organisation_ids => onChange({ organisation_ids, organisation_id: undefined })}
         />
       </div>
       <div className="form-group">
@@ -183,7 +183,7 @@ export default function TournamentFilterForm({
           type="button"
           className="btn btn-secondary"
           onClick={() => onChange({
-            search: undefined, scope: undefined, organisation_id: undefined,
+            search: undefined, scope: undefined, organisation_id: undefined, organisation_ids: undefined,
             division_scheme: undefined, letter_levels: undefined, division_numbers: undefined,
             location: undefined, temporal_status: undefined, mine: undefined,
             publication_state: undefined, starts_at: undefined, ends_at: undefined,

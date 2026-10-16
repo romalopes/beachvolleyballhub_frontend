@@ -118,6 +118,11 @@ const settingsLink: SidebarLink = {
   label: "Settings",
   icon: Settings,
 };
+const tournamentManagementLink: SidebarLink = {
+  path: "/admin/tournaments",
+  label: "Tournament Management",
+  icon: Trophy,
+};
 const accountLink: SidebarLink = {
   path: "/account",
   label: "Account",
@@ -271,6 +276,7 @@ export default function Sidebar() {
           );
         })}
         {isAdmin && <SidebarNavLink link={settingsLink} />}
+        {isAdmin && <SidebarNavLink link={tournamentManagementLink} />}
         {user && <SidebarNavLink link={identityLink} />}
         {user && <SidebarNavLink link={myTournamentsLink} />}
         {user && <SidebarNavLink link={accountLink} />}

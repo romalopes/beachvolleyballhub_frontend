@@ -13,6 +13,11 @@ export function filtersFromSearchParams(params: URLSearchParams): TournamentFilt
     const value = params.get(key);
     if (value) Object.assign(filters, { [key]: value });
   }
+  const organisationIds = params.get("organisation_ids")?.split(",").filter(Boolean);
+  if (organisationIds?.length) {
+    filters.organisation_ids = organisationIds;
+    delete filters.organisation_id;
+  }
   const letterLevels = params.get("letter_levels")?.split(",").filter(Boolean);
   if (letterLevels?.length) filters.letter_levels = letterLevels;
   const divisionNumbers = params.get("division_numbers")?.split(",").map(Number)
@@ -25,9 +30,11 @@ export function filtersFromSearchParams(params: URLSearchParams): TournamentFilt
 export function tournamentSearchParams(filters: TournamentFilters, view: TournamentView, month: Date): URLSearchParams {
   const params = new URLSearchParams();
   for (const key of FILTER_KEYS) {
+    if (key === "organisation_id" && filters.organisation_ids?.length) continue;
     const value = filters[key];
     if (value) params.set(key, String(value));
   }
+  if (filters.organisation_ids?.length) params.set("organisation_ids", filters.organisation_ids.join(","));
   if (filters.letter_levels?.length) params.set("letter_levels", filters.letter_levels.join(","));
   if (filters.division_numbers?.length) params.set("division_numbers", filters.division_numbers.join(","));
   if (filters.mine) params.set("mine", "1");

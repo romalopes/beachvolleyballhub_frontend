@@ -14,7 +14,9 @@ export default function FilterState({ filters, onReset }: FilterStateProps) {
   if (filters.scope) {
     activeFilters.push({ label: 'Scope', value: filters.scope });
   }
-  if (filters.organisation_id) {
+  if (filters.organisation_ids?.length) {
+    activeFilters.push({ label: 'Organisation IDs', value: filters.organisation_ids.join(', ') });
+  } else if (filters.organisation_id) {
     activeFilters.push({ label: 'Organisation ID', value: filters.organisation_id });
   }
   if (filters.division_scheme) {

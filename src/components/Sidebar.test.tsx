@@ -68,6 +68,28 @@ beforeEach(() => {
 });
 
 describe("Sidebar", () => {
+  describe("the Tournament Management link", () => {
+    it("takes an admin to tournament management", () => {
+      signInAs(["admin"]);
+
+      renderSidebar();
+
+      expect(
+        screen.getByRole("link", { name: /tournament management/i }),
+      ).toHaveAttribute("href", "/admin/tournaments");
+    });
+
+    it.each(["coach", "curator", "player"])("is hidden from a %s", (role) => {
+      signInAs([role]);
+
+      renderSidebar();
+
+      expect(
+        screen.queryByRole("link", { name: /tournament management/i }),
+      ).not.toBeInTheDocument();
+    });
+  });
+
   describe("the Organisations link", () => {
     it.each(["coach", "curator", "admin"])("appears for a %s", (role) => {
       // The page requires a training manager, so the link belongs to the staff

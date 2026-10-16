@@ -1762,7 +1762,9 @@ export type TemporalStatus = 'upcoming' | 'ongoing' | 'completed';
 export interface TournamentFilters {
   search?: string;
   scope?: TournamentScope;
+  /** Legacy single-organisation filter, retained for bookmarked API callers. */
   organisation_id?: string;
+  organisation_ids?: string[];
   division_scheme?: DivisionScheme;
   letter_levels?: string[];
   division_numbers?: number[];
@@ -3315,7 +3317,11 @@ export const api = {
     const params = new URLSearchParams();
     if (filters?.search) params.set("search", filters.search);
     if (filters?.scope) params.set("scope", filters.scope);
-    if (filters?.organisation_id) params.set("organisation_id", filters.organisation_id);
+    if (filters?.organisation_ids?.length) {
+      filters.organisation_ids.forEach((id) => params.append("organisation_ids[]", id));
+    } else if (filters?.organisation_id) {
+      params.set("organisation_id", filters.organisation_id);
+    }
     if (filters?.division_scheme) params.set("division_scheme", filters.division_scheme);
     filters?.letter_levels?.forEach((level) => params.append("letter_levels[]", level));
     filters?.division_numbers?.forEach((number) => params.append("division_numbers[]", String(number)));

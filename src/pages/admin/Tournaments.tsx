@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import {
   api,
+  type Organisation,
   type PaginationMeta,
   type Tournament,
   type TournamentFilters,
@@ -25,6 +26,7 @@ export default function AdminTournamentsPage() {
   const [meta, setMeta] = useState<PaginationMeta | null>(null);
   const [filters, setFilters] = useState<TournamentFilters>({});
   const [options, setOptions] = useState<TournamentOptions | null>(null);
+  const [organisations, setOrganisations] = useState<Organisation[]>([]);
 
   // Load tournament options for filter dropdowns
   useEffect(() => {
@@ -32,6 +34,10 @@ export default function AdminTournamentsPage() {
     api
       .tournamentOptions()
       .then(setOptions)
+      .catch(() => {});
+    api
+      .organisations("active", undefined, true)
+      .then((response) => setOrganisations(response.data))
       .catch(() => {});
   }, [isAdmin]);
 
@@ -78,12 +84,20 @@ export default function AdminTournamentsPage() {
       <header className="page-header">
         <h1>Tournaments</h1>
         <p>Manage all tournaments in the system.</p>
+        <button
+          type="button"
+          className="admin-btn admin-btn-add settings-add-btn"
+          onClick={() => navigate("/admin/tournaments/new")}
+        >
+          Create Tournament
+        </button>
       </header>
 
       <TournamentFilterForm
         filters={filters}
         onChange={handleFilterChange}
         options={options ?? undefined}
+        organisations={organisations}
       />
 
       {error && <div className="auth-flash auth-flash-error">{error}</div>}
@@ -117,14 +131,6 @@ export default function AdminTournamentsPage() {
           )}
         </>
       )}
-
-      <button
-        type="button"
-        className="admin-btn admin-btn-add"
-        onClick={() => navigate("/admin/tournaments/new")}
-      >
-        Add Tournament
-      </button>
     </div>
   );
 }

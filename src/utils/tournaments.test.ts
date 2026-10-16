@@ -34,9 +34,9 @@ const tournament = (overrides: Partial<Tournament> = {}): Tournament => ({
 
 describe("tournament directory helpers", () => {
   it("serializes URL-safe filters and restores them", () => {
-    const params = tournamentSearchParams({ search: "sand", mine: true, letter_levels: ["A", "AA"] }, "list", new Date(2026, 2, 1));
-    expect(params.toString()).toBe("search=sand&letter_levels=A%2CAA&mine=1&view=list&month=2026-03");
-    expect(filtersFromSearchParams(params)).toEqual({ search: "sand", mine: true, letter_levels: ["A", "AA"] });
+    const params = tournamentSearchParams({ search: "sand", mine: true, organisation_ids: ["3", "8"], letter_levels: ["A", "AA"] }, "list", new Date(2026, 2, 1));
+    expect(params.toString()).toBe("search=sand&organisation_ids=3%2C8&letter_levels=A%2CAA&mine=1&view=list&month=2026-03");
+    expect(filtersFromSearchParams(params)).toEqual({ search: "sand", mine: true, organisation_ids: ["3", "8"], letter_levels: ["A", "AA"] });
   });
 
   it("loads every page when a bounded calendar result exceeds 100 tournaments", async () => {

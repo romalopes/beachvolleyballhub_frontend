@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { ChevronLeft, ChevronRight } from "lucide-react";
-import { api, type Tournament, type TournamentFilters, type TournamentOptions } from "../api";
+import { api, type Organisation, type Tournament, type TournamentFilters, type TournamentOptions } from "../api";
 import EmptyState from "../components/EmptyState";
 import ErrorState from "../components/ErrorState";
 import FilterState from "../components/FilterState";
@@ -23,6 +23,7 @@ export default function TournamentsPage() {
   const days = useMemo(() => monthGridDays(month), [month]);
   const [tournaments, setTournaments] = useState<Tournament[] | null>(null);
   const [options, setOptions] = useState<TournamentOptions | null>(null);
+  const [organisations, setOrganisations] = useState<Organisation[]>([]);
   const [error, setError] = useState<string | null>(null);
 
   const updateUrl = useCallback((nextFilters: TournamentFilters, nextView = view, nextMonth = month) => {
@@ -53,6 +54,9 @@ export default function TournamentsPage() {
   useEffect(() => {
     let active = true;
     api.tournamentOptions().then(loaded => { if (active) setOptions(loaded); }).catch(err => console.warn("Could not load tournament options:", err));
+    api.organisations("active", undefined, true)
+      .then(response => { if (active) setOrganisations(response.data); })
+      .catch(err => console.warn("Could not load tournament organisations:", err));
     return () => { active = false; };
   }, []);
 
@@ -73,7 +77,7 @@ export default function TournamentsPage() {
       <div className="tournaments-page-content">
         <aside className="tournaments-filters" aria-label="Tournament filters">
           <h2>Filters</h2>
-          <TournamentFilterForm filters={filters} options={options ?? undefined} onChange={changes => updateUrl({ ...filters, ...changes }, view, month)} />
+          <TournamentFilterForm filters={filters} options={options ?? undefined} organisations={organisations} onChange={changes => updateUrl({ ...filters, ...changes }, view, month)} />
         </aside>
         <main className="tournaments-list">
           <div className="training-calendar-nav tournament-calendar-nav">

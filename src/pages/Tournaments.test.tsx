@@ -7,7 +7,7 @@ import Tournaments from "./Tournaments";
 
 vi.mock("../api", async (importOriginal) => {
   const actual = await importOriginal<typeof import("../api")>();
-  return { ...actual, api: { ...actual.api, tournaments: vi.fn(), tournamentOptions: vi.fn() } };
+  return { ...actual, api: { ...actual.api, tournaments: vi.fn(), tournamentOptions: vi.fn(), organisations: vi.fn() } };
 });
 
 const mockedApi = vi.mocked(api, true);
@@ -37,6 +37,10 @@ function renderPage(entry = "/tournaments?month=2026-03") {
 beforeEach(() => {
   vi.clearAllMocks();
   mockedApi.tournamentOptions.mockResolvedValue({ scopes: ["club"], schemes: ["letter"], ordered_levels: ["AA", "A"], participation_roles: ["player"] });
+  mockedApi.organisations.mockResolvedValue({
+    data: [{ id: 3, name: "Beach Club", depth: 0 }, { id: 8, name: "State Volleyball", depth: 0 }],
+    meta: { page: 1, per_page: 2, total: 2, total_pages: 1 },
+  } as Awaited<ReturnType<typeof api.organisations>>);
   mockedApi.tournaments.mockResolvedValue({ data: [tournament()], meta: { page: 1, per_page: 100, total: 1, total_pages: 1 } });
 });
 
@@ -59,6 +63,31 @@ describe("Tournaments directory", () => {
     await user.type(screen.getByLabelText("Search"), "open");
     await waitFor(() => expect(screen.getByTestId("location")).toHaveTextContent("search=open"));
     expect(mockedApi.tournaments).toHaveBeenLastCalledWith(expect.objectContaining({ search: "open" }), expect.anything());
+  });
+
+  it("filters by multiple searched organisations", async () => {
+    const user = userEvent.setup();
+    renderPage();
+
+    await user.type(await screen.findByLabelText("Organisations"), "beach");
+    await user.click(await screen.findByRole("option", { name: /beach club/i }));
+    await user.type(screen.getByLabelText("Organisations"), "state");
+    await user.click(await screen.findByRole("option", { name: /state volleyball/i }));
+
+    await waitFor(() =>
+      expect(screen.getByTestId("location")).toHaveTextContent("organisation_ids=3%2C8"),
+    );
+    expect(mockedApi.tournaments).toHaveBeenLastCalledWith(
+      expect.objectContaining({ organisation_ids: ["3", "8"] }),
+      expect.anything(),
+    );
+
+    await user.click(screen.getByRole("button", { name: "Remove Beach Club" }));
+    await waitFor(() => expect(screen.getByTestId("location")).toHaveTextContent("organisation_ids=8"));
+    expect(mockedApi.tournaments).toHaveBeenLastCalledWith(
+      expect.objectContaining({ organisation_ids: ["8"] }),
+      expect.anything(),
+    );
   });
 
   it("cancels stale requests when the filter changes", async () => {

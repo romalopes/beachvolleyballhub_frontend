@@ -110,6 +110,18 @@ describe("tournaments client", () => {
     expect(url).toBe("/api/v1/tournaments?letter_levels%5B%5D=A&letter_levels%5B%5D=AA&division_numbers%5B%5D=1&division_numbers%5B%5D=2");
     expect(init.signal).toBe(controller.signal);
   });
+
+  it("serializes multi-organisation filters in Rails' permitted-array format", async () => {
+    const fetchMock = mockFetchOnce({
+      ok: true, status: 200,
+      body: { tournaments: [], meta: { page: 1, per_page: 100, total: 0, total_pages: 0 } },
+    });
+
+    await api.tournaments({ organisation_ids: ["3", "8"] });
+
+    const [url] = fetchMock.mock.calls[0] as [string, RequestInit];
+    expect(url).toContain("/api/v1/tournaments?organisation_ids%5B%5D=3&organisation_ids%5B%5D=8");
+  });
 });
 
 describe("postJSON (auth + mutations)", () => {
