@@ -85,7 +85,7 @@ export default function TournamentsPage() {
             <button type="button" className="admin-btn" onClick={() => updateUrl(filters, view, new Date())}>Today</button>
             <button type="button" className="admin-btn" onClick={() => moveMonth(1)} aria-label="Next month"><ChevronRight size={16} /></button><h2>{title}</h2>
           </div>
-          <FilterState filters={filters} onReset={() => updateUrl({}, view, month)} />
+          <FilterState filters={filters} organisations={organisations} onReset={() => updateUrl({}, view, month)} />
           {tournaments === null ? <LoadingState /> : error ? <ErrorState error={error} onRetry={() => void loadTournaments()} /> : tournaments.length === 0 ? <EmptyState title="No tournaments found" description="Try adjusting your filters or browsing another month." /> : view === "list" ? (
             <div className="tournaments-grid">{tournaments.map(tournament => <TournamentCard key={tournament.id} tournament={tournament} onClick={() => navigate(`/tournaments/${tournament.id}`)} />)}</div>
           ) : (

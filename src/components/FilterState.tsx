@@ -1,12 +1,15 @@
-import type { TournamentFilters } from '../api';
+import type { Organisation, TournamentFilters } from '../api';
 
 interface FilterStateProps {
   filters: TournamentFilters;
   onReset: () => void;
+  organisations?: Organisation[];
 }
 
-export default function FilterState({ filters, onReset }: FilterStateProps) {
+export default function FilterState({ filters, onReset, organisations }: FilterStateProps) {
   const activeFilters: Array<{ label: string; value: string }> = [];
+  const orgById = new Map((organisations ?? []).map(organisation => [organisation.id, organisation.name]));
+  const orgName = (id: number | string) => orgById.get(Number(id)) ?? String(id);
 
   if (filters.search) {
     activeFilters.push({ label: 'Search', value: filters.search });
@@ -15,9 +18,9 @@ export default function FilterState({ filters, onReset }: FilterStateProps) {
     activeFilters.push({ label: 'Scope', value: filters.scope });
   }
   if (filters.organisation_ids?.length) {
-    activeFilters.push({ label: 'Organisation IDs', value: filters.organisation_ids.join(', ') });
+    activeFilters.push({ label: 'Organisations', value: filters.organisation_ids.map(orgName).join(', ') });
   } else if (filters.organisation_id) {
-    activeFilters.push({ label: 'Organisation ID', value: filters.organisation_id });
+    activeFilters.push({ label: 'Organisation', value: orgName(filters.organisation_id) });
   }
   if (filters.division_scheme) {
     activeFilters.push({ label: 'Division Scheme', value: filters.division_scheme });
