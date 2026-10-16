@@ -22,16 +22,16 @@ export default function AccountDetail() {
   const [account, setAccount] = useState<Account | null>(null);
   const [error, setError] = useState<string | null>(null);
 
+  const invalidId = !Number.isInteger(accountId) || accountId < 1;
+
   useEffect(() => {
-    if (!Number.isInteger(accountId) || accountId < 1) {
-      setError("Account not found.");
-      return;
-    }
+    if (invalidId) return;
     api.accountDetail(accountId).then(setAccount).catch((reason: unknown) => {
       setError(reason instanceof Error ? reason.message : "Failed to load the account.");
     });
-  }, [accountId]);
+  }, [accountId, invalidId]);
 
+  if (invalidId) return <div className="page"><div className="auth-flash auth-flash-error">Account not found.</div></div>;
   if (error) return <div className="page"><div className="auth-flash auth-flash-error">{error}</div></div>;
   if (!account) return <div className="loading">Loading…</div>;
 

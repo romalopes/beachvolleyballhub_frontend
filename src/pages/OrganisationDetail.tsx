@@ -504,21 +504,21 @@ function AddMemberForm({
   const [busy, setBusy] = useState(false);
   const existingKeys = useMemo(() => new Set(memberships.map((membership) => `${membership.memberable_type ?? membership.member_type ?? "Account"}:${membership.memberable_id ?? membership.member_id ?? membership.account_id ?? membership.person_id}`)), [memberships]);
 
+  const queryActive = query.trim().length >= 2;
+  const visibleCandidates = queryActive ? candidates : [];
+
   useEffect(() => {
-    if (query.trim().length < 2) {
-      setCandidates([]);
-      return;
-    }
+    if (!queryActive) return;
     let cancelled = false;
     api.organisationMemberCandidates(organisation.id, query.trim())
       .then((result) => { if (!cancelled) setCandidates(result); })
       .catch((reason) => { if (!cancelled) onError(reason instanceof Error ? reason.message : "Failed to search members."); });
     return () => { cancelled = true; };
-  }, [organisation.id, query, onError]);
+  }, [organisation.id, query, onError, queryActive]);
 
   const submit = async (event: FormEvent) => {
     event.preventDefault();
-    const selected = candidates.find((candidate) => candidate.id === selectedId);
+    const selected = visibleCandidates.find((candidate) => candidate.id === selectedId);
     if (!selected) {
       onError("Choose a person to add.");
       return;
@@ -544,7 +544,7 @@ function AddMemberForm({
   return (
     <form className="organisations-add" onSubmit={submit}>
       <div className="form-row"><label htmlFor="member-search">Search by name</label><input id="member-search" placeholder="Search by name" value={query} onChange={(e) => setQuery(e.target.value)} disabled={busy} /></div>
-      {candidates.length > 0 && <ul className="organisations-add-results">{candidates.map((candidate) => { const key = `${candidate.memberable_type}:${candidate.memberable_id}`; const exists = existingKeys.has(key); return <li key={candidate.id}><span>{candidate.display_name}<small> {candidate.member_type_label}</small></span><button type="button" className="admin-btn" disabled={exists || busy} onClick={() => setSelectedId(candidate.id)}>{exists ? "Already on roster" : selectedId === candidate.id ? "Selected" : "Select"}</button></li>; })}</ul>}
+      {visibleCandidates.length > 0 && <ul className="organisations-add-results">{visibleCandidates.map((candidate) => { const key = `${candidate.memberable_type}:${candidate.memberable_id}`; const exists = existingKeys.has(key); return <li key={candidate.id}><span>{candidate.display_name}<small> {candidate.member_type_label}</small></span><button type="button" className="admin-btn" disabled={exists || busy} onClick={() => setSelectedId(candidate.id)}>{exists ? "Already on roster" : selectedId === candidate.id ? "Selected" : "Select"}</button></li>; })}</ul>}
       <div className="form-row"><label htmlFor="member-role">Role</label><select id="member-role" value={role} onChange={(e) => setRole(e.target.value as OrganisationMembershipRole)} disabled={busy}>{MEMBERSHIP_ROLES.map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}</select></div>
       <div className="form-actions"><button type="submit" className="admin-btn admin-btn-primary" disabled={busy}>{busy ? "Adding…" : "Add"}</button></div>
     </form>

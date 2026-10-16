@@ -25,5 +25,10 @@ export default defineConfig({
   test: {
     environment: "jsdom",
     setupFiles: ["./src/test/setup.ts"],
+    // Tests assert relative API URLs ("/api/v1/..."), the same default the
+    // build uses behind the Vercel proxy. A developer's .env.local pointing at
+    // http://localhost:3001/api/v1 (absolute, for direct dev access) must not
+    // leak into the suite — force the empty default here.
+    env: { VITE_API_BASE_URL: "" },
   },
 });

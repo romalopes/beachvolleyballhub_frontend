@@ -52,7 +52,7 @@ describe("ProfileManagementDashboard", () => {
     renderDashboard();
     await userEvent.click(screen.getByRole("tab", { name: "Invitations" }));
     await userEvent.click(await screen.findByRole("button", { name: "Create invite link" }));
-    expect(await screen.findByLabelText("New invitation link for player profile 9")).toHaveValue("http://localhost:3000/identity#claim_token=one-time-token");
+    expect(await screen.findByLabelText("New invitation link for Alex Example")).toHaveValue("http://localhost:3000/identity#claim_token=one-time-token");
     expect(mocked.createClaimInvitation).toHaveBeenCalledWith("PlayerProfile", 9, undefined);
   });
 });

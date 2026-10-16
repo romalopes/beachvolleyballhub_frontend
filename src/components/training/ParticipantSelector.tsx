@@ -11,6 +11,7 @@ import { PARTICIPANT_STATUSES } from "../../utils/training";
 import { moveFocus } from "./focusDraft";
 import {
   includesPlayer,
+  participantFromPerson,
   participantFromPlayer,
   playerSubtitle,
   type ParticipantDraft,
@@ -41,6 +42,13 @@ export default function ParticipantSelector({
   onChange,
 }: ParticipantSelectorProps) {
   const [search, setSearch] = useState("");
+  const [recording, setRecording] = useState(false);
+  const [newPerson, setNewPerson] = useState({
+    first_name: "",
+    last_name: "",
+    email: "",
+  });
+  const [recordError, setRecordError] = useState<string | null>(null);
 
   const candidates = useMemo(
     () => players.filter((player) => !includesPlayer(selected, player.id)),
@@ -66,6 +74,26 @@ export default function ParticipantSelector({
     setSearch("");
   };
 
+  const submitNewPerson = () => {
+    const firstName = newPerson.first_name.trim();
+    if (!firstName) {
+      setRecordError("A first name is required to record a new player.");
+      return;
+    }
+    onChange([
+      ...selected,
+      participantFromPerson({
+        first_name: firstName,
+        last_name: newPerson.last_name.trim() || null,
+        email: newPerson.email.trim() || null,
+        phone: null,
+      }),
+    ]);
+    setRecording(false);
+    setNewPerson({ first_name: "", last_name: "", email: "" });
+    setRecordError(null);
+  };
+
   return (
     <div className="training-editor-section" role="group" aria-label="Players">
       <h3>Players</h3>
@@ -83,6 +111,79 @@ export default function ParticipantSelector({
           aria-label="Search players"
         />
       </label>
+
+      {recording ? (
+        <div className="training-participant-record">
+          {recordError && (
+            <p className="related-item-meta" role="alert">
+              {recordError}
+            </p>
+          )}
+          <label className="training-participant-field">
+            First name
+            <input
+              type="text"
+              value={newPerson.first_name}
+              aria-label="First name"
+              onChange={(event) =>
+                setNewPerson((prev) => ({ ...prev, first_name: event.target.value }))
+              }
+            />
+          </label>
+          <label className="training-participant-field">
+            Last name
+            <input
+              type="text"
+              value={newPerson.last_name}
+              aria-label="Last name"
+              onChange={(event) =>
+                setNewPerson((prev) => ({ ...prev, last_name: event.target.value }))
+              }
+            />
+          </label>
+          <label className="training-participant-field">
+            Email
+            <input
+              type="email"
+              value={newPerson.email}
+              aria-label="Email"
+              onChange={(event) =>
+                setNewPerson((prev) => ({ ...prev, email: event.target.value }))
+              }
+            />
+          </label>
+          <button
+            type="button"
+            className="admin-btn admin-btn-add"
+            aria-label="Add player"
+            onClick={submitNewPerson}
+          >
+            <Plus size={14} />
+            Add player
+          </button>
+          <button
+            type="button"
+            className="admin-btn"
+            onClick={() => {
+              setRecording(false);
+              setRecordError(null);
+              setNewPerson({ first_name: "", last_name: "", email: "" });
+            }}
+          >
+            Cancel
+          </button>
+        </div>
+      ) : (
+        <button
+          type="button"
+          className="admin-btn admin-btn-add"
+          aria-label="Record a new player"
+          onClick={() => setRecording(true)}
+        >
+          <Plus size={14} />
+          Record a new player
+        </button>
+      )}
 
       {visibleCandidates.length === 0 ? (
         <p className="related-item-meta">No players match the search.</p>

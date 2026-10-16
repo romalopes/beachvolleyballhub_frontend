@@ -108,7 +108,7 @@ export default function AssessmentSessions() {
     return () => {
       cancelled = true;
     };
-  }, [page]);
+  }, [page, canPickCoach, isCoach, myCoachId]);
 
   const handleStartCreate = () => {
     setIsCreating(true);

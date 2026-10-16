@@ -2,13 +2,9 @@ import { useState } from "react";
 import { Link } from "react-router-dom";
 import { api, type AdminUser } from "../api";
 import { useAuth } from "../auth/AuthContext";
+import { adminUserDisplayName } from "../utils/adminUsers";
 
 const MANAGED_ROLES = ["guest", "player", "coach", "curator", "admin"] as const;
-
-export function adminUserDisplayName(user: AdminUser) {
-  const contactName = [user.first_name, user.last_name].filter(Boolean).join(" ");
-  return contactName || user.name || user.email_address;
-}
 
 interface AdminUserRoleControlsProps {
   adminUser: AdminUser;

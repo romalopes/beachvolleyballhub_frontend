@@ -45,7 +45,6 @@ export default function AdminTournamentsPage() {
   useEffect(() => {
     if (!isAdmin) return;
     let cancelled = false;
-    setError(null);
 
     api
       .tournaments({ ...filters, per_page: PER_PAGE })
@@ -53,6 +52,9 @@ export default function AdminTournamentsPage() {
         if (cancelled) return;
         setTournaments(response.data);
         setMeta(response.meta);
+        // Clear a previous failure only once a fresh load succeeded, so the
+        // message stays up while the retry is still in flight.
+        setError(null);
       })
       .catch((e: unknown) => {
         if (cancelled) return;

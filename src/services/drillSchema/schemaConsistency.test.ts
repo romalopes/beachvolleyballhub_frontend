@@ -6,13 +6,13 @@ import { resolve } from "node:path";
  * Path to the single source of truth: the Rails app's schema copy.
  *
  * vitest runs with process.cwd() set to the React app subdirectory
- * (beachvolleyballproject/). From there the Rails schema lives one level up
- * in ../beachvolleyballproject_api/schemas/.
+ * (beachvolleyballhub/). From there the Rails schema lives one level up
+ * in ../beachvolleyballhub_api/schemas/.
  */
 const PROJECT_ROOT = process.cwd();
 const RAILS_SCHEMA_PATH = resolve(
   PROJECT_ROOT,
-  "../beachvolleyballproject_api/schemas/drill-definition-v1.schema.json"
+  "../beachvolleyballhub_api/schemas/drill-definition-v1.schema.json"
 );
 
 /** Path to the React app's own copy, kept in sync with the Rails copy. */

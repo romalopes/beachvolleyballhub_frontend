@@ -1,7 +1,8 @@
 import { useEffect, useState } from "react";
 import { Link, useParams } from "react-router-dom";
 import { api, type Account, type AdminUser } from "../api";
-import AdminUserRoleControls, { adminUserDisplayName } from "../components/AdminUserRoleControls";
+import AdminUserRoleControls from "../components/AdminUserRoleControls";
+import { adminUserDisplayName } from "../utils/adminUsers";
 import EmptyState from "../components/EmptyState";
 import MembershipSections from "../components/MembershipSections";
 
@@ -20,11 +21,10 @@ export default function AdminUserDetail() {
   const [adminUser, setAdminUser] = useState<AdminUser | null>(null);
   const [error, setError] = useState<string | null>(null);
 
+  const invalidId = !Number.isInteger(userId) || userId < 1;
+
   useEffect(() => {
-    if (!Number.isInteger(userId) || userId < 1) {
-      setError("User not found.");
-      return;
-    }
+    if (invalidId) return;
 
     let cancelled = false;
     api
@@ -43,7 +43,15 @@ export default function AdminUserDetail() {
     return () => {
       cancelled = true;
     };
-  }, [userId]);
+  }, [userId, invalidId]);
+
+  if (invalidId) {
+    return (
+      <div className="page">
+        <div className="auth-flash auth-flash-error">User not found.</div>
+      </div>
+    );
+  }
 
   if (error) {
     return (

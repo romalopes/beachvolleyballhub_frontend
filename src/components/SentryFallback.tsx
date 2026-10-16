@@ -4,13 +4,13 @@ import { useEffect } from "react";
 
 export default function SentryFallback() {
   // Get error from Sentry boundary (for component errors)
-  // @ts-ignore - useSentryError may not be available in all versions
-  const sentryError = (Sentry as any).useSentryError
-    ? (Sentry as any).useSentryError()
-    : null;
+  const sentryModule = Sentry as unknown as {
+    useSentryError?: () => { message?: string; stack?: string };
+  };
+  const sentryError = sentryModule.useSentryError?.() ?? null;
 
   // Get error from React Router (for loader/action errors)
-  const routerError = useRouteError();
+  const routerError = useRouteError() as { message?: string; stack?: string } | null;
 
   // Determine which error to display
   const error = sentryError || routerError;
@@ -34,7 +34,7 @@ export default function SentryFallback() {
           <h2>Error:</h2>
           <pre style={styles.errorText}>{error.message || String(error)}</pre>
           {/* Optional: Show stack trace in development */}
-          {(import.meta as any).env.DEV && error.stack && (
+          {import.meta.env.DEV && error.stack && (
             <>
               <div style={styles.stackLabel}>Stack Trace:</div>
               <pre style={styles.stackText}>{error.stack}</pre>
