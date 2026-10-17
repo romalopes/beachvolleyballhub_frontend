@@ -57,6 +57,7 @@
   --transition: 180ms cubic-bezier(0.4, 0, 0.2, 1);
 
   --sidebar-width: 280px;
+  --sidebar-collapsed-width: 76px;
   --header-height: 72px;
 }
 

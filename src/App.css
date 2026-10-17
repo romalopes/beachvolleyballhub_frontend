@@ -205,6 +205,101 @@
   display: none;
 }
 
+/* Whole-menu collapse button: sits above the logo so it is reachable
+   whether the sidebar is expanded or folded to its icon rail. */
+.sidebar-collapse-btn {
+  align-self: flex-end;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 2rem;
+  height: 2rem;
+  margin-bottom: 0.5rem;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  background: var(--bg-secondary);
+  color: var(--text-secondary);
+  cursor: pointer;
+  transition: all var(--transition);
+  flex-shrink: 0;
+}
+
+.sidebar-collapse-btn:hover {
+  background: var(--sand-100);
+  color: var(--charcoal);
+}
+
+.sidebar-collapse-btn:focus-visible {
+  outline: 2px solid var(--amber-500);
+  outline-offset: 2px;
+}
+
+.sidebar-collapse-btn svg {
+  width: 18px;
+  height: 18px;
+}
+
+/* Whole-menu collapse (desktop icon rail). The collapsed class is set on
+   `.app` by Layout; it only takes effect above the mobile breakpoint so the
+   <=900px off-canvas drawer behaviour is untouched. */
+@media (min-width: 901px) {
+  .app.sidebar-collapsed .sidebar {
+    width: var(--sidebar-collapsed-width);
+    padding-left: 0.75rem;
+    padding-right: 0.75rem;
+    align-items: center;
+  }
+
+  .app.sidebar-collapsed .main {
+    margin-left: var(--sidebar-collapsed-width);
+  }
+
+  .app.sidebar-collapsed .sidebar-collapse-btn {
+    align-self: center;
+  }
+
+  .app.sidebar-collapsed .sidebar-logo {
+    justify-content: center;
+    margin-bottom: 1rem;
+    padding-bottom: 0.5rem;
+  }
+
+  .app.sidebar-collapsed .logo-text,
+  .app.sidebar-collapsed .sidebar-link-label,
+  .app.sidebar-collapsed .sidebar-group-label,
+  .app.sidebar-collapsed .sidebar-group-chevron,
+  .app.sidebar-collapsed .sidebar-footer,
+  .app.sidebar-collapsed .sidebar-user-email,
+  .app.sidebar-collapsed .sidebar-user-roles,
+  .app.sidebar-collapsed .test-access-exit,
+  .app.sidebar-collapsed .sidebar-impersonation-title,
+  .app.sidebar-collapsed .sidebar-impersonation-sub {
+    display: none;
+  }
+
+  .app.sidebar-collapsed .sidebar-link,
+  .app.sidebar-collapsed .sidebar-group-toggle {
+    justify-content: center;
+    padding-left: 0;
+    padding-right: 0;
+  }
+
+  .app.sidebar-collapsed .sidebar-nav {
+    align-items: center;
+    width: 100%;
+  }
+
+  .app.sidebar-collapsed .sidebar-link,
+  .app.sidebar-collapsed .sidebar-group {
+    width: 100%;
+  }
+
+  .app.sidebar-collapsed .sidebar-user {
+    align-items: center;
+    text-align: center;
+  }
+}
+
 .sidebar-footer {
   margin-top: auto;
   padding-top: 0.9rem;

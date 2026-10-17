@@ -6,6 +6,7 @@ import {
   Navigate,
 } from "react-router-dom";
 import { useState } from "react";
+import { ChevronsLeft, ChevronsRight } from "lucide-react";
 import { AuthProvider } from "./auth/AuthProvider";
 import { useAuth } from "./auth/AuthContext";
 import { TestAccessProvider } from "./auth/TestAccessProvider";
@@ -122,6 +123,29 @@ function AuthenticatedRoute({ children }: { children: React.ReactNode }) {
   return <>{children}</>;
 }
 
+/**
+ * Remembers whether the whole desktop sidebar is folded to its icon rail.
+ * Same convention as the per-group fold: localStorage, expanded default,
+ * every failure falls back to expanded so navigation is never lost.
+ */
+const SIDEBAR_COLLAPSED_KEY = "bvb.sidebar.collapsed";
+
+function readSidebarCollapsed(): boolean {
+  try {
+    return window.localStorage.getItem(SIDEBAR_COLLAPSED_KEY) === "true";
+  } catch {
+    return false;
+  }
+}
+
+function writeSidebarCollapsed(collapsed: boolean) {
+  try {
+    window.localStorage.setItem(SIDEBAR_COLLAPSED_KEY, String(collapsed));
+  } catch {
+    // Remembering the fold is a convenience, never a requirement.
+  }
+}
+
 function Layout({ children }: { children: React.ReactNode }) {
   const location = useLocation();
   // The mobile sidebar closes on every navigation. Remembering which pathname
@@ -132,9 +156,19 @@ function Layout({ children }: { children: React.ReactNode }) {
   const sidebarOpen = nav.open && nav.path === location.pathname;
   const setSidebarOpen = (open: boolean) =>
     setNav({ path: location.pathname, open });
+  // Desktop-only whole-menu fold. Independent from the mobile drawer above:
+  // the collapsed class only takes effect above the mobile breakpoint.
+  const [menuCollapsed, setMenuCollapsed] =
+    useState<boolean>(readSidebarCollapsed);
+  const toggleMenuCollapsed = () =>
+    setMenuCollapsed((previous) => {
+      writeSidebarCollapsed(!previous);
+      return !previous;
+    });
+  const CollapseIcon = menuCollapsed ? ChevronsRight : ChevronsLeft;
 
   return (
-    <div className="app">
+    <div className={`app${menuCollapsed ? " sidebar-collapsed" : ""}`}>
       <div className="mobile-header">
         <button
           className="mobile-menu-btn"
@@ -159,8 +193,27 @@ function Layout({ children }: { children: React.ReactNode }) {
         <span className="mobile-logo">BVB Hub</span>
         <div style={{ width: 24 }} />
       </div>
-      <aside className={`sidebar${sidebarOpen ? " open" : ""}`}>
-        <Sidebar />
+      <aside
+        className={`sidebar${sidebarOpen ? " open" : ""}`}
+        id="sidebar"
+      >
+        <button
+          type="button"
+          className="sidebar-collapse-btn"
+          onClick={toggleMenuCollapsed}
+          aria-expanded={!menuCollapsed}
+          aria-controls="sidebar"
+          aria-label={menuCollapsed ? "Expand menu" : "Collapse menu"}
+          title={menuCollapsed ? "Expand menu" : "Collapse menu"}
+        >
+          <CollapseIcon aria-hidden="true" />
+        </button>
+        <Sidebar
+          menuCollapsed={menuCollapsed}
+          onExpandMenu={() => {
+            if (menuCollapsed) toggleMenuCollapsed();
+          }}
+        />
       </aside>
       {sidebarOpen && (
         <div

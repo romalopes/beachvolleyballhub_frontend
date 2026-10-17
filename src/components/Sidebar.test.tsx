@@ -67,6 +67,13 @@ beforeEach(() => {
   };
 });
 
+const renderCollapsedSidebar = (onExpandMenu = vi.fn()) =>
+  render(
+    <MemoryRouter>
+      <Sidebar menuCollapsed onExpandMenu={onExpandMenu} />
+    </MemoryRouter>,
+  );
+
 describe("Sidebar", () => {
   describe("the Tournament Management link", () => {
     it("takes an admin to tournament management", () => {
@@ -240,6 +247,31 @@ describe("Sidebar", () => {
       expect(
         screen.queryByRole("button", { name: /^community$/i }),
       ).not.toBeInTheDocument();
+    });
+
+    it("hides the group panels while the whole menu is folded", () => {
+      signInAs(["coach"]);
+
+      renderCollapsedSidebar();
+
+      expect(groupPanel("development")).toHaveAttribute("hidden");
+    });
+
+    it("asks to expand the menu and opens the group when a group icon is clicked", async () => {
+      signInAs(["coach"]);
+      const user = userEvent.setup();
+      const onExpandMenu = vi.fn();
+
+      renderCollapsedSidebar(onExpandMenu);
+      await user.click(groupToggle("Development"));
+
+      // The parent owns the folded state, so it expands the menu; the group
+      // itself opens immediately so the click is never a dead end.
+      expect(onExpandMenu).toHaveBeenCalledTimes(1);
+      expect(groupToggle("Development")).toHaveAttribute(
+        "aria-expanded",
+        "true",
+      );
     });
   });
 });

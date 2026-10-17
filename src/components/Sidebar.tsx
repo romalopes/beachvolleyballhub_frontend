@@ -180,21 +180,34 @@ function isPathActive(pathname: string, path: string) {
   return pathname === path || pathname.startsWith(`${path}/`);
 }
 
-function SidebarNavLink({ link }: { link: SidebarLink }) {
+function SidebarNavLink({
+  link,
+  menuCollapsed,
+}: {
+  link: SidebarLink;
+  menuCollapsed: boolean;
+}) {
   const Icon = link.icon;
   return (
     <NavLink
       to={link.path}
       end={link.path === "/"}
       className={({ isActive }) => `sidebar-link${isActive ? " active" : ""}`}
+      title={menuCollapsed ? link.label : undefined}
     >
-      <Icon />
-      {link.label}
+      <Icon aria-hidden="true" />
+      <span className="sidebar-link-label">{link.label}</span>
     </NavLink>
   );
 }
 
-export default function Sidebar() {
+export default function Sidebar({
+  menuCollapsed = false,
+  onExpandMenu,
+}: {
+  menuCollapsed?: boolean;
+  onExpandMenu?: () => void;
+} = {}) {
   const { user, logout, impersonation, stopImpersonating } = useAuth();
   const { exit: exitTestAccess } = useTestAccess();
   const navigate = useNavigate();
@@ -236,8 +249,8 @@ export default function Sidebar() {
         </NavLink>
       </div>
       <nav className="sidebar-nav" aria-label="Main">
-        <SidebarNavLink link={homeLink} />
-        <SidebarNavLink link={tournamentsLink} />
+        <SidebarNavLink link={homeLink} menuCollapsed={menuCollapsed} />
+        <SidebarNavLink link={tournamentsLink} menuCollapsed={menuCollapsed} />
         {visibleGroups.map((group) => {
           const GroupIcon = group.icon;
           const isCollapsed = collapsedGroups[group.id] === true;
@@ -246,6 +259,21 @@ export default function Sidebar() {
             isPathActive(pathname, item.path),
           );
 
+          // Clicking a group icon while the whole menu is folded opens the
+          // menu AND that group: an icon that did nothing would be a dead end.
+          const handleGroupToggle = () => {
+            if (menuCollapsed) {
+              onExpandMenu?.();
+              setCollapsedGroups((previous) => {
+                const next = { ...previous, [group.id]: false };
+                writeCollapsedGroups(next);
+                return next;
+              });
+              return;
+            }
+            toggleGroup(group.id, isCollapsed);
+          };
+
           return (
             <div className="sidebar-group" key={group.id}>
               <button
@@ -253,11 +281,13 @@ export default function Sidebar() {
                 className={`sidebar-group-toggle${holdsCurrentPage ? " active" : ""}`}
                 aria-expanded={!isCollapsed}
                 aria-controls={panelId}
-                onClick={() => toggleGroup(group.id, isCollapsed)}
+                title={menuCollapsed ? group.label : undefined}
+                onClick={handleGroupToggle}
               >
-                <GroupIcon />
+                <GroupIcon aria-hidden="true" />
                 <span className="sidebar-group-label">{group.label}</span>
                 <ChevronDown
+                  aria-hidden="true"
                   className={`sidebar-group-chevron${isCollapsed ? " collapsed" : ""}`}
                 />
               </button>
@@ -266,20 +296,40 @@ export default function Sidebar() {
               <div
                 id={panelId}
                 className="sidebar-group-items"
-                hidden={isCollapsed}
+                hidden={menuCollapsed || isCollapsed}
               >
                 {group.items.map((item) => (
-                  <SidebarNavLink key={item.path} link={item} />
+                  <SidebarNavLink
+                    key={item.path}
+                    link={item}
+                    menuCollapsed={menuCollapsed}
+                  />
                 ))}
               </div>
             </div>
           );
         })}
-        {isAdmin && <SidebarNavLink link={settingsLink} />}
-        {isAdmin && <SidebarNavLink link={tournamentManagementLink} />}
-        {user && <SidebarNavLink link={identityLink} />}
-        {user && <SidebarNavLink link={myTournamentsLink} />}
-        {user && <SidebarNavLink link={accountLink} />}
+        {isAdmin && (
+          <SidebarNavLink link={settingsLink} menuCollapsed={menuCollapsed} />
+        )}
+        {isAdmin && (
+          <SidebarNavLink
+            link={tournamentManagementLink}
+            menuCollapsed={menuCollapsed}
+          />
+        )}
+        {user && (
+          <SidebarNavLink link={identityLink} menuCollapsed={menuCollapsed} />
+        )}
+        {user && (
+          <SidebarNavLink
+            link={myTournamentsLink}
+            menuCollapsed={menuCollapsed}
+          />
+        )}
+        {user && (
+          <SidebarNavLink link={accountLink} menuCollapsed={menuCollapsed} />
+        )}
       </nav>
       <div className="sidebar-footer">
         Beach Volleyball Skills Database
