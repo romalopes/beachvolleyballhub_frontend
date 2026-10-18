@@ -8495,14 +8495,13 @@
 }
 /* ===== Tournament List Page ===== */
 .tournaments-page-content {
-  display: flex;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
   gap: 2rem;
 }
-.tournaments-filters {
-  flex: 0 0 280px;
-}
+.tournaments-filters,
 .tournaments-list {
-  flex: 1;
+  min-width: 0;
 }
 .tournaments-grid {
   display: grid;
@@ -8550,10 +8549,6 @@
 .tournament-level-options { display: flex; flex-wrap: wrap; gap: 0.5rem; }
 .tournament-level-options label { display: inline-flex; align-items: center; gap: 0.25rem; margin: 0; font-weight: 400; }
 .tournament-level-options input { width: auto; }
-@media (max-width: 900px) {
-  .tournaments-page-content { flex-direction: column; }
-  .tournaments-filters { flex-basis: auto; }
-}
 @media (max-width: 640px) {
   .tournament-calendar { overflow-x: auto; }
   .training-calendar-weekdays, .tournament-calendar-grid { min-width: 630px; }
@@ -8624,16 +8619,6 @@
 .my-tournaments { display: grid; gap: 2rem; }
 .my-tournaments h2 { margin-bottom: 1rem; }
 /* ===== Tournament List Page ===== */
-.tournaments-page-content {
-  display: flex;
-  gap: 2rem;
-}
-.tournaments-filters {
-  flex: 0 0 280px;
-}
-.tournaments-list {
-  flex: 1;
-}
 .tournaments-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
@@ -8783,8 +8768,8 @@
   margin-top: 2rem;
 }
 
-/* Keep admin tournament filters compact as the available content width changes. */
-.admin-tournaments-page .tournament-filter-form {
+/* Shared public and admin tournament filters adapt to the available content width. */
+.tournament-filter-form {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(min(100%, 220px), 1fr));
   gap: 1rem;
@@ -8796,37 +8781,37 @@
   background: var(--bg-secondary);
 }
 
-.admin-tournaments-page .tournament-filter-form > .form-group {
+.tournament-filter-form > .form-group {
   min-width: 0;
   margin: 0;
 }
 
-.admin-tournaments-page .tournament-filter-form input:not([type="checkbox"]),
-.admin-tournaments-page .tournament-filter-form select {
+.tournament-filter-form input:not([type="checkbox"]),
+.tournament-filter-form select {
   width: 100%;
   min-width: 0;
   box-sizing: border-box;
 }
 
-.admin-tournaments-page .tournament-filter-form > fieldset {
+.tournament-filter-form > fieldset {
   grid-column: 1 / -1;
   padding: 0;
   border: 0;
 }
 
-.admin-tournaments-page .tournament-filter-form legend {
+.tournament-filter-form legend {
   padding: 0;
   margin-bottom: 0.5rem;
   font-weight: 500;
 }
 
-.admin-tournaments-page .tournament-filter-form input[type="checkbox"] {
+.tournament-filter-form input[type="checkbox"] {
   width: auto;
   margin: 0;
 }
 
-.admin-tournaments-page .tournament-level-options label,
-.admin-tournaments-page .tournament-filter-mine label {
+.tournament-filter-form .tournament-level-options label,
+.tournament-filter-form .tournament-filter-mine label {
   display: inline-flex;
   align-items: center;
   gap: 0.5rem;
@@ -8834,11 +8819,11 @@
   margin: 0;
 }
 
-.admin-tournaments-page .tournament-filter-mine {
+.tournament-filter-form .tournament-filter-mine {
   align-self: end;
 }
 
-.admin-tournaments-page .tournament-filter-form > .form-actions {
+.tournament-filter-form > .form-actions {
   grid-column: 1 / -1;
   display: flex;
   justify-content: flex-end;
