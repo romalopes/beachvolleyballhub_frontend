@@ -3,6 +3,7 @@ import userEvent from "@testing-library/user-event";
 import { MemoryRouter, Route, Routes, useLocation } from "react-router-dom";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { api, type Tournament } from "../api";
+import { AuthContext, type AuthContextValue } from "../auth/AuthContext";
 import Tournaments from "./Tournaments";
 
 vi.mock("../api", async (importOriginal) => {
@@ -11,6 +12,7 @@ vi.mock("../api", async (importOriginal) => {
 });
 
 const mockedApi = vi.mocked(api, true);
+const auth = (user: AuthContextValue["user"] = null): AuthContextValue => ({ user, loading: false, login: vi.fn(), register: vi.fn(), resetPassword: vi.fn(), logout: vi.fn(), impersonation: { active: false, realAdmin: null }, startImpersonating: vi.fn(), stopImpersonating: vi.fn() });
 const tournament = (overrides: Partial<Tournament> = {}): Tournament => ({
   id: 1,
   name: "Sand Series",
@@ -28,10 +30,12 @@ function LocationProbe() {
 }
 
 function renderPage(entry = "/tournaments?month=2026-03") {
-  return render(<MemoryRouter initialEntries={[entry]}><Routes>
-    <Route path="/tournaments" element={<><Tournaments /><LocationProbe /></>} />
-    <Route path="/tournaments/:id" element={<div>Tournament detail</div>} />
-  </Routes></MemoryRouter>);
+  return render(<AuthContext.Provider value={auth()}>
+    <MemoryRouter initialEntries={[entry]}><Routes>
+      <Route path="/tournaments" element={<><Tournaments /><LocationProbe /></>} />
+      <Route path="/tournaments/:id" element={<div>Tournament detail</div>} />
+    </Routes></MemoryRouter>
+  </AuthContext.Provider>);
 }
 
 beforeEach(() => {

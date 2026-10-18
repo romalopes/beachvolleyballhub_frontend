@@ -11,6 +11,7 @@ import {
 import { useAuth } from "../../auth/AuthContext";
 import TournamentCard from "../../components/TournamentCard";
 import TournamentFilterForm from "../../components/TournamentFilterForm";
+import TournamentList from "../../components/TournamentList";
 import Pagination from "../../components/settings/Pagination";
 
 const PER_PAGE = 20;
@@ -86,13 +87,6 @@ export default function AdminTournamentsPage() {
       <header className="page-header">
         <h1>Tournaments</h1>
         <p>Manage all tournaments in the system.</p>
-        <button
-          type="button"
-          className="admin-btn admin-btn-add settings-add-btn"
-          onClick={() => navigate("/admin/tournaments/new")}
-        >
-          Create Tournament
-        </button>
       </header>
 
       <TournamentFilterForm
@@ -104,23 +98,14 @@ export default function AdminTournamentsPage() {
 
       {error && <div className="auth-flash auth-flash-error">{error}</div>}
 
-      {error ? null : !tournaments ? (
-        <p>Loading tournaments…</p>
-      ) : tournaments.length === 0 ? (
-        <p>No tournaments found.</p>
-      ) : (
-        <>
-          <div className="admin-tournaments">
-            {tournaments.map((t) => (
-              <TournamentCard
-                key={t.id}
-                tournament={t}
-                onClick={() => navigate(`/admin/tournaments/${t.id}/edit`)}
-              />
-            ))}
-          </div>
-
-          {meta && (
+      <TournamentList
+        filter="all"
+        baseFilters={filters}
+        showCreateButton={true}
+        className="admin-tournaments"
+        tournaments={tournaments}
+      />
+      {meta && (
             <Pagination
               currentPage={meta.page}
               totalPages={meta.total_pages}
@@ -131,8 +116,6 @@ export default function AdminTournamentsPage() {
               }
             />
           )}
-        </>
-      )}
-    </div>
+        </div>
   );
 }

@@ -8947,6 +8947,11 @@
   gap: 1rem;
 }
 
+.admin-tournaments .tournament-list-actions {
+  grid-column: 1 / -1;
+  margin-bottom: 1rem;
+}
+
 .admin-tournaments .tournament-card {
   display: flex;
   flex-direction: column;

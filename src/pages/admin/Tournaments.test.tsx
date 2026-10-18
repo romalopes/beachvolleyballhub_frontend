@@ -72,7 +72,6 @@ describe("AdminTournamentsPage", () => {
 
     const createButton = screen.getByRole("button", { name: "Create Tournament" });
     expect(createButton).toBeInTheDocument();
-    expect(createButton.closest("header")).toHaveClass("page-header");
 
     await user.click(createButton);
 
