@@ -82,7 +82,7 @@ export default function AdminTournamentsPage() {
   }
 
   return (
-    <div className="page">
+    <div className="page admin-tournaments-page">
       <header className="page-header">
         <h1>Tournaments</h1>
         <p>Manage all tournaments in the system.</p>

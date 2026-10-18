@@ -45,7 +45,7 @@ export default function TournamentFilterForm({
   };
 
   return (
-    <form className="filter-form" onSubmit={e => e.preventDefault()}>
+    <form className="filter-form tournament-filter-form" onSubmit={e => e.preventDefault()}>
       <div className="form-group">
         <label htmlFor="search">Search</label>
         <input
@@ -95,21 +95,6 @@ export default function TournamentFilterForm({
           ))}
         </select>
       </div>
-      <fieldset className="form-group">
-        <legend>Division levels</legend>
-        <div className="tournament-level-options">
-          {options?.ordered_levels.map(level => (
-            <label key={level}>
-              <input
-                type="checkbox"
-                checked={filters.letter_levels?.includes(level) ?? false}
-                onChange={e => toggleLetterLevel(level, e.target.checked)}
-              />
-              {level}
-            </label>
-          ))}
-        </div>
-      </fieldset>
       <div className="form-group">
         <label htmlFor="location">Location</label>
         <input
@@ -135,7 +120,7 @@ export default function TournamentFilterForm({
           ))}
         </select>
       </div>
-      <div className="form-group">
+      <div className="form-group tournament-filter-mine">
         <label>
           <input
             type="checkbox"
@@ -178,6 +163,21 @@ export default function TournamentFilterForm({
           onChange={e => handleChange('ends_at', e.target.value || undefined)}
         />
       </div>
+      <fieldset className="form-group">
+        <legend>Division levels</legend>
+        <div className="tournament-level-options">
+          {options?.ordered_levels.map(level => (
+            <label key={level}>
+              <input
+                type="checkbox"
+                checked={filters.letter_levels?.includes(level) ?? false}
+                onChange={e => toggleLetterLevel(level, e.target.checked)}
+              />
+              {level}
+            </label>
+          ))}
+        </div>
+      </fieldset>
       <div className="form-actions">
         <button
           type="button"

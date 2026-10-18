@@ -8782,3 +8782,64 @@
   gap: 1rem;
   margin-top: 2rem;
 }
+
+/* Keep admin tournament filters compact as the available content width changes. */
+.admin-tournaments-page .tournament-filter-form {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 220px), 1fr));
+  gap: 1rem;
+  align-items: start;
+  margin-bottom: 1.5rem;
+  padding: 1rem;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--bg-secondary);
+}
+
+.admin-tournaments-page .tournament-filter-form > .form-group {
+  min-width: 0;
+  margin: 0;
+}
+
+.admin-tournaments-page .tournament-filter-form input:not([type="checkbox"]),
+.admin-tournaments-page .tournament-filter-form select {
+  width: 100%;
+  min-width: 0;
+  box-sizing: border-box;
+}
+
+.admin-tournaments-page .tournament-filter-form > fieldset {
+  grid-column: 1 / -1;
+  padding: 0;
+  border: 0;
+}
+
+.admin-tournaments-page .tournament-filter-form legend {
+  padding: 0;
+  margin-bottom: 0.5rem;
+  font-weight: 500;
+}
+
+.admin-tournaments-page .tournament-filter-form input[type="checkbox"] {
+  width: auto;
+  margin: 0;
+}
+
+.admin-tournaments-page .tournament-level-options label,
+.admin-tournaments-page .tournament-filter-mine label {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  min-height: 2rem;
+  margin: 0;
+}
+
+.admin-tournaments-page .tournament-filter-mine {
+  align-self: end;
+}
+
+.admin-tournaments-page .tournament-filter-form > .form-actions {
+  grid-column: 1 / -1;
+  display: flex;
+  justify-content: flex-end;
+}
