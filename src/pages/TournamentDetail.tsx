@@ -45,7 +45,15 @@ export default function TournamentDetail() {
     {tournament.publication_state === "cancelled" && <p className="tournament-notice" role="status">This tournament has been cancelled. Participation can be removed, but it cannot be changed.</p>}
     {readOnly && tournament.publication_state !== "cancelled" && <p className="tournament-notice" role="status">This tournament has ended. Participation can be removed, but it cannot be changed.</p>}
     <div className="tournament-info">
-      <section className="info-section"><h2>Overview</h2><p><strong>Organiser:</strong> {tournament.organisation.name} ({tournament.organisation.acronym})</p><p><strong>Date:</strong> {formatDateRange(tournament)}</p><p><strong>Location:</strong> {locationParts.length ? locationParts.join(", ") : "Location to be confirmed"}</p>{tournament.website_url && <p><strong>Website:</strong> <a href={tournament.website_url} target="_blank" rel="noopener noreferrer">Official tournament website</a></p>}</section>
+      <section className="info-section tournament-overview">
+        <h2>Overview</h2>
+        <dl className="tournament-facts">
+          <div><dt>Organiser</dt><dd>{tournament.organisation.name}{tournament.organisation.acronym && ` (${tournament.organisation.acronym})`}</dd></div>
+          <div><dt>Date</dt><dd>{formatDateRange(tournament)}</dd></div>
+          <div><dt>Location</dt><dd>{locationParts.length ? locationParts.join(", ") : "Location to be confirmed"}</dd></div>
+          {tournament.website_url && <div><dt>Website</dt><dd><a href={tournament.website_url} target="_blank" rel="noopener noreferrer">Official tournament website</a></dd></div>}
+        </dl>
+      </section>
       <section className="info-section"><h2>Description</h2><p>{tournament.description || "No description provided."}</p></section>
       <section className="info-section"><h2>Divisions</h2>{tournament.divisions.length ? <div className="divisions-list">{tournament.divisions.map(division => <DivisionChip key={division.id} division={division} />)}</div> : <p>No divisions defined.</p>}</section>
       <ParticipationPanel tournament={tournament} signedIn={Boolean(user)} readOnly={readOnly} saving={saving} error={mutationError} onSignIn={() => navigate("/login", { state: { from: returnPath } })} onSave={async (role, divisionIds) => { setSaving(true); setMutationError(null); try { await api.participateTournament(tournament.id, { role, division_ids: divisionIds }); await loadTournament(); } catch (err) { setMutationError(err instanceof Error ? err.message : "Unable to save participation."); } finally { setSaving(false); } }} onUnlink={async () => { setSaving(true); setMutationError(null); try { await api.leaveTournament(tournament.id); await loadTournament(); } catch (err) { setMutationError(err instanceof Error ? err.message : "Unable to remove participation."); } finally { setSaving(false); } }} />

@@ -141,23 +141,29 @@ describe("TournamentForm (edit mode)", () => {
 
   it("adds a division through the API", async () => {
     mockedApi.createDivision.mockResolvedValue(
-      division({ id: 2, letter_level: "BB", division_code: "BB" }),
+      division({ id: 2, letter_level: null, division_number: 2, division_code: "2" }),
     );
-    renderForm(tournament());
+    renderForm(tournament({ division_scheme: "numbered" }));
 
     await screen.findByRole("heading", { name: "Divisions" });
-    await userEvent.type(screen.getByPlaceholderText(/Letter level/), "BB");
+    await userEvent.type(screen.getByPlaceholderText(/Number/), "2");
     await userEvent.click(screen.getByRole("button", { name: "Add division" }));
 
     await waitFor(() =>
-      expect(mockedApi.createDivision).toHaveBeenCalledWith(7, { letter_level: "BB" }),
+      expect(mockedApi.createDivision).toHaveBeenCalledWith(7, { division_number: 2 }),
     );
+  });
+
+  it("preserves legacy letter tournaments without offering new letter divisions", async () => {
+    renderForm(tournament());
+    expect(await screen.findByLabelText("Division Scheme")).toBeDisabled();
+    expect(screen.queryByRole("button", { name: "Add division" })).not.toBeInTheDocument();
   });
 
   it("cancels a tournament after confirmation", async () => {
     vi.spyOn(window, "confirm").mockReturnValue(true);
     mockedApi.cancelTournament.mockResolvedValue(tournament({ publication_state: "cancelled" }));
-    renderForm(tournament());
+    renderForm(tournament({ division_scheme: "numbered" }));
 
     await screen.findByRole("heading", { name: "Lifecycle" });
     await userEvent.click(screen.getByRole("button", { name: "Cancel tournament" }));

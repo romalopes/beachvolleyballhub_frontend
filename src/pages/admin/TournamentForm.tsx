@@ -142,7 +142,7 @@ export default function TournamentForm({
       country: initial?.country ?? "",
       timezone,
       scope: initial?.scope ?? "club",
-      division_scheme: initial?.division_scheme ?? "letter",
+      division_scheme: initial?.division_scheme ?? "numbered",
       publication_state: initial?.publication_state ?? "draft",
       all_day: allDay,
       starts_at: start,
@@ -222,12 +222,11 @@ export default function TournamentForm({
   }
 
   function addDivision() {
-    if (!initial || !newDivisionCode.trim()) return;
+    if (!initial || formData.division_scheme !== "numbered" || !newDivisionCode.trim()) return;
     const code = newDivisionCode.trim().toUpperCase();
-    const payload =
-      formData.division_scheme === "letter"
-        ? { letter_level: code }
-        : { division_number: Number(code) };
+    const divisionNumber = Number(code);
+    if (!Number.isInteger(divisionNumber) || divisionNumber < 1) return;
+    const payload = { division_number: divisionNumber };
     void runChildAction("add-division", async () => {
       const division = await api.createDivision(initial.id, payload);
       setDivisions((prev) => [...prev, division]);
@@ -401,7 +400,7 @@ export default function TournamentForm({
   );
 
   return (
-    <form className="admin-form" onSubmit={handleSubmit}>
+    <form className="admin-form tournament-editor" onSubmit={handleSubmit}>
       {error && (
         <div className="auth-flash auth-flash-error" role="alert">
           {error}
@@ -438,7 +437,7 @@ export default function TournamentForm({
         </select>
       </div>
 
-      <div className="admin-field">
+      <div className="admin-field tournament-editor-description">
         <label htmlFor="tournament-description">Description</label>
         <textarea
           id="tournament-description"
@@ -520,12 +519,13 @@ export default function TournamentForm({
           <label htmlFor="tournament-scheme">Division Scheme</label>
           <select
             id="tournament-scheme"
+            disabled={initial?.division_scheme === "letter"}
             value={formData.division_scheme}
             onChange={(e) =>
               set("division_scheme", e.target.value as DivisionScheme)
             }
           >
-            {options.schemes.map((scheme) => (
+            {(initial?.division_scheme === "letter" ? ["letter"] as const : ["numbered"] as const).map((scheme) => (
               <option key={scheme} value={scheme}>
                 {SCHEME_LABELS[scheme] ?? scheme}
               </option>
@@ -619,7 +619,7 @@ export default function TournamentForm({
 
       {!isNew && (
         <>
-          <section className="admin-form-section">
+          <section className="admin-form-section tournament-editor-divisions">
             <h3>Divisions</h3>
             {divisions.length === 0 ? (
               <p className="video-form-note">No divisions yet.</p>
@@ -643,17 +643,19 @@ export default function TournamentForm({
                 ))}
               </ul>
             )}
-            <div className="admin-field-row">
+            {formData.division_scheme === "numbered" && <div className="admin-field-row">
               <input
-                type={formData.division_scheme === "letter" ? "text" : "number"}
+                type="number"
+                min={1}
+                step={1}
                 value={newDivisionCode}
                 onChange={(e) => setNewDivisionCode(e.target.value)}
-                placeholder={formData.division_scheme === "letter" ? "Letter level (e.g. A, BB)" : "Number (e.g. 1, 2)"}
+                placeholder="Number (e.g. 1, 2)"
               />
               <button type="button" className="admin-btn" onClick={addDivision} disabled={childBusy !== null || !newDivisionCode.trim()}>
                 Add division
               </button>
-            </div>
+            </div>}
           </section>
 
           <section className="admin-form-section">

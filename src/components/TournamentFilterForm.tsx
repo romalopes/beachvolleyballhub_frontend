@@ -37,13 +37,6 @@ export default function TournamentFilterForm({
     });
   };
 
-  const toggleLetterLevel = (level: string, checked: boolean) => {
-    const levels = new Set(filters.letter_levels ?? []);
-    if (checked) levels.add(level);
-    else levels.delete(level);
-    onChange({ letter_levels: [...levels] });
-  };
-
   return (
     <form className="filter-form tournament-filter-form" onSubmit={e => e.preventDefault()}>
       <div className="form-group">
@@ -88,7 +81,7 @@ export default function TournamentFilterForm({
           onChange={e => handleChange('division_scheme', e.target.value || undefined)}
         >
           <option value="">Any Scheme</option>
-          {options?.schemes.map(scheme => (
+          {["numbered"].map(scheme => (
             <option key={scheme} value={scheme}>
               {scheme}
             </option>
@@ -163,21 +156,6 @@ export default function TournamentFilterForm({
           onChange={e => handleChange('ends_at', e.target.value || undefined)}
         />
       </div>
-      <fieldset className="form-group">
-        <legend>Division levels</legend>
-        <div className="tournament-level-options">
-          {options?.ordered_levels.map(level => (
-            <label key={level}>
-              <input
-                type="checkbox"
-                checked={filters.letter_levels?.includes(level) ?? false}
-                onChange={e => toggleLetterLevel(level, e.target.checked)}
-              />
-              {level}
-            </label>
-          ))}
-        </div>
-      </fieldset>
       <div className="form-actions">
         <button
           type="button"
