@@ -1,4 +1,9 @@
-import type { PaginatedResponse, Tournament, TournamentFilters } from "../api";
+import type {
+  PaginatedResponse,
+  Tournament,
+  TournamentFilters,
+  TournamentRelationship,
+} from "../api";
 
 export type TournamentView = "calendar" | "list";
 
@@ -6,6 +11,27 @@ const FILTER_KEYS = [
   "search", "scope", "organisation_id", "division_scheme", "location",
   "temporal_status", "publication_state", "starts_at", "ends_at",
 ] as const;
+
+const RELATIONSHIP_KINDS = ["created", "participating", "following"] as const;
+
+function isRelationshipKind(value: string): value is TournamentRelationship {
+  return (RELATIONSHIP_KINDS as readonly string[]).includes(value);
+}
+
+/**
+ * The caller's strongest tie to a tournament, strongest first: a tournament
+ * you created and also play in reports "created" — the other ties are implied
+ * by it. Guests have no ties, so they get null.
+ */
+export function tournamentRelationship(
+  tournament: Tournament,
+  accountId: number | null | undefined,
+): TournamentRelationship | null {
+  if (accountId != null && tournament.created_by_account_id === accountId) return "created";
+  if (tournament.my_participation) return "participating";
+  if (tournament.my_following) return "following";
+  return null;
+}
 
 export function filtersFromSearchParams(params: URLSearchParams): TournamentFilters {
   const filters: TournamentFilters = {};
@@ -23,7 +49,12 @@ export function filtersFromSearchParams(params: URLSearchParams): TournamentFilt
   const divisionNumbers = params.get("division_numbers")?.split(",").map(Number)
     .filter((value) => Number.isInteger(value) && value > 0);
   if (divisionNumbers?.length) filters.division_numbers = divisionNumbers;
-  if (params.get("mine") === "1") filters.mine = true;
+  if (params.get("mine") === "1") filters.mine = true; // legacy bookmarked URLs
+  const relationship = params.get("relationship")?.split(",").filter(isRelationshipKind);
+  if (relationship?.length) {
+    filters.relationship = relationship;
+    delete filters.mine;
+  }
   return filters;
 }
 
@@ -37,7 +68,13 @@ export function tournamentSearchParams(filters: TournamentFilters, view: Tournam
   if (filters.organisation_ids?.length) params.set("organisation_ids", filters.organisation_ids.join(","));
   if (filters.letter_levels?.length) params.set("letter_levels", filters.letter_levels.join(","));
   if (filters.division_numbers?.length) params.set("division_numbers", filters.division_numbers.join(","));
-  if (filters.mine) params.set("mine", "1");
+  if (filters.relationship?.length) {
+    params.set("relationship", filters.relationship.join(","));
+  } else if (filters.mine) {
+    // Only when no relationship filter supersedes it — the server reads mine=1
+    // as relationship=participating, so emitting both would be redundant.
+    params.set("mine", "1");
+  }
   if (view === "list") params.set("view", view);
   params.set("month", monthKey(month));
   return params;

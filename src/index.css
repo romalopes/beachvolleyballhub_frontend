@@ -29,6 +29,12 @@
   --teal-100: #CCFBF1;
   --teal-50: #F0FDFA;
 
+  /* The blue scale that call sites (division chips, tournament relationship
+     badges) reference but that was never defined, so those declarations were
+     being dropped silently. */
+  --blue-50: #EFF6FF;
+  --blue-600: #2563EB;
+
   --white: #FFFFFF;
   --border: var(--sand-300);
   --border-light: var(--sand-200);

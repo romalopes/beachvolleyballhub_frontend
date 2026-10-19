@@ -1,5 +1,8 @@
-import type { Tournament } from '../api';
+import { useAuth } from '../auth/AuthContext';
+import type { Tournament, TournamentRelationship } from '../api';
 import { formatDate, formatTime } from '../utils/dateFormatter';
+import { tournamentRelationship } from '../utils/tournaments';
+import RelationshipBadge from './RelationshipBadge';
 import TournamentBadge from './TournamentBadge';
 
 interface TournamentCardProps {
@@ -8,9 +11,13 @@ interface TournamentCardProps {
 }
 
 export default function TournamentCard({ tournament, onClick }: TournamentCardProps) {
+  const { user } = useAuth();
+  // One stripe per card, strongest tie wins — see tournamentRelationship.
+  const relationship: TournamentRelationship | null = tournamentRelationship(tournament, user?.account_id);
+
   return (
     <div
-      className="card tournament-card"
+      className={`card tournament-card${relationship ? ` tournament-card--${relationship}` : ''}`}
       onClick={onClick}
       onKeyDown={event => {
         if (onClick && (event.key === 'Enter' || event.key === ' ')) {
@@ -24,6 +31,7 @@ export default function TournamentCard({ tournament, onClick }: TournamentCardPr
       <div className="card-header">
         <h3 className="card-title">{tournament.name}</h3>
         <div className="tournament-badges">
+          {relationship && <RelationshipBadge kind={relationship} />}
           <TournamentBadge type="scope" value={tournament.scope} />
           <TournamentBadge type="publicationState" value={tournament.publication_state} />
         </div>

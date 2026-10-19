@@ -23,6 +23,7 @@ import {
 import {
   filtersFromSearchParams,
   monthFromSearchParam,
+  tournamentRelationship,
   tournamentSearchParams,
   tournamentsByDay,
   type TournamentView,
@@ -217,11 +218,18 @@ export default function TournamentsPage() {
                       <span className="training-calendar-date">
                         {day.getDate()}
                       </span>
-                      {events.map((tournament) => (
+                      {events.map((tournament) => {
+                        // Cancelled events keep their red-stripe treatment;
+                        // the relationship stripe would only fight it.
+                        const relationship =
+                          tournament.publication_state === "cancelled"
+                            ? null
+                            : tournamentRelationship(tournament, user?.account_id);
+                        return (
                         <button
                           key={`${tournament.id}-${key}`}
                           type="button"
-                          className={`tournament-calendar-event${tournament.publication_state === "cancelled" ? " cancelled" : ""}`}
+                          className={`tournament-calendar-event${tournament.publication_state === "cancelled" ? " cancelled" : ""}${relationship ? ` tournament-calendar-event--${relationship}` : ""}`}
                           onClick={() =>
                             navigate(`/tournaments/${tournament.id}`)
                           }
@@ -234,7 +242,8 @@ export default function TournamentsPage() {
                               : ""}
                           </small>
                         </button>
-                      ))}
+                        );
+                      })}
                     </section>
                   );
                 })}

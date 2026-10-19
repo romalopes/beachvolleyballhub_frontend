@@ -8546,6 +8546,30 @@
 }
 .tournament-calendar-event small { display: block; color: var(--text-secondary); margin-top: 0.125rem; }
 .tournament-calendar-event.cancelled { border-left-color: var(--danger, #b42318); text-decoration: line-through; opacity: 0.72; }
+/* ===== Tournament relationship state (created / participating / following) =====
+   The stripe follows the cancelled-event convention: colour accents the
+   meaning, and the badge text carries it — the state never rides on colour
+   alone. One stripe per card, strongest tie wins (see tournamentRelationship). */
+.tournament-card--created { border-left: 4px solid var(--amber-600, #B45309); }
+.tournament-card--participating { border-left: 4px solid var(--blue-600, #2563EB); }
+.tournament-card--following { border-left: 4px solid var(--teal-600, #0F766E); }
+
+.tournament-calendar-event--created { border-left-color: var(--amber-600, #B45309); }
+.tournament-calendar-event--participating { border-left-color: var(--blue-600, #2563EB); }
+.tournament-calendar-event--following { border-left-color: var(--teal-600, #0F766E); }
+
+.tournament-relationship-badge {
+  display: inline-flex;
+  align-items: center;
+  font-size: 0.75rem;
+  font-weight: 600;
+  padding: 0.2rem 0.55rem;
+  border-radius: 999px;
+  white-space: nowrap;
+}
+.tournament-relationship-created { background: var(--amber-100, #FEF3C7); color: var(--amber-700, #92400E); }
+.tournament-relationship-participating { background: var(--blue-50, #EFF6FF); color: var(--blue-600, #2563EB); }
+.tournament-relationship-following { background: var(--teal-100, #CCFBF1); color: var(--teal-600, #0F766E); }
 .tournament-level-options { display: flex; flex-wrap: wrap; gap: 0.5rem; }
 .tournament-level-options label { display: inline-flex; align-items: center; gap: 0.25rem; margin: 0; font-weight: 400; }
 .tournament-level-options input { width: auto; }
@@ -8875,6 +8899,10 @@
 
 .tournament-filter-form .tournament-filter-mine {
   align-self: end;
+  /* Three stacked relationship checkboxes ("Your tournaments"). */
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
 }
 
 .tournament-filter-form > .form-actions {

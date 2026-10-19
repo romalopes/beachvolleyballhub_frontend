@@ -4,6 +4,7 @@ import {
   fetchAllTournamentPages,
   filtersFromSearchParams,
   tournamentDayKeys,
+  tournamentRelationship,
   tournamentSearchParams,
   tournamentsByDay,
 } from "./tournaments";
@@ -59,5 +60,41 @@ describe("tournament directory helpers", () => {
   it("uses the tournament timezone across a DST boundary", () => {
     const dstTournament = tournament({ starts_at: "2026-03-08T04:30:00Z", ends_at: "2026-03-09T03:30:00Z" });
     expect(tournamentDayKeys(dstTournament)).toEqual(["2026-03-07", "2026-03-08"]);
+  });
+
+  it("round-trips relationship filters through the URL", () => {
+    const params = tournamentSearchParams({ relationship: ["created", "following"] }, "list", new Date(2026, 2, 1));
+    expect(params.get("relationship")).toBe("created,following");
+    expect(params.get("mine")).toBeNull();
+    expect(filtersFromSearchParams(params)).toEqual({ relationship: ["created", "following"] });
+  });
+
+  it("maps the legacy mine=1 bookmark to participating and never emits both", () => {
+    expect(filtersFromSearchParams(new URLSearchParams("mine=1"))).toEqual({ mine: true });
+    // A relationship filter supersedes the legacy bookmark when both appear.
+    expect(filtersFromSearchParams(new URLSearchParams("mine=1&relationship=created")))
+      .toEqual({ relationship: ["created"] });
+    expect(tournamentSearchParams({ mine: true }, "calendar", new Date(2026, 2, 1)).get("mine")).toBe("1");
+  });
+
+  it("ignores unknown relationship kinds from the URL", () => {
+    expect(filtersFromSearchParams(new URLSearchParams("relationship=created,removed")))
+      .toEqual({ relationship: ["created"] });
+  });
+
+  it("reports the caller's strongest tie, and none for a guest without ties", () => {
+    const accountId = 7;
+    expect(tournamentRelationship(tournament({ created_by_account_id: 7 }), accountId)).toBe("created");
+    expect(
+      tournamentRelationship(
+        tournament({ created_by_account_id: 1, my_participation: { id: 2, account_id: accountId, role: "player", created_at: "2026-01-01T00:00:00Z", division_ids: [] } }),
+        accountId,
+      ),
+    ).toBe("participating");
+    expect(tournamentRelationship(tournament({ my_following: true }), accountId)).toBe("following");
+    expect(tournamentRelationship(tournament(), accountId)).toBeNull();
+    // The payload flags only exist for signed-in callers, but a flag alone
+    // still carries the tie (the account match is only needed for "created").
+    expect(tournamentRelationship(tournament({ my_following: true }), undefined)).toBe("following");
   });
 });

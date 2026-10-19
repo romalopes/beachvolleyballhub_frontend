@@ -1770,13 +1770,26 @@ export interface TournamentFilters {
   division_numbers?: number[];
   location?: string;
   temporal_status?: TemporalStatus;
+  /** Legacy: only tournaments the account participates in; the server reads it as `relationship: ["participating"]`. */
   mine?: boolean;
+  /**
+   * The caller's ties to a tournament, OR-combined server-side: "created",
+   * "participating", "following". Requires authentication.
+   */
+  relationship?: TournamentRelationship[];
   publication_state?: PublicationState;
   starts_at?: string; // ISO string
   ends_at?: string; // ISO string
   page?: number;
   per_page?: number;
 }
+
+/**
+ * How the current account is tied to a tournament. "Created" is the organiser
+ * tie (created_by_account_id), "participating" the attendance tie, "following"
+ * the watching-list bookmark.
+ */
+export type TournamentRelationship = "created" | "participating" | "following";
 
 export interface TournamentOptions {
   scopes: TournamentScope[];
@@ -1839,6 +1852,8 @@ export interface Tournament {
   participations: Participation[];
   /** Present on detail and authenticated mine responses; omitted by legacy list payloads. */
   my_participation?: Participation | null;
+  /** True when the current account follows this tournament (the watching-list bookmark). */
+  my_following?: boolean;
   watch_links: WatchLink[];
 }
 // ===== End Tournament API Types =====
@@ -3328,6 +3343,7 @@ export const api = {
     if (filters?.location) params.set("location", filters.location);
     if (filters?.temporal_status) params.set("temporal_status", filters.temporal_status);
     if (filters?.mine !== undefined) params.set("mine", filters.mine ? "1" : "0");
+    filters?.relationship?.forEach((kind) => params.append("relationship[]", kind));
     if (filters?.publication_state) params.set("publication_state", filters.publication_state);
     if (filters?.starts_at) params.set("starts_at", filters.starts_at);
     if (filters?.ends_at) params.set("ends_at", filters.ends_at);
@@ -3388,6 +3404,18 @@ export const api = {
     ),
   leaveTournament: (tournamentId: number | string) =>
     postJSON<void>(`/tournaments/${encodeURIComponent(String(tournamentId))}/participate`, {}, "DELETE"),
+  /** The watching-list bookmark. Both directions are idempotent server-side. */
+  followTournament: (tournamentId: number | string) =>
+    postJSON<Tournament>(
+      `/tournaments/${encodeURIComponent(String(tournamentId))}/follow`,
+      {}
+    ),
+  unfollowTournament: (tournamentId: number | string) =>
+    postJSON<void>(
+      `/tournaments/${encodeURIComponent(String(tournamentId))}/follow`,
+      {},
+      "DELETE"
+    ),
   createDivision: (
     tournamentId: number | string,
     data: { letter_level?: string | null; division_number?: number | null },

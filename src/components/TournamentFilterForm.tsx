@@ -4,6 +4,7 @@ import type {
   TemporalStatus,
   TournamentFilters,
   TournamentOptions,
+  TournamentRelationship,
 } from '../api';
 import OrganisationMultiSelect from './OrganisationMultiSelect';
 
@@ -13,6 +14,12 @@ const PUBLICATION_STATES: PublicationState[] = [
   'active',
   'cancelled',
   'archived',
+];
+
+const RELATIONSHIP_FILTERS: { key: TournamentRelationship; label: string }[] = [
+  { key: 'created', label: 'Created by me' },
+  { key: 'participating', label: 'Participating' },
+  { key: 'following', label: 'Following' },
 ];
 
 interface TournamentFilterFormProps {
@@ -113,16 +120,27 @@ export default function TournamentFilterForm({
           ))}
         </select>
       </div>
-      <div className="form-group tournament-filter-mine">
-        <label>
-          <input
-            type="checkbox"
-            checked={filters.mine === true}
-            onChange={e => handleChange('mine', e.target.checked)}
-          />
-          My Tournaments
-        </label>
-      </div>
+      <fieldset className="form-group tournament-filter-mine">
+        <legend>Your tournaments</legend>
+        {/* The kinds are OR-combined server-side: ticking "Created by me" and
+            "Following" shows the union. */}
+        {RELATIONSHIP_FILTERS.map(({ key, label }) => (
+          <label key={key}>
+            <input
+              type="checkbox"
+              checked={filters.relationship?.includes(key) ?? false}
+              onChange={e => {
+                const current = filters.relationship ?? [];
+                const relationship = e.target.checked
+                  ? [...current, key]
+                  : current.filter(kind => kind !== key);
+                handleChange('relationship', relationship.length > 0 ? relationship : undefined);
+              }}
+            />
+            {label}
+          </label>
+        ))}
+      </fieldset>
       <div className="form-group">
         <label htmlFor="publication_state">Publication State</label>
         <select
@@ -163,7 +181,7 @@ export default function TournamentFilterForm({
           onClick={() => onChange({
             search: undefined, scope: undefined, organisation_id: undefined, organisation_ids: undefined,
             division_scheme: undefined, letter_levels: undefined, division_numbers: undefined,
-            location: undefined, temporal_status: undefined, mine: undefined,
+            location: undefined, temporal_status: undefined, mine: undefined, relationship: undefined,
             publication_state: undefined, starts_at: undefined, ends_at: undefined,
           })}
         >
