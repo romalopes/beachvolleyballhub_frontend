@@ -4,7 +4,6 @@ import { ChevronLeft, ChevronRight } from "lucide-react";
 import {
   api,
   type Organisation,
-  type Tournament,
   type TournamentFilters,
   type TournamentOptions,
 } from "../api";
@@ -47,7 +46,6 @@ export default function TournamentsPage() {
   const days = useMemo(() => monthGridDays(month), [month]);
   const [options, setOptions] = useState<TournamentOptions | null>(null);
   const [organisations, setOrganisations] = useState<Organisation[]>([]);
-  const [viewMode, setViewMode] = useState<"all" | "my">("all");
   const { user } = useAuth();
 
   const updateUrl = useCallback(
@@ -66,9 +64,7 @@ export default function TournamentsPage() {
   );
   const {
     tournaments,
-    loading: hookLoading,
-    error: hookError,
-  } = useTournaments(viewMode, rangeFilters);
+  } = useTournaments("all", rangeFilters);
   useEffect(() => {
     let active = true;
     api
@@ -190,7 +186,7 @@ export default function TournamentsPage() {
           />
           {view === "list" ? (
             <TournamentList
-              filter={viewMode}
+              filter="all"
               baseFilters={rangeFilters}
               tournaments={tournaments}
             />

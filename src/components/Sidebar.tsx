@@ -313,12 +313,6 @@ export default function Sidebar({
         {user && (
           <SidebarNavLink link={identityLink} menuCollapsed={menuCollapsed} />
         )}
-        {/* {user && (
-          <SidebarNavLink
-            link={myTournamentsLink}
-            menuCollapsed={menuCollapsed}
-          />
-        )} */}
         {user && (
           <SidebarNavLink link={accountLink} menuCollapsed={menuCollapsed} />
         )}
