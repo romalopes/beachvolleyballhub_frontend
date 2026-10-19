@@ -9,8 +9,8 @@ import {
   type TournamentOptions,
   type TournamentScope,
   type WatchLink,
-} from "../../api";
-import { useAuth } from "../../auth/AuthContext";
+} from "../api";
+import { useAuth } from "../auth/AuthContext";
 
 interface TournamentFormProps {
   initial: Tournament | null;
@@ -150,6 +150,13 @@ export default function TournamentForm({
     };
   });
 
+  // Site admins may create a tournament for any active organisation. Everyone
+  // else is limited to the organisations where they are the owner or an
+  // administrator: `mine=1` returns the organisations they actively belong to,
+  // and the server-stamped `can_edit` flag narrows that to their officer seats
+  // — the same judgement the API applies when the create request arrives.
+  const isAdminUser = user?.roles?.includes("admin") ?? false;
+
   useEffect(() => {
     let active = true;
     api
@@ -159,9 +166,14 @@ export default function TournamentForm({
       })
       .catch(() => {});
     api
-      .organisations("active")
+      .organisations("active", undefined, false, !isAdminUser)
       .then((response) => {
-        if (active) setOrganisations(response.data);
+        if (!active) return;
+        setOrganisations(
+          isAdminUser
+            ? response.data
+            : response.data.filter((org) => org.can_edit),
+        );
       })
       .catch(() => {
         // Surface the form anyway; the select then offers only an existing
@@ -171,7 +183,7 @@ export default function TournamentForm({
     return () => {
       active = false;
     };
-  }, []);
+  }, [isAdminUser]);
 
   function set<K extends keyof FormState>(key: K, value: FormState[K]) {
     setFormData((prev) => ({ ...prev, [key]: value }));
@@ -435,6 +447,12 @@ export default function TournamentForm({
             </option>
           ))}
         </select>
+        {!isAdminUser && organisations.length === 0 && (
+          <p className="field-hint">
+            You can only create tournaments for organisations where you are the
+            owner or an administrator.
+          </p>
+        )}
       </div>
 
       <div className="admin-field tournament-editor-description">

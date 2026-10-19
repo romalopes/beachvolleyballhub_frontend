@@ -10,7 +10,7 @@ export default function MyTournaments() {
         title="My Tournaments"
         description="Tournaments you have marked as personal interest or attendance."
       />
-      <TournamentList filter="my" baseFilters={{}} showCreateButton={false} />
+      <TournamentList filter="my" baseFilters={{}} />
     </div>
   );
 }

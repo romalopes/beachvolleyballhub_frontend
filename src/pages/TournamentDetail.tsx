@@ -41,9 +41,15 @@ export default function TournamentDetail() {
   const locationParts = [tournament.location_name, tournament.city, tournament.state, tournament.country].filter(Boolean);
   const returnPath = `${location.pathname}${location.search}`;
   const isAdmin = user?.roles?.includes("admin") && !(user as { real_admin?: unknown }).real_admin;
-  const canEdit = isAdmin || tournament.created_by_account_id === user?.account_id;
+  // The server stamps `can_edit` on the organisation (owner/administrator, or
+  // real-admin oversight). The creator check is a local fallback for accounts
+  // the flag may not cover; a stale true only earns a 403 on save.
+  const canEdit =
+    isAdmin ||
+    tournament.organisation.can_edit ||
+    tournament.created_by_account_id === user?.account_id;
   return <div className="page"><div className="tournament-detail">
-    <div className="tournament-header"><div><h1>{tournament.name}</h1>{canEdit && <button className="admin-btn" onClick={() => navigate(`/admin/tournaments/${tournament.id}/edit`)}>Edit</button>}<div className="tournament-badges"><TournamentBadge type="scope" value={tournament.scope} /><TournamentBadge type="publicationState" value={tournament.publication_state} /></div></div></div>
+    <div className="tournament-header"><div><h1>{tournament.name}</h1>{canEdit && <button className="admin-btn" onClick={() => navigate(`/tournaments/${tournament.id}/edit`)}>Edit</button>}<div className="tournament-badges"><TournamentBadge type="scope" value={tournament.scope} /><TournamentBadge type="publicationState" value={tournament.publication_state} /></div></div></div>
     {tournament.publication_state === "cancelled" && <p className="tournament-notice" role="status">This tournament has been cancelled. Participation can be removed, but it cannot be changed.</p>}
     {readOnly && tournament.publication_state !== "cancelled" && <p className="tournament-notice" role="status">This tournament has ended. Participation can be removed, but it cannot be changed.</p>}
     <div className="tournament-info">

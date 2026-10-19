@@ -48,9 +48,6 @@ export default function TournamentsPage() {
   const [organisations, setOrganisations] = useState<Organisation[]>([]);
   const [viewMode, setViewMode] = useState<"all" | "my">("all");
   const { user } = useAuth();
-  const isAdmin =
-    user?.roles?.includes("admin") &&
-    !(user as { real_admin?: unknown }).real_admin;
 
   const updateUrl = useCallback(
     (nextFilters: TournamentFilters, nextView = view, nextMonth = month) => {
@@ -128,36 +125,18 @@ export default function TournamentsPage() {
               </button>
             ))}
           </div>
-          {/* Toggle: All tournaments vs My tournaments */}
-          {/* <div
-            className="tournament-view-toggle"
-            role="tablist"
-            aria-label="Tournament scope"
-          >
-            <button
-              type="button"
-              role="tab"
-              className={`filter-btn${viewMode === "all" ? " active" : ""}`}
-              onClick={() => setViewMode("all")}
-            >
-              All tournaments
-            </button>
-            <button
-              type="button"
-              role="tab"
-              className={`filter-btn${viewMode === "my" ? " active" : ""}`}
-              onClick={() => setViewMode("my")}
-            >
-              My tournaments
-            </button>
-          </div> */}
-          {isAdmin && (
-            <button
-              className="admin-btn admin-btn-add settings-add-btn"
-              onClick={() => navigate("/admin/tournaments/new")}
-            >
-              Create Tournament
-            </button>
+          {/* Create Tournament button: see the list below — any signed-in
+              user may open the form; it only offers the organisations they
+              own or administer, and the server still authorises per request. */}
+          {user && (
+            <div className="tournament-list-actions">
+              <button
+                className="admin-btn admin-btn-add settings-add-btn"
+                onClick={() => navigate("/tournaments/new")}
+              >
+                Create Tournament
+              </button>
+            </div>
           )}
           <span className="tournament-timezone">
             Calendar dates use each tournament’s timezone.
@@ -212,7 +191,6 @@ export default function TournamentsPage() {
             <TournamentList
               filter={viewMode}
               baseFilters={rangeFilters}
-              showCreateButton={false}
               tournaments={tournaments}
             />
           ) : (

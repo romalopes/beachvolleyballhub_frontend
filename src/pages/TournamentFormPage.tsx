@@ -1,12 +1,12 @@
 import { useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
-import { api, type Tournament } from "../../api";
-import { useAuth } from "../../auth/AuthContext";
-import SettingsLayout from "../../components/settings/SettingsLayout";
+import { api, type Tournament } from "../api";
+import { useAuth } from "../auth/AuthContext";
+import SettingsLayout from "../components/settings/SettingsLayout";
 
 import TournamentForm from "./TournamentForm";
 
-export default function AdminTournamentFormPage() {
+export default function TournamentFormPage() {
   const { id } = useParams<{ id: string }>();
   const { user } = useAuth();
   const navigate = useNavigate();
@@ -24,7 +24,12 @@ export default function AdminTournamentFormPage() {
       .finally(() => setLoading(false));
   }, [id, isNew]);
 
-  if (!user?.roles?.includes("admin")) {
+  // Creating and editing are open to every signed-in user: the server
+  // authorises each request against the organisation's owner/administrators
+  // (plus real-admin oversight), and the form only offers organisations the
+  // user may create for. A signed-out visitor never gets here — the route is
+  // wrapped in AuthenticatedRoute — but the guard keeps the page honest.
+  if (!user) {
     return (
       <div className="page">
         <div className="admin-error">Not authorized.</div>
@@ -32,9 +37,8 @@ export default function AdminTournamentFormPage() {
     );
   }
 
-  // No tournament detail route exists under /admin, so the list is the only
-  // sensible back destination for both branches.
-  const backTo = "/admin/tournaments";
+  // The public tournaments directory is the single tournament surface now.
+  const backTo = "/tournaments";
   const title = isNew ? "New Tournament" : "Edit Tournament";
   const description = isNew
     ? "Create a new tournament."
@@ -57,7 +61,9 @@ export default function AdminTournamentFormPage() {
           key={isNew ? "new" : (initial?.id ?? id)}
           initial={isNew ? null : initial}
           onCancel={() => navigate(backTo)}
-          onSuccess={(saved) => navigate(`/admin/tournaments/${saved.id}/edit`)}
+          onSuccess={(saved) =>
+            navigate(`/tournaments/${saved.id}/edit`)
+          }
         />
       )}
     </SettingsLayout>

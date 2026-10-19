@@ -1,4 +1,4 @@
-import { render, screen, waitFor } from "@testing-library/react";
+import { render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import {
@@ -7,12 +7,12 @@ import {
   type Organisation,
   type Tournament,
   type WatchLink,
-} from "../../api";
-import { AuthContext, type AuthContextValue } from "../../auth/AuthContext";
+} from "../api";
+import { AuthContext, type AuthContextValue } from "../auth/AuthContext";
 import TournamentForm from "./TournamentForm";
 
-vi.mock("../../api", async importOriginal => {
-  const actual = await importOriginal<typeof import("../../api")>();
+vi.mock("../api", async importOriginal => {
+  const actual = await importOriginal<typeof import("../api")>();
   return {
     ...actual,
     api: {
@@ -89,12 +89,12 @@ const tournament = (overrides: Partial<Tournament> = {}): Tournament => ({
   ...overrides,
 });
 
-const auth = (): AuthContextValue => ({
+const auth = (roles: string[] = ["admin"]): AuthContextValue => ({
   user: {
     id: 1,
     name: "Admin",
     email_address: "admin@example.com",
-    roles: ["admin"],
+    roles,
     account_id: 1,
   },
   loading: false,
@@ -169,5 +169,71 @@ describe("TournamentForm (edit mode)", () => {
     await userEvent.click(screen.getByRole("button", { name: "Cancel tournament" }));
 
     await waitFor(() => expect(mockedApi.cancelTournament).toHaveBeenCalledWith(7));
+  });
+});
+
+describe("TournamentForm (create)", () => {
+  const paginated = (data: Organisation[]) =>
+    ({
+      data,
+      meta: { page: 1, per_page: 25, total: data.length, total_pages: 1 },
+    }) as never;
+
+  // The server stamps `can_edit` per organisation: owner/administrator (or
+  // oversight) only. The form's picker must mirror that judgement.
+  const managed = { ...organisation, id: 2, can_edit: true };
+  const plainMembership = { ...organisation, id: 3, name: "Member Club", can_edit: false };
+
+  function renderCreateForm(roles: string[]) {
+    return render(
+      <AuthContext.Provider value={auth(roles)}>
+        <TournamentForm initial={null} onCancel={vi.fn()} onSuccess={vi.fn()} />
+      </AuthContext.Provider>,
+    );
+  }
+
+  it("offers an ordinary user only the organisations they own or administer", async () => {
+    mockedApi.organisations.mockResolvedValue(paginated([managed, plainMembership]));
+    renderCreateForm(["player"]);
+
+    // A non-admin asks for their own memberships (`mine`), not the whole tree.
+    await waitFor(() =>
+      expect(mockedApi.organisations).toHaveBeenCalledWith(
+        "active", undefined, false, true,
+      ),
+    );
+    const select = await screen.findByLabelText("Organisation *");
+    expect(
+      within(select).getByRole("option", { name: "Beach Club" }),
+    ).toBeInTheDocument();
+    expect(
+      within(select).queryByRole("option", { name: "Member Club" }),
+    ).not.toBeInTheDocument();
+  });
+
+  it("offers a site admin every active organisation", async () => {
+    mockedApi.organisations.mockResolvedValue(paginated([managed, plainMembership]));
+    renderCreateForm(["admin"]);
+
+    await waitFor(() =>
+      expect(mockedApi.organisations).toHaveBeenCalledWith(
+        "active", undefined, false, false,
+      ),
+    );
+    const select = await screen.findByLabelText("Organisation *");
+    expect(
+      within(select).getByRole("option", { name: "Member Club" }),
+    ).toBeInTheDocument();
+  });
+
+  it("explains the empty picker to a user with no officer seats", async () => {
+    mockedApi.organisations.mockResolvedValue(paginated([plainMembership]));
+    renderCreateForm(["player"]);
+
+    expect(
+      await screen.findByText(
+        /organisations where you are the owner or an administrator/,
+      ),
+    ).toBeInTheDocument();
   });
 });

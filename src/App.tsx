@@ -44,8 +44,7 @@ import RankingConsolidationDetail from "./pages/RankingConsolidationDetail";
 import ProfileEditPage from "./pages/ProfileEditPage";
 import AdminUsers from "./pages/AdminUsers";
 import AdminUserDetail from "./pages/AdminUserDetail";
-import AdminTournamentsPage from "./pages/admin/Tournaments";
-import AdminTournamentFormPage from "./pages/admin/TournamentFormPage";
+import TournamentFormPage from "./pages/TournamentFormPage";
 import SettingsDashboard from "./pages/settings/SettingsDashboard";
 import SkillsSettings from "./pages/settings/Skills";
 import SkillFormPage from "./pages/settings/SkillFormPage";
@@ -286,7 +285,23 @@ export default function App() {
                     </AuthenticatedRoute>
                   }
                 />
+                <Route
+                  path="/tournaments/new"
+                  element={
+                    <AuthenticatedRoute>
+                      <TournamentFormPage />
+                    </AuthenticatedRoute>
+                  }
+                />
                 <Route path="/tournaments/:id" element={<TournamentDetail />} />
+                <Route
+                  path="/tournaments/:id/edit"
+                  element={
+                    <AuthenticatedRoute>
+                      <TournamentFormPage />
+                    </AuthenticatedRoute>
+                  }
+                />
                 <Route
                   path="/players"
                   element={
@@ -432,27 +447,11 @@ export default function App() {
                   }
                 />
                 <Route
-                  path="/admin/tournaments"
+                  path="/tournaments/:id/edit"
                   element={
-                    <AdminRoute>
-                      <AdminTournamentsPage />
-                    </AdminRoute>
-                  }
-                />
-                <Route
-                  path="/admin/tournaments/new"
-                  element={
-                    <AdminRoute>
-                      <AdminTournamentFormPage />
-                    </AdminRoute>
-                  }
-                />
-                <Route
-                  path="/admin/tournaments/:id/edit"
-                  element={
-                    <AdminRoute>
-                      <AdminTournamentFormPage />
-                    </AdminRoute>
+                    <AuthenticatedRoute>
+                      <TournamentFormPage />
+                    </AuthenticatedRoute>
                   }
                 />
                 <Route
