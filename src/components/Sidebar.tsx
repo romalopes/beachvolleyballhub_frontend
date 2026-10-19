@@ -133,11 +133,6 @@ const tournamentsLink: SidebarLink = {
   label: "Tournaments",
   icon: Trophy,
 };
-const myTournamentsLink: SidebarLink = {
-  path: "/my-tournaments",
-  label: "My Tournaments",
-  icon: Trophy,
-};
 
 /**
  * Remembers which groups were folded away. Storage can be unavailable (private
