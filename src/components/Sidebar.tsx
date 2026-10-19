@@ -133,8 +133,16 @@ const identityLink: SidebarLink = {
   label: "Identity",
   icon: UsersRound,
 };
-const tournamentsLink: SidebarLink = { path: "/tournaments", label: "Tournaments", icon: Trophy };
-const myTournamentsLink: SidebarLink = { path: "/my-tournaments", label: "My Tournaments", icon: Trophy };
+const tournamentsLink: SidebarLink = {
+  path: "/tournaments",
+  label: "Tournaments",
+  icon: Trophy,
+};
+const myTournamentsLink: SidebarLink = {
+  path: "/my-tournaments",
+  label: "My Tournaments",
+  icon: Trophy,
+};
 
 /**
  * Remembers which groups were folded away. Storage can be unavailable (private
@@ -321,12 +329,12 @@ export default function Sidebar({
         {user && (
           <SidebarNavLink link={identityLink} menuCollapsed={menuCollapsed} />
         )}
-        {user && (
+        {/* {user && (
           <SidebarNavLink
             link={myTournamentsLink}
             menuCollapsed={menuCollapsed}
           />
-        )}
+        )} */}
         {user && (
           <SidebarNavLink link={accountLink} menuCollapsed={menuCollapsed} />
         )}
