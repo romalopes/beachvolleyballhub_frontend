@@ -13,7 +13,7 @@ import Tag from "../components/Tag";
 import DeleteConfirm from "../components/settings/DeleteConfirm";
 import {
   archiveCoach,
-  canManageProfiles,
+  canEditProfile,
   deleteCoachProfile,
   isArchived,
   restoreCoach,
@@ -31,11 +31,11 @@ export default function CoachDetail() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const { user } = useAuth();
-  const canEdit = canManageProfiles(user);
   const canMerge = Boolean(user?.roles.some((role) => role === "admin" || role === "curator"));
   const numericId = Number(id);
   const invalidId = !id || Number.isNaN(numericId);
   const [coach, setCoach] = useState<Coach | null>(null);
+  const canEdit = canEditProfile(user, coach);
   const [loading, setLoading] = useState(!invalidId);
   const [error, setError] = useState<string | null>(
     invalidId ? "Coach not found." : null,

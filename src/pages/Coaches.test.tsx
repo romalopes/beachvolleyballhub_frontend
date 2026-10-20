@@ -320,7 +320,7 @@ describe("Coaches", () => {
     ).toHaveAttribute("href", "/coaches/1/edit");
   });
 
-  it("shows the create button to a curator without edit controls", async () => {
+  it("shows create and edit controls to a curator", async () => {
     mockedApi.me.mockResolvedValue({
       id: 4,
       name: "Curator",
@@ -332,6 +332,6 @@ describe("Coaches", () => {
 
     await screen.findByLabelText("Search coaches");
     expect(screen.getByRole("button", { name: /New coach/ })).toBeInTheDocument();
-    expect(screen.queryByRole("link", { name: /^Edit / })).not.toBeInTheDocument();
+    expect(screen.getByRole("link", { name: /^Edit / })).toBeInTheDocument();
   });
 });

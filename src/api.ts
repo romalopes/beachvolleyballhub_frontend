@@ -635,8 +635,13 @@ export interface Group {
 export interface GroupMember {
   /** The GroupMembership id (not the person id). */
   id: number;
-  /** Keyed on Person (§2.2), so a member need not have a player profile. */
-  person_id: number;
+  /** Account when the subject is (or has been claimed by) one. */
+  account_id?: number | null;
+  /** Polymorphic subject actually rostered. */
+  memberable_type?: "Account" | "PlayerProfile" | "CoachProfile" | null;
+  memberable_id?: number | null;
+  /** Person key, only present for backfilled rows — prefer memberable/account. */
+  person_id: number | null;
   name: string | null;
   /**
    * Present only when this person has registered as a player. A squad may hold a
@@ -732,13 +737,14 @@ export interface OrganisationMembership {
   id: number;
   organisation_id: number;
   account_id?: number | null;
+  /** Polymorphic subject actually rostered — stable key for group picking. */
   memberable_type?: "Account" | "PlayerProfile" | "CoachProfile";
   memberable_id?: number;
   member_type?: "Account" | "PlayerProfile" | "CoachProfile";
   member_id?: number;
   display_name?: string | null;
-  person_id: number;
-  person_name: string | null;
+  person_id?: number | null;
+  person_name?: string | null;
   role: OrganisationMembershipRole;
   role_label: string;
   status: "pending" | "active" | "suspended" | "ended";
@@ -2675,18 +2681,30 @@ export const api = {
   /** Accepts an id or a slug; the API resolves both. */
   group: (id: number | string) =>
     fetchAPI<{ group: GroupDetail }>(`/groups/${id}`),
-  createGroup: (data: GroupInput, personIds: number[] = []) =>
+  createGroup: (
+    data: GroupInput,
+    members: { accountIds?: number[]; memberables?: { type: "PlayerProfile" | "CoachProfile"; id: number }[] } = {},
+  ) =>
     postJSON<{ group: GroupDetail }>("/groups", {
       group: data,
-      person_ids: personIds,
+      ...(members.accountIds ? { account_ids: members.accountIds } : {}),
+      ...(members.memberables ? { memberables: members.memberables } : {}),
     }),
-  /** Omit `personIds` to leave the roster untouched; pass `[]` to clear it. */
-  updateGroup: (id: number, data: GroupInput, personIds?: number[]) =>
+  /**
+   * Omit the roster fields to leave the roster untouched; pass empty arrays to
+   * clear it.
+   */
+  updateGroup: (
+    id: number,
+    data: GroupInput,
+    members?: { accountIds?: number[]; memberables?: { type: "PlayerProfile" | "CoachProfile"; id: number }[] },
+  ) =>
     postJSON<{ group: GroupDetail }>(
       `/groups/${id}`,
       {
         group: data,
-        ...(personIds ? { person_ids: personIds } : {}),
+        ...(members?.accountIds ? { account_ids: members.accountIds } : {}),
+        ...(members?.memberables ? { memberables: members.memberables } : {}),
       },
       "PATCH",
     ),

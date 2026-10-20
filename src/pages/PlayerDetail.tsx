@@ -13,7 +13,7 @@ import Tag from "../components/Tag";
 import DeleteConfirm from "../components/settings/DeleteConfirm";
 import {
   archivePlayer,
-  canManageProfiles,
+  canEditProfile,
   deletePlayerProfile,
   isArchived,
   restorePlayer,
@@ -36,11 +36,11 @@ export default function PlayerDetail() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const { user } = useAuth();
-  const canEdit = canManageProfiles(user);
   const canMerge = Boolean(user?.roles.some((role) => role === "admin" || role === "curator"));
   const numericId = Number(id);
   const invalidId = !id || Number.isNaN(numericId);
   const [player, setPlayer] = useState<Player | null>(null);
+  const canEdit = canEditProfile(user, player);
   const [loading, setLoading] = useState(!invalidId);
   const [error, setError] = useState<string | null>(
     invalidId ? "Player not found." : null,

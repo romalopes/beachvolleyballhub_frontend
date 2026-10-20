@@ -86,8 +86,9 @@ beforeEach(() => {
   mockedApi.organisationMembers.mockResolvedValue({
     organisation: { id: 1, name: "Volleyball Club" },
     data: [
-      { id: 1, organisation_id: 1, person_id: 1, person_name: "Ana Silva", role: "member", role_label: "Member", status: "active", status_label: "Active", joined_at: "2026-09-01T00:00:00Z", left_at: null },
-      { id: 2, organisation_id: 1, person_id: 2, person_name: "Bruno Alves", role: "member", role_label: "Member", status: "active", status_label: "Active", joined_at: "2026-09-01T00:00:00Z", left_at: null },
+      { id: 1, organisation_id: 1, account_id: 10, memberable_type: "Account", memberable_id: 10, display_name: "Ana Silva", person_name: "Ana Silva", role: "member", role_label: "Member", status: "active", status_label: "Active", joined_at: "2026-09-01T00:00:00Z", left_at: null },
+      { id: 2, organisation_id: 1, account_id: 20, memberable_type: "Account", memberable_id: 20, display_name: "Bruno Alves", person_name: "Bruno Alves", role: "member", role_label: "Member", status: "active", status_label: "Active", joined_at: "2026-09-01T00:00:00Z", left_at: null },
+      { id: 3, organisation_id: 1, account_id: null, memberable_type: "PlayerProfile", memberable_id: 30, display_name: "Unclaimed Pia", person_name: "Unclaimed Pia", role: "member", role_label: "Member", status: "active", status_label: "Active", joined_at: "2026-09-01T00:00:00Z", left_at: null },
     ],
   } as never);
   mockedApi.group.mockResolvedValue({
@@ -96,6 +97,9 @@ beforeEach(() => {
       members: [
         {
           id: 1,
+          account_id: 10,
+          memberable_type: "Account",
+          memberable_id: 10,
           person_id: 1,
           person_name: "Ana Silva",
           player_profile_id: 1,
@@ -208,13 +212,27 @@ describe("Groups editor", () => {
       "Volleyball Club",
     );
     const roster = await screen.findByRole("group", { name: /Roster \(0\)/i });
+    // Ticking one member must not tick the others — each checkbox is keyed on
+    // its own subject (Type:id), not a shared blank id.
     await user.click(within(roster).getByText("Ana Silva"));
+    expect(screen.getByRole("group", { name: /Roster \(1\)/i })).toBeInTheDocument();
+    const anaBox = within(roster).getByRole("checkbox", { name: /ana silva/i });
+    const brunoBox = within(roster).getByRole("checkbox", { name: /bruno alves/i });
+    const piaBox = within(roster).getByRole("checkbox", { name: /unclaimed pia/i });
+    expect(anaBox).toBeChecked();
+    expect(brunoBox).not.toBeChecked();
+    expect(piaBox).not.toBeChecked();
+    // An accountless profile is selectable in its own right too.
+    await user.click(within(roster).getByText("Unclaimed Pia"));
+    expect(screen.getByRole("group", { name: /Roster \(2\)/i })).toBeInTheDocument();
+    expect(piaBox).toBeChecked();
+    expect(brunoBox).not.toBeChecked();
     await user.click(screen.getByRole("button", { name: /create group/i }));
 
     await waitFor(() => expect(mockedApi.createGroup).toHaveBeenCalled());
     expect(mockedApi.createGroup.mock.calls[0]).toEqual([
       { name: "Monday squad", description: "", visibility: "shared", organisation_id: 1 },
-      [1],
+      { accountIds: [10], memberables: [{ type: "PlayerProfile", id: 30 }] },
     ]);
   });
 
@@ -250,7 +268,10 @@ describe("Groups editor", () => {
     await user.click(screen.getByRole("button", { name: /save changes/i }));
 
     await waitFor(() => expect(mockedApi.updateGroup).toHaveBeenCalled());
-    expect(mockedApi.updateGroup.mock.calls[0][2]).toEqual([1, 2]);
+    expect(mockedApi.updateGroup.mock.calls[0][2]).toEqual({
+      accountIds: [10, 20],
+      memberables: [],
+    });
   });
 
   it("unticking the only member clears the roster", async () => {
@@ -265,7 +286,10 @@ describe("Groups editor", () => {
     await user.click(screen.getByRole("button", { name: /save changes/i }));
 
     await waitFor(() => expect(mockedApi.updateGroup).toHaveBeenCalled());
-    expect(mockedApi.updateGroup.mock.calls[0][2]).toEqual([]);
+    expect(mockedApi.updateGroup.mock.calls[0][2]).toEqual({
+      accountIds: [],
+      memberables: [],
+    });
   });
 });
 

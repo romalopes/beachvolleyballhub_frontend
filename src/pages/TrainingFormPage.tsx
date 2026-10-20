@@ -174,26 +174,21 @@ export default function TrainingFormPage() {
         (m: { status: string }) => m.status === "active",
       );
 
-      // Convert each member to a ParticipantDraft, skipping duplicates
+      // Convert each member to a ParticipantDraft, skipping duplicates.
+      // Person-keyed rows predate the memberable schema and carry no account or
+      // profile — they fall back to an inline person keyed on `person_id`.
       const newParticipants = activeMembers
-        .filter((member: { player_profile_id: number | null; person_id: number }) => {
+        .filter((member) => {
           if (member.player_profile_id) {
             return !includesPlayer(participants, member.player_profile_id);
           }
+          if (member.person_id == null) return true;
           return !includesPerson(participants, member.person_id);
         })
-        .map((member: {
-          person_id: number;
-          player_profile_id: number | null;
-          name: string | null;
-          level: string | null;
-          preferred_position: string | null;
-          email: string | null;
-          role: string;
-        }) =>
+        .map((member) =>
           participantFromGroupMember(
             {
-              person_id: member.person_id,
+              person_id: member.person_id ?? member.id,
               player_profile_id: member.player_profile_id,
               name: member.name,
               level: member.level,

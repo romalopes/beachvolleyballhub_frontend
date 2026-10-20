@@ -23,6 +23,7 @@ import {
   archiveCoach,
   canCreateCoachProfile,
   canManageProfiles,
+  canEditProfile,
   deleteCoachProfile,
   isArchived,
   profileDeletionErrorMessage,
@@ -343,7 +344,7 @@ export default function Coaches() {
                     profileName={coach.full_name ?? coach.display_name ?? `Coach profile #${coach.id}`}
                   />
                 )}
-              {canEdit && (
+              {canEditProfile(user, coach) && (
                 <Link
                   to={`/coaches/${coach.id}/edit`}
                   className="admin-btn"
@@ -353,7 +354,7 @@ export default function Coaches() {
                   Edit
                 </Link>
               )}
-              {canEdit &&
+              {canEditProfile(user, coach) &&
                 (isArchived(coach) ? (
                   <button
                     type="button"
@@ -380,7 +381,7 @@ export default function Coaches() {
                     Archive
                   </button>
                 ))}
-              {user?.roles.includes("admin") && (
+              {canEditProfile(user, coach) && (
                 <button
                   type="button"
                   className="admin-btn admin-btn-remove"

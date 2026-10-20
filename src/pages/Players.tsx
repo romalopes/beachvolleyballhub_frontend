@@ -23,6 +23,7 @@ import {
   archivePlayer,
   canCreatePlayerProfile,
   canManageProfiles,
+  canEditProfile,
   deletePlayerProfile,
   isArchived,
   profileDeletionErrorMessage,
@@ -351,7 +352,7 @@ export default function Players() {
                     profileName={playerName(player)}
                   />
                 )}
-              {canManage && (
+              {canEditProfile(user, player) && (
                 <Link
                   to={`/players/${player.id}/edit`}
                   className="admin-btn"
@@ -361,7 +362,7 @@ export default function Players() {
                   Edit
                 </Link>
               )}
-              {canManage &&
+              {canEditProfile(user, player) &&
                 (isArchived(player) ? (
                   <button
                     type="button"
@@ -388,7 +389,7 @@ export default function Players() {
                     Archive
                   </button>
                 ))}
-              {user?.roles.includes("admin") && (
+              {canEditProfile(user, player) && (
                 <button
                   type="button"
                   className="admin-btn admin-btn-remove"

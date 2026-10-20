@@ -46,12 +46,38 @@ export default function Groups() {
     visibility: "shared",
     organisation_id: null,
   });
-  const [memberIds, setMemberIds] = useState<number[]>([]);
+  // A roster subject is polymorphic (Account vs PlayerProfile/CoachProfile), so
+  // plain numeric ids collide across tables. A `Type:id` key keeps every
+  // checkbox independent, including accountless profiles.
+  const subjectKey = (
+    type: string | null | undefined,
+    id: number | null | undefined,
+  ) => `${type ?? "Unknown"}:${id ?? "?"}`;
+
+  // Stable key for one organisation roster row. Prefers the polymorphic
+  // subject; falls back to account, membership id, then position so legacy or
+  // sparse rows still get a unique key.
+  const orgMemberKey = (member: OrganisationMembership, index: number) => {
+    const subject = subjectKey(member.memberable_type ?? member.member_type, member.memberable_id ?? member.member_id);
+    if (!subject.startsWith("Unknown") && !subject.endsWith(":?")) return subject;
+    if (member.account_id != null) return subjectKey("Account", member.account_id);
+    return `Membership:${member.id}:${index}`;
+  };
+
+  // Stable key for one existing group roster row, same scheme as the org rows
+  // so edit mode can pre-tick from the loaded group.
+  const groupMemberKey = (member: GroupDetail["members"][number], index: number) => {
+    const subject = subjectKey(member.memberable_type, member.memberable_id);
+    if (!subject.startsWith("Unknown") && !subject.endsWith(":?")) return subject;
+    if (member.account_id != null) return subjectKey("Account", member.account_id);
+    return `GroupMember:${member.id}:${index}`;
+  };
   const [myOrganisations, setMyOrganisations] = useState<Organisation[]>([]);
   const [orgMembers, setOrgMembers] = useState<OrganisationMembership[]>([]);
   const [loadingOrgs, setLoadingOrgs] = useState(false);
   const [loadingOrgMembers, setLoadingOrgMembers] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [selectedKeys, setSelectedKeys] = useState<string[]>([]);
   const [formError, setFormError] = useState<string | null>(null);
 
   const load = useCallback(() => {
@@ -129,7 +155,7 @@ export default function Groups() {
 
   const handleOrganisationChange = async (organisationId: number | null) => {
     setForm((prev) => ({ ...prev, organisation_id: organisationId }));
-    setMemberIds([]);
+    setSelectedKeys([]);
     if (organisationId) {
       await loadOrgMembers(organisationId);
     } else {
@@ -146,7 +172,7 @@ export default function Groups() {
       visibility: "shared",
       organisation_id: null,
     });
-    setMemberIds([]);
+    setSelectedKeys([]);
     setFormError(null);
     await loadAvailableOrganisations();
   };
@@ -166,8 +192,9 @@ export default function Groups() {
         status: detail.group.status,
         organisation_id: detail.group.organisation?.id ?? null,
       });
-      // memberIds are now person_ids (not player_profile_ids)
-      setMemberIds(detail.group.members.map((m) => m.person_id));
+      // Pre-tick from the loaded roster using the same subject keys the org
+      // rows use, so edit mode reflects the current membership.
+      setSelectedKeys(detail.group.members.map(groupMemberKey));
       if (detail.group.organisation?.id) {
         await loadOrgMembers(detail.group.organisation.id);
       }
@@ -183,10 +210,26 @@ export default function Groups() {
     setFormError(null);
   };
 
-  const toggleMember = (id: number) => {
-    setMemberIds((prev) =>
-      prev.includes(id) ? prev.filter((pid) => pid !== id) : [...prev, id],
+  const toggleMember = (key: string) => {
+    setSelectedKeys((prev) =>
+      prev.includes(key) ? prev.filter((k) => k !== key) : [...prev, key],
     );
+  };
+
+  // Split selection back into the polymorphic payload the API understands:
+  // account subjects go as `account_ids`, accountless profiles as memberables.
+  const selectedMembersPayload = () => {
+    const accountIds: number[] = [];
+    const memberables: { type: "PlayerProfile" | "CoachProfile"; id: number }[] = [];
+    for (const key of selectedKeys) {
+      const [type, rawId] = key.split(":");
+      const id = Number(rawId);
+      if (!Number.isFinite(id)) continue;
+      if (type === "Account") accountIds.push(id);
+      else if (type === "PlayerProfile" || type === "CoachProfile")
+        memberables.push({ type, id });
+    }
+    return { accountIds, memberables };
   };
 
   const handleSubmit = async (e: FormEvent) => {
@@ -198,10 +241,11 @@ export default function Groups() {
     setSaving(true);
     setFormError(null);
     try {
+      const members = selectedMembersPayload();
       if (editing) {
-        await api.updateGroup(editing.id, form, memberIds);
+        await api.updateGroup(editing.id, form, members);
       } else {
-        await api.createGroup(form, memberIds);
+        await api.createGroup(form, members);
       }
       setEditing(null);
       setIsCreating(false);
@@ -334,7 +378,7 @@ export default function Groups() {
 
       <div className="admin-field">
         <span className="group-roster-label" id="group-members-label">
-          Roster ({memberIds.length})
+          Roster ({selectedKeys.length})
         </span>
         <div
           className="consolidation-session-picker group-member-picker"
@@ -355,11 +399,14 @@ export default function Groups() {
                 No active members in this organisation.
               </p>
             ) : (
-              orgMembers.map((member) => {
-                const checked = memberIds.includes(member.person_id);
+              orgMembers.map((member, index) => {
+                const key = orgMemberKey(member, index);
+                const checked = selectedKeys.includes(key);
+                const name =
+                  member.display_name ?? member.person_name ?? "Unknown";
                 return (
                   <label
-                    key={member.person_id}
+                    key={key}
                     className={
                       checked
                         ? "consolidation-session-option selected"
@@ -369,11 +416,11 @@ export default function Groups() {
                     <input
                       type="checkbox"
                       checked={checked}
-                      onChange={() => toggleMember(member.person_id)}
+                      onChange={() => toggleMember(key)}
                     />
                     <span className="session-option-body">
                       <span className="session-option-name">
-                        {member.person_name ?? "Unknown"}
+                        {name}
                       </span>
                       <span className="session-option-meta">
                         {member.role_label}

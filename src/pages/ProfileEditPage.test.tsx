@@ -79,11 +79,11 @@ describe("Profile edit page", () => {
     expect(mockedApi.updatePlayer).not.toHaveBeenCalled();
   });
 
-  it("locks visibility when someone else recorded the profile", async () => {
+  it("blocks editing when someone else recorded the profile", async () => {
     mockedApi.player.mockResolvedValue(player({ created_by: { id: 99, name: "Someone else" } }));
     renderEdit();
-    await screen.findByLabelText("Visibility");
-    expect(screen.getByLabelText("Visibility")).toBeDisabled();
+    expect(await screen.findByText("Not authorized")).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Save changes" })).not.toBeInTheDocument();
   });
 
   it("updates a coach profile without sending Person fields", async () => {

@@ -313,9 +313,9 @@ export default function App() {
                 <Route
                   path="/players/:id/edit"
                   element={
-                    <ManagerRoute>
+                    <AuthenticatedRoute>
                       <ProfileEditPage kind="player" />
-                    </ManagerRoute>
+                    </AuthenticatedRoute>
                   }
                 />
                 <Route
@@ -409,9 +409,9 @@ export default function App() {
                 <Route
                   path="/coaches/:id/edit"
                   element={
-                    <ManagerRoute>
+                    <AuthenticatedRoute>
                       <ProfileEditPage kind="coach" />
-                    </ManagerRoute>
+                    </AuthenticatedRoute>
                   }
                 />
                 <Route

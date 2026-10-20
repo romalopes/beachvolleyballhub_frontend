@@ -3,6 +3,7 @@ import { useNavigate, useParams } from "react-router-dom";
 import { ArrowLeft } from "lucide-react";
 import { api, ApiValidationError, type ProfileOwner } from "../api";
 import { useAuth } from "../auth/AuthContext";
+import { canEditProfile } from "../utils/people";
 import EmptyState from "../components/EmptyState";
 import PageHeader from "../components/PageHeader";
 import ProfileDetailsForm, { type ProfileFormValues, type ProfileKind } from "../components/people/ProfileDetailsForm";
@@ -64,7 +65,7 @@ export default function ProfileEditPage({ kind }: Props) {
   }, [id, kind, numericId]);
 
   const handleSubmit = async (values: ProfileFormValues) => {
-    if (!loaded) return;
+    if (!loaded || !canEditProfile(user, loaded)) return;
     setErrors([]); setSavedName(null); setSubmitting(true);
     try {
       const saved = kind === "player"
@@ -77,6 +78,7 @@ export default function ProfileEditPage({ kind }: Props) {
   };
 
   if (!loaded) return loadError ? <EmptyState title={kind === "player" ? "Player not found" : "Coach not found"} description={loadError} /> : <div className="loading">Loading...</div>;
+  if (!canEditProfile(user, loaded)) return <EmptyState title="Not authorized" description="Only the profile creator, a curator, or an admin can edit this profile." />;
   const backTo = kind === "player" ? `/players/${loaded.id}` : `/coaches/${loaded.id}`;
   const visibilityEditable = Boolean(user?.roles.includes("admin") || (user && loaded.created_by?.id === user.id));
 

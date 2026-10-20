@@ -93,3 +93,14 @@ export function isArchived(
 ): boolean {
   return profile?.status === "archived";
 }
+
+/** Only the recording user, curators, and admins may change a profile. */
+export function canEditProfile(
+  user: User | null | undefined,
+  profile: { created_by?: { id: number } | null } | null | undefined,
+): boolean {
+  return Boolean(user && profile && (
+    user.roles.some(role => role === "admin" || role === "curator") ||
+    profile.created_by?.id === user.id
+  ));
+}
