@@ -26,6 +26,7 @@ vi.mock("../api", async (importOriginal) => {
       assessmentDefinitions: vi.fn(),
       coaches: vi.fn(),
       groups: vi.fn(),
+      organisations: vi.fn(),
       createAssessmentSession: vi.fn(),
     },
   };
@@ -118,6 +119,23 @@ beforeEach(() => {
       },
     ],
     meta: { page: 1, per_page: 20, total: 1, total_pages: 1 },
+  } as never);
+  mockedApi.organisations.mockResolvedValue({
+    data: [
+      {
+        id: 10,
+        name: "Sydney Volleyball Club",
+        slug: "sydney-volleyball-club",
+        acronym: "SVC",
+      },
+      {
+        id: 11,
+        name: "Northern Club",
+        slug: "northern-club",
+        acronym: null,
+      },
+    ],
+    meta: { page: 1, per_page: 20, total: 2, total_pages: 1 },
   } as never);
 });
 
@@ -221,6 +239,9 @@ describe("AssessmentSessions wizard", () => {
 
     // The picker is optional, and says so: no group is the default.
     const picker = screen.getByLabelText(/Group \(optional\)/i);
+    await waitFor(() =>
+      expect(picker).not.toHaveDisplayValue(/loading groups/i),
+    );
     expect(picker).toHaveDisplayValue(/no group/i);
     await user.selectOptions(picker, "3");
     // The hint makes the "membership is not attendance" rule explicit rather
@@ -238,6 +259,79 @@ describe("AssessmentSessions wizard", () => {
     expect(mockedApi.createAssessmentSession.mock.calls[0][0]).toMatchObject({
       group_id: 3,
     });
+  });
+
+  it("searches an organisation to narrow the groups", async () => {
+    const user = userEvent.setup();
+    renderPage();
+    await openWizard(user);
+
+    await user.click(screen.getByRole("button", { name: /next/i }));
+
+    // Organisation search filters the org list client-side.
+    const search = screen.getByLabelText(/Organisation \(optional\)/i);
+    await user.click(search);
+    expect(
+      await screen.findByRole("option", { name: /sydney volleyball club/i }),
+    ).toBeInTheDocument();
+    await user.type(search, "north");
+    expect(
+      screen.queryByRole("option", { name: /sydney volleyball club/i }),
+    ).not.toBeInTheDocument();
+    expect(
+      screen.getByRole("option", { name: /northern club/i }),
+    ).toBeInTheDocument();
+
+    // Picking an org refetches groups scoped to it and resets the selection.
+    mockedApi.groups.mockResolvedValueOnce({
+      data: [
+        {
+          id: 7,
+          name: "Northern squad",
+          slug: "northern-squad",
+          player_count: 4,
+        },
+      ],
+      meta: { page: 1, per_page: 20, total: 1, total_pages: 1 },
+    } as never);
+    await user.click(screen.getByRole("option", { name: /northern club/i }));
+
+    await waitFor(() =>
+      expect(mockedApi.groups).toHaveBeenCalledWith({
+        organisation_id: 11,
+        include_private: true,
+      }),
+    );
+    const picker = screen.getByLabelText(/Group \(optional\)/i);
+    await waitFor(() =>
+      expect(picker).not.toHaveDisplayValue(/loading groups/i),
+    );
+    expect(
+      screen.getByText(/showing groups from northern club/i),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole("option", { name: /northern squad/i }),
+    ).toBeInTheDocument();
+    expect(
+      screen.queryByRole("option", { name: /u19 squad/i }),
+    ).not.toBeInTheDocument();
+    // Selecting an org must not carry over a previously picked group.
+    expect(picker).toHaveDisplayValue(/no group/i);
+
+    // Clearing the org restores the full, unfiltered group list.
+    mockedApi.groups.mockResolvedValueOnce({
+      data: [{ id: 3, name: "U19 squad", slug: "u19-squad", player_count: 2 }],
+      meta: { page: 1, per_page: 20, total: 1, total_pages: 1 },
+    } as never);
+    await user.click(screen.getByRole("button", { name: /clear northern club/i }));
+    await waitFor(() =>
+      expect(mockedApi.groups).toHaveBeenCalledWith({ include_private: true }),
+    );
+    await waitFor(() =>
+      expect(
+        screen.getByRole("option", { name: /u19 squad/i }),
+      ).toBeInTheDocument(),
+    );
   });
 
   it("surfaces a server refusal and keeps the coach's input", async () => {

@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useId, useMemo, useState } from "react";
 import type { FormEvent } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { Plus, Calendar, AlertCircle, X } from "lucide-react";
@@ -9,6 +9,7 @@ import {
   type Coach,
   type AssessmentSessionInput,
   type Group as GroupRecord,
+  type Organisation,
   type PaginationMeta,
 } from "../api";
 import { useAuth } from "../auth/AuthContext";
@@ -32,6 +33,17 @@ export default function AssessmentSessions() {
   const [definitions, setDefinitions] = useState<AssessmentDefinition[]>([]);
   const [coaches, setCoaches] = useState<Coach[]>([]);
   const [groups, setGroups] = useState<GroupRecord[]>([]);
+  // Organisation-first group picker: a searchable org list narrows the group
+  // dropdown. `null` = no org filter, so every group stays visible (legacy
+  // groups without an organisation remain schedulable from this state).
+  const [organisations, setOrganisations] = useState<Organisation[]>([]);
+  const [orgSearch, setOrgSearch] = useState("");
+  const [orgOpen, setOrgOpen] = useState(false);
+  const [selectedOrgId, setSelectedOrgId] = useState<number | null>(null);
+  const [orgGroupsLoading, setOrgGroupsLoading] = useState(false);
+  const [orgLoadError, setOrgLoadError] = useState<string | null>(null);
+  const orgSearchId = useId();
+  const orgListboxId = `${orgSearchId}-options`;
   const [page, setPage] = useState(1);
   const [meta, setMeta] = useState<PaginationMeta | null>(null);
   // Load-once page: `loading` is derived from whether the first load finished,
@@ -114,6 +126,78 @@ export default function AssessmentSessions() {
     setIsCreating(true);
     setWizardStep(1);
     setCreateError(null);
+    setFormData((prev) => ({ ...prev, group_id: null }));
+    // Fresh wizard = fresh picker: no stale org filter or query.
+    setOrgSearch("");
+    setOrgOpen(false);
+    setSelectedOrgId(null);
+    setOrgLoadError(null);
+    // Organisations only seed the picker; a failure must not block session
+    // creation, so the wizard falls back to the unfiltered group list.
+    api
+      .organisations("active", undefined, false, false)
+      .then((res) => setOrganisations(res.data || []))
+      .catch(() =>
+        setOrgLoadError("Could not load organisations — showing all groups."),
+      );
+  };
+
+  // Refetch groups whenever the selected organisation changes. Server-side
+  // `organisation_id` filtering is the source of truth; the dropdown simply
+  // renders what comes back. Clearing the org restores the full list, and the
+  // picked group is always reset so a stale id can never be submitted.
+  useEffect(() => {
+    if (!isCreating) return;
+    let cancelled = false;
+    const loadGroups = async () => {
+      setOrgGroupsLoading(true);
+      try {
+        const res = await api.groups(
+          selectedOrgId === null
+            ? { include_private: true }
+            : { organisation_id: selectedOrgId, include_private: true },
+        );
+        if (cancelled) return;
+        setGroups(res.data || []);
+      } catch {
+        if (cancelled) return;
+        setGroups([]);
+      }
+      if (!cancelled) setOrgGroupsLoading(false);
+    };
+    void loadGroups();
+    return () => {
+      cancelled = true;
+    };
+  }, [isCreating, selectedOrgId]);
+
+  const selectedOrg = organisations.find((o) => o.id === selectedOrgId) ?? null;
+
+  // Client-side search over the loaded org page (the API has no `q` filter for
+  // organisations): name + acronym, case-insensitive.
+  const orgSuggestions = useMemo(() => {
+    const needle = orgSearch.trim().toLocaleLowerCase();
+    return organisations.filter((org) => {
+      if (org.id === selectedOrgId) return false;
+      return (
+        !needle ||
+        org.name.toLocaleLowerCase().includes(needle) ||
+        org.acronym?.toLocaleLowerCase().includes(needle)
+      );
+    });
+  }, [organisations, orgSearch, selectedOrgId]);
+
+  const selectOrg = (id: number) => {
+    setSelectedOrgId(id);
+    setOrgSearch("");
+    setOrgOpen(false);
+    setFormData((prev) => ({ ...prev, group_id: null }));
+  };
+
+  const clearOrg = () => {
+    setSelectedOrgId(null);
+    setOrgSearch("");
+    setOrgOpen(false);
     setFormData((prev) => ({ ...prev, group_id: null }));
   };
 
@@ -396,10 +480,81 @@ export default function AssessmentSessions() {
                       />
                     </div>
                     <div className="admin-field">
+                      <label htmlFor={orgSearchId}>Organisation (optional)</label>
+                      {selectedOrg ? (
+                        <div className="organisation-multi-select-selected">
+                          <span className="organisation-multi-select-chip">
+                            <span>{selectedOrg.name}</span>
+                            <button
+                              type="button"
+                              onClick={clearOrg}
+                              aria-label={`Clear ${selectedOrg.name}`}
+                            >
+                              ×
+                            </button>
+                          </span>
+                        </div>
+                      ) : (
+                        <div className="organisation-multi-select-input-wrap">
+                          <input
+                            id={orgSearchId}
+                            type="search"
+                            value={orgSearch}
+                            placeholder="Search organisations to filter groups…"
+                            role="combobox"
+                            aria-autocomplete="list"
+                            aria-expanded={orgOpen}
+                            aria-controls={orgListboxId}
+                            onChange={(e) => {
+                              setOrgSearch(e.target.value);
+                              setOrgOpen(true);
+                            }}
+                            onFocus={() => setOrgOpen(true)}
+                            onBlur={() =>
+                              window.setTimeout(() => setOrgOpen(false), 100)
+                            }
+                          />
+                          {orgOpen && (
+                            <ul
+                              className="organisation-multi-select-options"
+                              id={orgListboxId}
+                              role="listbox"
+                              aria-label="Organisation search results"
+                            >
+                              {orgSuggestions.length > 0 ? (
+                                orgSuggestions.map((org) => (
+                                  <li key={org.id}>
+                                    <button
+                                      type="button"
+                                      role="option"
+                                      aria-selected={false}
+                                      onMouseDown={(e) => e.preventDefault()}
+                                      onClick={() => selectOrg(org.id)}
+                                    >
+                                      <span>{org.name}</span>
+                                      {org.acronym && <small>{org.acronym}</small>}
+                                    </button>
+                                  </li>
+                                ))
+                              ) : (
+                                <li className="organisation-multi-select-empty">
+                                  No organisations found.
+                                </li>
+                              )}
+                            </ul>
+                          )}
+                        </div>
+                      )}
+                      {orgLoadError && (
+                        <p className="field-hint">{orgLoadError}</p>
+                      )}
+                    </div>
+                    <div className="admin-field">
                       <label htmlFor="session-group">Group (optional)</label>
                       <select
                         id="session-group"
                         value={formData.group_id ?? 0}
+                        disabled={orgGroupsLoading}
                         onChange={(e) =>
                           setFormData({
                             ...formData,
@@ -407,7 +562,11 @@ export default function AssessmentSessions() {
                           })
                         }
                       >
-                        <option value={0}>No group — add players one by one</option>
+                        <option value={0}>
+                          {orgGroupsLoading
+                            ? "Loading groups…"
+                            : "No group — add players one by one"}
+                        </option>
                         {groups.map((group) => (
                           <option key={group.id} value={group.id}>
                             {group.name} ({group.player_count})
@@ -415,6 +574,9 @@ export default function AssessmentSessions() {
                         ))}
                       </select>
                       <p className="field-hint">
+                        {selectedOrg
+                          ? `Showing groups from ${selectedOrg.name}. Clear the organisation above to see every group. `
+                          : "Search an organisation above to narrow the groups. "}
                         Picking a group adds its players to the roster when the session
                         is created. Membership is not attendance — you can still remove
                         anyone who did not show up.
