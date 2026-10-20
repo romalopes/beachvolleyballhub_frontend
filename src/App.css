@@ -8899,10 +8899,12 @@
 
 .tournament-filter-form .tournament-filter-mine {
   align-self: end;
-  /* Three stacked relationship checkboxes ("Your tournaments"). */
+  /* Relationship checkboxes ("Your tournaments") sit side by side and wrap
+     onto a new line only on narrow screens. */
   display: flex;
-  flex-direction: column;
-  gap: 0.25rem;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.375rem 1rem;
 }
 
 .tournament-filter-form > .form-actions {
