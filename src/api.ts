@@ -1102,12 +1102,47 @@ export interface TrainingSession {
   starts_at: string;
   ends_at: string;
   location: string | null;
+  location_detail?: string | null;
   status: TrainingSessionStatus;
   visibility: TrainingSessionVisibility;
   created_by_id: number | null;
+  capacity?: number | null;
+  level?: string | null;
+  organisation_id?: number | null;
+  group_id?: number | null;
+  coach_profile_id?: number | null;
+  training_series_id?: number | null;
+  training_template_id?: number | null;
+  recurrence_key?: string | null;
+  original_starts_at?: string | null;
+  override_fields?: Record<string, unknown>;
+  cancellation_reason?: string | null;
+  cancelled_at?: string | null;
+  cancelled_by_id?: number | null;
+  /** Present on series-occurrence payloads. */
+  overridden?: boolean;
+  deletable?: boolean;
+  cancellable?: boolean;
   duration_minutes?: number;
   status_label?: string;
   created_by?: { id: number; name: string } | null;
+  coach_profile?: { id: number; display_name: string } | null;
+  training_series?: {
+    id: number;
+    training_template_id: number;
+    frequency: string;
+    interval: number;
+    weekdays: string[];
+    starts_on: string;
+    ends_on: string;
+    local_start_time: string;
+    duration_minutes: number;
+    time_zone: string;
+    status: string;
+  } | null;
+  training_template?: { id: number; name: string } | null;
+  organisation?: { id: number; name: string } | null;
+  group?: { id: number; name: string } | null;
   training_focuses?: TrainingFocus[];
   training_session_drills?: TrainingSessionDrillRow[];
   training_session_participants?: TrainingSessionParticipant[];
@@ -1138,11 +1173,202 @@ export interface TrainingSessionInput {
   starts_at: string;
   ends_at: string;
   location?: string | null;
+  location_detail?: string | null;
+  capacity?: number | null;
+  level?: string | null;
+  organisation_id?: number | null;
+  group_id?: number | null;
+  coach_profile_id?: number | null;
   status?: TrainingSessionStatus;
   visibility?: TrainingSessionVisibility;
   training_focuses_attributes?: TrainingFocusInput[];
   training_session_drills_attributes?: TrainingSessionDrillInput[];
   training_session_participants_attributes?: TrainingSessionParticipantInput[];
+}
+
+// ---------- Recurring training (IDENTITY-184) ----------
+export type TrainingTemplateStatus = "active" | "archived";
+export type TrainingSeriesStatus = "active" | "stopped";
+export type TrainingWeekday = "mon" | "tue" | "wed" | "thu" | "fri" | "sat" | "sun";
+
+export interface TrainingTemplateInput {
+  name: string;
+  description?: string | null;
+  organisation_id?: number | null;
+  group_id?: number | null;
+  coach_profile_id?: number | null;
+  location?: string | null;
+  location_detail?: string | null;
+  level?: string | null;
+  capacity?: number | null;
+  duration_minutes?: number;
+  visibility?: TrainingSessionVisibility;
+  status?: TrainingTemplateStatus;
+}
+
+export interface TrainingTemplate extends TrainingTemplateInput {
+  id: number;
+  name: string;
+  duration_minutes: number;
+  visibility: TrainingSessionVisibility;
+  status: TrainingTemplateStatus;
+  location_summary?: string | null;
+  created_by_id: number | null;
+  created_at: string;
+  updated_at: string;
+  organisation?: { id: number; name: string } | null;
+  group?: { id: number; name: string } | null;
+  coach_profile?: { id: number; display_name: string } | null;
+  created_by?: { id: number; name: string } | null;
+}
+
+/** Fields a series may override without touching the template. */
+export interface TrainingSeriesOverrides {
+  title?: string;
+  description?: string | null;
+  organisation_id?: number | null;
+  group_id?: number | null;
+  coach_profile_id?: number | null;
+  location?: string | null;
+  location_detail?: string | null;
+  level?: string | null;
+  capacity?: number | null;
+  visibility?: TrainingSessionVisibility;
+}
+
+export interface TrainingSeriesInput {
+  training_template_id: number;
+  starts_on: string;
+  ends_on: string;
+  weekdays: TrainingWeekday[] | string[];
+  local_start_time: string;
+  duration_minutes?: number;
+  time_zone?: string;
+  frequency?: "weekly";
+  interval?: number;
+  organisation_id?: number | null;
+  overrides?: TrainingSeriesOverrides;
+}
+
+export interface TrainingSeries {
+  id: number;
+  training_template_id: number;
+  organisation_id: number | null;
+  created_by_id: number | null;
+  frequency: "weekly";
+  interval: number;
+  weekdays: string[];
+  starts_on: string;
+  ends_on: string;
+  local_start_time: string;
+  duration_minutes: number;
+  time_zone: string;
+  status: TrainingSeriesStatus;
+  generated_through: string | null;
+  last_generated_at: string | null;
+  stopped_at: string | null;
+  stopped_reason: string | null;
+  created_at: string;
+  updated_at: string;
+  defaults: Record<string, unknown>;
+  next_generation_start: string | null;
+  completed: boolean;
+  occurrence_count?: number;
+  scheduled_count?: number;
+  cancelled_count?: number;
+  completed_count?: number;
+  draft_count?: number;
+  next_occurrence_at?: string | null;
+  training_template?: {
+    id: number;
+    name: string;
+    location?: string | null;
+    location_detail?: string | null;
+    capacity?: number | null;
+    duration_minutes?: number;
+    visibility?: TrainingSessionVisibility;
+    status?: TrainingTemplateStatus;
+  } | null;
+  organisation?: { id: number; name: string } | null;
+  created_by?: { id: number; name: string } | null;
+}
+
+export interface TrainingSeriesConflict {
+  id: number;
+  title: string;
+  status: TrainingSessionStatus;
+  starts_at: string;
+  ends_at: string;
+  location: string | null;
+  reasons: string[];
+}
+
+export interface TrainingSeriesPreviewOccurrence {
+  recurrence_key: string;
+  local_date: string;
+  local_start_time: string;
+  starts_at: string;
+  ends_at: string;
+  duration_minutes: number;
+  warnings: string[];
+  conflicts: TrainingSeriesConflict[];
+}
+
+export interface TrainingSeriesPreview {
+  valid: boolean;
+  errors: string[];
+  warnings: string[];
+  time_zone: string;
+  total: number;
+  returned: number;
+  truncated: boolean;
+  occurrences: TrainingSeriesPreviewOccurrence[];
+}
+
+export interface TrainingSeriesGenerationResult {
+  created_count: number;
+  already_present: string[];
+  errors: string[];
+}
+
+export interface TrainingSeriesCreateResponse {
+  training_series: TrainingSeries;
+  generation: TrainingSeriesGenerationResult;
+}
+
+export interface TrainingSeriesSkipped {
+  id: number;
+  reason: string;
+}
+
+export interface TrainingSeriesBulkResult {
+  affected_ids: number[];
+  skipped: TrainingSeriesSkipped[];
+  errors: string[];
+}
+
+export interface TrainingSeriesDeleteResult {
+  deleted_ids: number[];
+  skipped: TrainingSeriesSkipped[];
+  errors: string[];
+}
+
+export interface TrainingSeriesFutureEditResult {
+  updated_ids: number[];
+  skipped: TrainingSeriesSkipped[];
+  errors: string[];
+}
+
+export interface TrainingSeriesSplitResult {
+  training_series: TrainingSeries;
+  new_series: TrainingSeries;
+  destroyed_count: number;
+  generation: TrainingSeriesGenerationResult;
+}
+
+export interface TrainingSeriesSplitBlocker {
+  id: number;
+  reasons: string[];
 }
 
 // ---------- People, players and coaches (identity model) ----------
@@ -1937,12 +2163,15 @@ export const api = {
     status?: TrainingSessionStatus;
     /** mine=true narrows the calendar to the current player's own sessions. */
     mine?: boolean;
+    training_series_id?: number;
   }) => {
     const qs = new URLSearchParams();
     if (params?.starts_at_from) qs.set("starts_at_from", params.starts_at_from);
     if (params?.starts_at_to) qs.set("starts_at_to", params.starts_at_to);
     if (params?.status) qs.set("status", params.status);
     if (params?.mine) qs.set("mine", "1");
+    if (params?.training_series_id)
+      qs.set("training_series_id", String(params.training_series_id));
     const query = qs.toString();
     return fetchAPI<TrainingSession[]>(
       `/training_sessions${query ? `?${query}` : ""}`,
@@ -1960,6 +2189,182 @@ export const api = {
     ),
   deleteTrainingSession: (id: number) =>
     postJSON<void>(`/training_sessions/${id}`, {}, "DELETE"),
+
+  // ---------- Recurring training (IDENTITY-184) ----------
+  trainingTemplates: (params?: {
+    status?: TrainingTemplateStatus;
+    include_archived?: boolean;
+    organisation_id?: number;
+    group_id?: number;
+    coach_profile_id?: number;
+    q?: string;
+    page?: number;
+    per_page?: number;
+  }) => {
+    const qs = new URLSearchParams();
+    if (params?.status) qs.set("status", params.status);
+    if (params?.include_archived) qs.set("include_archived", "1");
+    if (params?.organisation_id)
+      qs.set("organisation_id", String(params.organisation_id));
+    if (params?.group_id) qs.set("group_id", String(params.group_id));
+    if (params?.coach_profile_id)
+      qs.set("coach_profile_id", String(params.coach_profile_id));
+    if (params?.q) qs.set("q", params.q);
+    if (params?.page) qs.set("page", String(params.page));
+    if (params?.per_page) qs.set("per_page", String(params.per_page));
+    const query = qs.toString();
+    return fetchAPI<PaginatedResponse<TrainingTemplate>>(
+      `/training_templates${query ? `?${query}` : ""}`,
+    );
+  },
+  trainingTemplate: (id: number) =>
+    fetchAPI<{ training_template: TrainingTemplate }>(
+      `/training_templates/${id}`,
+    ).then((response) => response.training_template),
+  createTrainingTemplate: (data: TrainingTemplateInput) =>
+    postJSON<{ training_template: TrainingTemplate }>("/training_templates", {
+      training_template: data,
+    }).then((response) => response.training_template),
+  updateTrainingTemplate: (
+    id: number,
+    data: Partial<TrainingTemplateInput>,
+  ) =>
+    postJSON<{ training_template: TrainingTemplate }>(
+      `/training_templates/${id}`,
+      { training_template: data },
+      "PATCH",
+    ).then((response) => response.training_template),
+  archiveTrainingTemplate: (id: number) =>
+    postJSON<{ training_template: TrainingTemplate }>(
+      `/training_templates/${id}/archive`,
+      {},
+    ).then((response) => response.training_template),
+  restoreTrainingTemplate: (id: number) =>
+    postJSON<{ training_template: TrainingTemplate }>(
+      `/training_templates/${id}/restore`,
+      {},
+    ).then((response) => response.training_template),
+  cloneTrainingTemplate: (id: number) =>
+    postJSON<{ training_template: TrainingTemplate }>(
+      `/training_templates/${id}/clone`,
+      {},
+    ).then((response) => response.training_template),
+
+  previewTrainingSeries: (data: TrainingSeriesInput) =>
+    postJSON<TrainingSeriesPreview>("/training_series/preview", {
+      training_series: data,
+    }),
+  trainingSeriesList: (params?: {
+    status?: TrainingSeriesStatus;
+    training_template_id?: number;
+    organisation_id?: number;
+    from?: string;
+    to?: string;
+    upcoming?: boolean;
+    page?: number;
+    per_page?: number;
+  }) => {
+    const qs = new URLSearchParams();
+    if (params?.status) qs.set("status", params.status);
+    if (params?.training_template_id)
+      qs.set("training_template_id", String(params.training_template_id));
+    if (params?.organisation_id)
+      qs.set("organisation_id", String(params.organisation_id));
+    if (params?.from) qs.set("from", params.from);
+    if (params?.to) qs.set("to", params.to);
+    if (params?.upcoming) qs.set("upcoming", "1");
+    if (params?.page) qs.set("page", String(params.page));
+    if (params?.per_page) qs.set("per_page", String(params.per_page));
+    const query = qs.toString();
+    return fetchAPI<PaginatedResponse<TrainingSeries>>(
+      `/training_series${query ? `?${query}` : ""}`,
+    );
+  },
+  trainingSeries: (id: number) =>
+    fetchAPI<{ training_series: TrainingSeries }>(
+      `/training_series/${id}`,
+    ).then((response) => response.training_series),
+  createTrainingSeries: (data: TrainingSeriesInput) =>
+    postJSON<TrainingSeriesCreateResponse>("/training_series", {
+      training_series: data,
+    }),
+  trainingSeriesSessions: (
+    id: number,
+    params?: {
+      status?: TrainingSessionStatus;
+      from?: string;
+      to?: string;
+      page?: number;
+      per_page?: number;
+    },
+  ) => {
+    const qs = new URLSearchParams();
+    if (params?.status) qs.set("status", params.status);
+    if (params?.from) qs.set("from", params.from);
+    if (params?.to) qs.set("to", params.to);
+    if (params?.page) qs.set("page", String(params.page));
+    if (params?.per_page) qs.set("per_page", String(params.per_page));
+    const query = qs.toString();
+    return fetchAPI<PaginatedResponse<TrainingSession>>(
+      `/training_series/${id}/sessions${query ? `?${query}` : ""}`,
+    );
+  },
+  bulkCancelTrainingSeries: (
+    id: number,
+    data: { session_ids: number[]; reason: string; notify_participants?: boolean },
+  ) =>
+    postJSON<TrainingSeriesBulkResult>(
+      `/training_series/${id}/bulk_cancel`,
+      data,
+    ),
+  bulkDeleteTrainingSeries: (id: number, sessionIds: number[]) =>
+    postJSON<TrainingSeriesDeleteResult>(
+      `/training_series/${id}/bulk_delete`,
+      { session_ids: sessionIds },
+    ),
+  stopTrainingSeries: (id: number, reason?: string) =>
+    postJSON<{ training_series: TrainingSeries; changed: boolean }>(
+      `/training_series/${id}/stop`,
+      { reason },
+    ),
+  cancelFutureTrainingSeries: (
+    id: number,
+    data: { from: string; reason: string; notify_participants?: boolean },
+  ) =>
+    postJSON<TrainingSeriesBulkResult>(
+      `/training_series/${id}/cancel_future`,
+      data,
+    ),
+  updateFutureTrainingSeries: (
+    id: number,
+    data: {
+      effective_from: string;
+      changes: TrainingSeriesOverrides;
+      overwrite_overrides?: boolean;
+    },
+  ) =>
+    postJSON<TrainingSeriesFutureEditResult>(
+      `/training_series/${id}/update_future`,
+      data,
+    ),
+  splitTrainingSeries: (
+    id: number,
+    data: {
+      effective_from: string;
+      reason: string;
+      recurrence: {
+        weekdays?: string[];
+        local_start_time?: string;
+        duration_minutes?: number;
+        time_zone?: string;
+        interval?: number;
+        ends_on?: string;
+        overrides?: TrainingSeriesOverrides;
+      };
+      discard_overrides?: boolean;
+    },
+  ) =>
+    postJSON<TrainingSeriesSplitResult>(`/training_series/${id}/split`, data),
 
   // ---------- Legacy identity search (staff only) ----------
   /**

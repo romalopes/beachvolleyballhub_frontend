@@ -23,6 +23,11 @@ import Training from "./pages/Training";
 import TrainingDetail from "./pages/TrainingDetail";
 import TrainingCalendar from "./pages/TrainingCalendar";
 import TrainingFormPage from "./pages/TrainingFormPage";
+import TrainingTemplates from "./pages/TrainingTemplates";
+import TrainingTemplateFormPage from "./pages/TrainingTemplateFormPage";
+import TrainingSeriesPage from "./pages/TrainingSeries";
+import TrainingSeriesFormPage from "./pages/TrainingSeriesFormPage";
+import TrainingSeriesDetail from "./pages/TrainingSeriesDetail";
 import Schedule from "./pages/Schedule";
 import Tournaments from "./pages/Tournaments";
 import TournamentDetail from "./pages/TournamentDetail";
@@ -263,6 +268,54 @@ export default function App() {
                   element={
                     <ManagerRoute>
                       <TrainingFormPage />
+                    </ManagerRoute>
+                  }
+                />
+                <Route
+                  path="/training/templates"
+                  element={
+                    <ManagerRoute>
+                      <TrainingTemplates />
+                    </ManagerRoute>
+                  }
+                />
+                <Route
+                  path="/training/templates/new"
+                  element={
+                    <ManagerRoute>
+                      <TrainingTemplateFormPage />
+                    </ManagerRoute>
+                  }
+                />
+                <Route
+                  path="/training/templates/:id/edit"
+                  element={
+                    <ManagerRoute>
+                      <TrainingTemplateFormPage />
+                    </ManagerRoute>
+                  }
+                />
+                <Route
+                  path="/training/series"
+                  element={
+                    <ManagerRoute>
+                      <TrainingSeriesPage />
+                    </ManagerRoute>
+                  }
+                />
+                <Route
+                  path="/training/series/new"
+                  element={
+                    <ManagerRoute>
+                      <TrainingSeriesFormPage />
+                    </ManagerRoute>
+                  }
+                />
+                <Route
+                  path="/training/series/:id"
+                  element={
+                    <ManagerRoute>
+                      <TrainingSeriesDetail />
                     </ManagerRoute>
                   }
                 />
