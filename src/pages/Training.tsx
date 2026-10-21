@@ -28,7 +28,7 @@ import {
   toISODate,
   weekGridDays,
 } from "../utils/calendar";
-import { canManageTrainings } from "../utils/training";
+import { canManageTrainings, sessionsByWeek } from "../utils/training";
 
 type TrainingView = "list" | "calendar";
 type CalendarRange = "month" | "week";
@@ -73,6 +73,9 @@ export default function Training() {
     () => (range === "month" ? monthGridDays(cursor) : weekGridDays(cursor)),
     [range, cursor],
   );
+
+  // The list view groups sessions into calendar weeks (Monday–Sunday).
+  const weekGroups = useMemo(() => sessionsByWeek(sessions), [sessions]);
 
   useEffect(() => {
     const filters = {
@@ -287,13 +290,24 @@ export default function Training() {
               onSelect={(session) => navigate(`/training/${session.id}`)}
             />
           ) : (
-            <div className="training-cards-grid">
-              {sessions.map((session) => (
-                <TrainingSessionCard
-                  key={session.id}
-                  session={session}
-                  onClick={() => navigate(`/training/${session.id}`)}
-                />
+            <div className="training-weeks">
+              {weekGroups.map((group) => (
+                <section
+                  key={group.key}
+                  className="training-week"
+                  aria-label={group.label}
+                >
+                  <h3 className="training-week-heading">{group.label}</h3>
+                  <div className="training-cards-grid">
+                    {group.sessions.map((session) => (
+                      <TrainingSessionCard
+                        key={session.id}
+                        session={session}
+                        onClick={() => navigate(`/training/${session.id}`)}
+                      />
+                    ))}
+                  </div>
+                </section>
               ))}
             </div>
           )}

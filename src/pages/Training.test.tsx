@@ -23,6 +23,14 @@ function isoOnToday(hour: number, minute = 0): string {
   return new Date(now.getFullYear(), now.getMonth(), now.getDate(), hour, minute).toISOString();
 }
 
+/**
+ * Local wall-clock date-time as an ISO string. The week helpers read the
+ * session start in local time, so the fixture must be built in local time too.
+ */
+function localAt(year: number, month: number, day: number, hour = 9): string {
+  return new Date(year, month - 1, day, hour).toISOString();
+}
+
 const session = (overrides: Partial<TrainingSession> = {}): TrainingSession =>
   ({
     id: 1,
@@ -75,6 +83,40 @@ describe("Training page", () => {
     expect(mockedApi.trainingSessions).toHaveBeenCalledWith(
       expect.not.objectContaining({ starts_at_from: expect.any(String) }),
     );
+  });
+
+  it("groups the list view into calendar weeks", async () => {
+    mockedApi.trainingSessions.mockResolvedValue([
+      session({ id: 1, title: "Week One Monday", starts_at: localAt(2026, 9, 7, 9) }),
+      session({ id: 2, title: "Week One Sunday", starts_at: localAt(2026, 9, 13, 9) }),
+      session({ id: 3, title: "Week Two Monday", starts_at: localAt(2026, 9, 14, 9) }),
+    ]);
+
+    renderPage();
+
+    expect(await screen.findByText("Week One Monday")).toBeInTheDocument();
+    expect(screen.getByText("Week from Sep 7 to Sep 13")).toBeInTheDocument();
+    expect(screen.getByText("Week from Sep 14 to Sep 20")).toBeInTheDocument();
+
+    const weeks = document.querySelectorAll(".training-week");
+    expect(weeks).toHaveLength(2);
+
+    const [firstWeek, secondWeek] = weeks;
+    expect(within(firstWeek as HTMLElement).getByText("Week One Monday")).toBeInTheDocument();
+    expect(within(firstWeek as HTMLElement).getByText("Week One Sunday")).toBeInTheDocument();
+    expect(within(firstWeek as HTMLElement).queryByText("Week Two Monday")).toBeNull();
+    expect(within(secondWeek as HTMLElement).getByText("Week Two Monday")).toBeInTheDocument();
+
+    // One card grid per week.
+    expect(document.querySelectorAll(".training-cards-grid")).toHaveLength(2);
+  });
+
+  it("shows only one heading when every session falls in the same week", async () => {
+    renderPage();
+
+    await screen.findByText("Morning Session");
+    expect(document.querySelectorAll(".training-week")).toHaveLength(1);
+    expect(document.querySelectorAll(".training-week-heading")).toHaveLength(1);
   });
 
   it("switches to the calendar view and back to the list", async () => {

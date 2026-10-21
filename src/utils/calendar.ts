@@ -22,6 +22,16 @@ export function startOfWeek(date: Date): Date {
 }
 
 /**
+ * Start of the ISO week (Monday) containing `date`, at local midnight.
+ * Used by the training list view, which groups sessions into Mon–Sun weeks.
+ * The calendar grid keeps the Sunday-based `startOfWeek` above.
+ */
+export function startOfIsoWeek(date: Date): Date {
+  const start = startOfDay(date);
+  return addDays(start, -((start.getDay() + 6) % 7));
+}
+
+/**
  * All cells for a month grid: full weeks covering the month, starting Sunday.
  * Always a multiple of 7 starting on a Sunday.
  */

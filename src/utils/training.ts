@@ -6,6 +6,7 @@ import type {
   TrainingSessionVisibility,
 } from "../api";
 import type { User } from "../api";
+import { addDays, startOfIsoWeek } from "./calendar";
 
 /** Managers (coach/curator/admin) see drafts and can create/edit trainings. */
 export function canManageTrainings(user: User | null | undefined): boolean {
@@ -114,6 +115,72 @@ export function sessionsByDay(sessions: TrainingSession[]): Map<string, Training
     else grouped.set(key, [session]);
   }
   return grouped;
+}
+
+// ---------- Weekly grouping (training list view) ----------
+
+/** A calendar week of training sessions, Monday to Sunday. */
+export interface TrainingWeekGroup {
+  /** Local YYYY-MM-DD key of the Monday that starts the week. */
+  key: string;
+  /** Monday of the week, at local midnight. */
+  start: Date;
+  /** Sunday of the week, at local midnight. */
+  end: Date;
+  /** Heading shown above the week's cards, e.g. "Week from Sep 7 to Sep 13". */
+  label: string;
+  /** Sessions of this week, ordered by start time. */
+  sessions: TrainingSession[];
+}
+
+/**
+ * Heading for a week: "Week from Sep 7 to Sep 13". A week that spans a year
+ * boundary shows the year on both ends, e.g. "Week from Dec 29, 2025 to
+ * Jan 4, 2026".
+ */
+export function formatWeekRange(start: Date, end: Date): string {
+  const sameYear = start.getFullYear() === end.getFullYear();
+  const startText = start.toLocaleDateString("en-US", {
+    month: "short",
+    day: "numeric",
+    ...(sameYear ? {} : { year: "numeric" }),
+  });
+  const endText = end.toLocaleDateString("en-US", {
+    month: "short",
+    day: "numeric",
+    ...(sameYear ? {} : { year: "numeric" }),
+  });
+  return `Week from ${startText} to ${endText}`;
+}
+
+/**
+ * Group sessions into calendar weeks (Monday–Sunday) for the list view.
+ * Weeks are returned oldest first, sessions inside a week are ordered by start
+ * time, and weeks without sessions are omitted.
+ */
+export function sessionsByWeek(sessions: TrainingSession[]): TrainingWeekGroup[] {
+  const sorted = [...sessions].sort((a, b) => a.starts_at.localeCompare(b.starts_at));
+  const groups = new Map<string, TrainingWeekGroup>();
+
+  for (const session of sorted) {
+    const start = startOfIsoWeek(new Date(session.starts_at));
+    const key = dayKey(start);
+    let group = groups.get(key);
+    if (!group) {
+      const end = addDays(start, 6);
+      group = {
+        key,
+        start,
+        end,
+        label: formatWeekRange(start, end),
+        sessions: [],
+      };
+      groups.set(key, group);
+    }
+    group.sessions.push(session);
+  }
+
+  return [...groups.values()].sort((a, b) => a.key.localeCompare(b.key));
 }
 
 // ---------- Visibility: shared schedule vs private session ----------

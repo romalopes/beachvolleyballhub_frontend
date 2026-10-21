@@ -9320,6 +9320,29 @@
   gap: 1.5rem;
 }
 
+.training-weeks {
+  display: flex;
+  flex-direction: column;
+  gap: 2.25rem;
+}
+
+.training-week {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.training-week-heading {
+  margin: 0;
+  padding-bottom: 0.5rem;
+  border-bottom: 1px solid var(--border);
+  font-size: 0.875rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--text-secondary);
+}
+
 .training-card {
   cursor: default;
 }
@@ -9384,5 +9407,16 @@
 
 .training-calendar-nav .training-view-toggle {
   margin-left: auto;
+}
+
+
+@media (max-width: 640px) {
+  .training-weeks {
+    gap: 1.75rem;
+  }
+
+  .training-week-heading {
+    font-size: 0.8125rem;
+  }
 }
 
