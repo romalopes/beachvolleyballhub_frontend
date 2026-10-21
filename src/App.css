@@ -9295,3 +9295,94 @@
   margin-top: 0.5rem;
 }
 
+
+/* ===== Training directory (list + calendar, tournament-style) ===== */
+
+.training-page-content {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 2rem;
+}
+
+.training-filters,
+.training-list-panel {
+  min-width: 0;
+}
+
+.training-filters h2 {
+  font-size: 1rem;
+  margin-bottom: 1rem;
+}
+
+.training-cards-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 1.5rem;
+}
+
+.training-card {
+  cursor: default;
+}
+
+.training-card[role="button"] {
+  cursor: pointer;
+}
+
+.training-card--cancelled {
+  opacity: 0.72;
+}
+
+.training-card--archived {
+  opacity: 0.8;
+}
+
+.training-card--series {
+  border-left: 4px solid var(--teal-600, #0f766e);
+}
+
+.training-card-badges {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+}
+
+.training-card-facts {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+}
+
+.training-card-facts p {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  margin: 0;
+  font-size: 0.875rem;
+  color: var(--text-secondary);
+}
+
+.training-card-stats {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem 0.75rem;
+  font-size: 0.8125rem;
+  color: var(--text-secondary);
+}
+
+.training-card-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+}
+
+.training-view-toggle .filter-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+}
+
+.training-calendar-nav .training-view-toggle {
+  margin-left: auto;
+}
+

@@ -1,38 +1,51 @@
 import { useEffect, useState } from "react";
-import { useNavigate } from "react-router-dom";
-import { CalendarPlus, LayoutTemplate, Plus } from "lucide-react";
-import { api, type TrainingSeries, type TrainingSeriesStatus } from "../api";
+import { useNavigate, useSearchParams } from "react-router-dom";
+import { LayoutTemplate, Plus } from "lucide-react";
+import {
+  api,
+  type TrainingSeries,
+  type TrainingSeriesStatus,
+  type TrainingTemplate,
+} from "../api";
 import EmptyState from "../components/EmptyState";
+import ErrorState from "../components/ErrorState";
 import LoadingState from "../components/LoadingState";
 import PageHeader from "../components/PageHeader";
-import Tag from "../components/Tag";
-import {
-  seriesScheduleLabel,
-  seriesStatusLabel,
-  weekdaysLabel,
-} from "../utils/recurringTraining";
+import TrainingSeriesCard from "../components/training/TrainingSeriesCard";
 
-function formatDate(iso: string): string {
-  return new Date(`${iso}T00:00:00`).toLocaleDateString("en-AU", {
-    day: "numeric",
-    month: "short",
-    year: "numeric",
-  });
-}
-
+/**
+ * Recurring series directory, laid out like the tournaments directory: header
+ * actions, a filter aside and a card grid.
+ *
+ * URL contract: `status=active|stopped`, `upcoming=1`, `training_template_id`.
+ */
 export default function TrainingSeriesPage() {
   const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
+
+  const status = (searchParams.get("status") ?? "") as TrainingSeriesStatus | "";
+  const upcoming = searchParams.get("upcoming") === "1";
+  const templateId = searchParams.get("training_template_id") ?? "";
+
   const [series, setSeries] = useState<TrainingSeries[]>([]);
-  const [showUpcoming, setShowUpcoming] = useState(true);
-  const [status, setStatus] = useState<TrainingSeriesStatus | "all">("all");
+  const [templates, setTemplates] = useState<TrainingTemplate[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [refreshKey, setRefreshKey] = useState(0);
+
+  useEffect(() => {
+    api
+      .trainingTemplates({ per_page: 100 })
+      .then((response) => setTemplates(response.data))
+      .catch((err: Error) => console.warn("Could not load series templates:", err));
+  }, []);
 
   useEffect(() => {
     api
       .trainingSeriesList({
-        upcoming: showUpcoming,
-        status: status === "all" ? undefined : status,
+        status: status || undefined,
+        upcoming: upcoming || undefined,
+        training_template_id: templateId ? Number(templateId) : undefined,
         per_page: 100,
       })
       .then((response) => {
@@ -41,7 +54,16 @@ export default function TrainingSeriesPage() {
       })
       .catch((err: Error) => setError(err.message))
       .finally(() => setLoading(false));
-  }, [showUpcoming, status]);
+  }, [status, upcoming, templateId, refreshKey]);
+
+  const updateParams = (patch: Record<string, string | undefined>) => {
+    const next = new URLSearchParams(searchParams);
+    Object.entries(patch).forEach(([key, value]) => {
+      if (value === undefined || value === "") next.delete(key);
+      else next.set(key, value);
+    });
+    setSearchParams(next);
+  };
 
   return (
     <div className="page">
@@ -65,87 +87,104 @@ export default function TrainingSeriesPage() {
         </button>
       </PageHeader>
 
-      <div className="recurrence-filter-row">
-        <label className="recurrence-toggle">
-          <input
-            type="checkbox"
-            checked={showUpcoming}
-            onChange={(event) => setShowUpcoming(event.target.checked)}
-          />
-          Upcoming only
-        </label>
-        <label className="admin-field recurrence-status-filter">
-          <span>Status</span>
-          <select
-            value={status}
-            onChange={(event) =>
-              setStatus(event.target.value as TrainingSeriesStatus | "all")
-            }
-          >
-            <option value="all">All</option>
-            <option value="active">Active</option>
-            <option value="stopped">Stopped</option>
-          </select>
-        </label>
-      </div>
-
-      {error && <div className="admin-error">{error}</div>}
-      {loading ? (
-        <LoadingState />
-      ) : series.length === 0 ? (
-        <EmptyState
-          title="No recurring series"
-          description="Schedule a series from a template to generate weekly sessions."
-        />
-      ) : (
-        <div className="training-list">
-          {series.map((row) => (
-            <div
-              key={row.id}
-              className={`training-item${row.status === "stopped" ? " training-cancelled" : ""}`}
-              onClick={() => navigate(`/training/series/${row.id}`)}
-              role="button"
-              tabIndex={0}
-              onKeyDown={(event) => {
-                if (event.key === "Enter" || event.key === " ") {
-                  navigate(`/training/series/${row.id}`);
+      <div className="training-page-content">
+        <aside className="training-filters" aria-label="Series filters">
+          <h2>Filters</h2>
+          <form className="filter-form" onSubmit={(event) => event.preventDefault()}>
+            <div className="form-group">
+              <label htmlFor="series-status-filter">Status</label>
+              <select
+                id="series-status-filter"
+                value={status}
+                onChange={(event) =>
+                  updateParams({ status: event.target.value || undefined })
                 }
-              }}
-            >
-              <div className="training-item-info">
-                <h4>{row.training_template?.name ?? `Series #${row.id}`}</h4>
-                <p>
-                  {seriesScheduleLabel(row)}
-                  {row.organisation ? ` · ${row.organisation.name}` : ""}
-                </p>
-                <p className="related-item-meta">
-                  {formatDate(row.starts_on)} → {formatDate(row.ends_on)} ·{" "}
-                  {weekdaysLabel(row.weekdays)}
-                </p>
-              </div>
-              <span className="training-item-meta">
-                <Tag>{seriesStatusLabel(row.status)}</Tag>
-                {row.completed && <Tag>Finished</Tag>}
-                {row.occurrence_count != null && (
-                  <span className="related-item-meta">
-                    {row.occurrence_count} occurrence
-                    {row.occurrence_count === 1 ? "" : "s"}
-                  </span>
-                )}
-                <span className="related-item-meta">
-                  <CalendarPlus size={14} style={{ marginRight: "0.25rem" }} />
-                  {row.next_occurrence_at
-                    ? `Next ${new Date(row.next_occurrence_at).toLocaleDateString("en-AU", {
-                        day: "numeric",
-                        month: "short",
-                      })}`
-                    : "No upcoming occurrence"}
-                </span>
-              </span>
+              >
+                <option value="">All statuses</option>
+                <option value="active">Active</option>
+                <option value="stopped">Stopped</option>
+              </select>
             </div>
-          ))}
-        </div>
-      )}
+            <div className="form-group">
+              <label htmlFor="series-template-filter">Template</label>
+              <select
+                id="series-template-filter"
+                value={templateId}
+                onChange={(event) =>
+                  updateParams({
+                    training_template_id: event.target.value || undefined,
+                  })
+                }
+              >
+                <option value="">Any template</option>
+                {templates.map((template) => (
+                  <option key={template.id} value={template.id}>
+                    {template.name}
+                  </option>
+                ))}
+              </select>
+            </div>
+            <fieldset className="form-group">
+              <legend>Dates</legend>
+              <label>
+                <input
+                  type="checkbox"
+                  checked={upcoming}
+                  onChange={(event) =>
+                    updateParams({ upcoming: event.target.checked ? "1" : undefined })
+                  }
+                />
+                Upcoming only
+              </label>
+            </fieldset>
+            <div className="form-actions">
+              <button
+                type="button"
+                className="admin-btn"
+                onClick={() =>
+                  updateParams({
+                    status: undefined,
+                    training_template_id: undefined,
+                    upcoming: undefined,
+                  })
+                }
+              >
+                Reset
+              </button>
+            </div>
+          </form>
+        </aside>
+
+        <main className="training-list-panel">
+          {error ? (
+            <ErrorState
+              error={error}
+              onRetry={() => {
+                setError(null);
+                setLoading(true);
+                setRefreshKey((key) => key + 1);
+              }}
+            />
+          ) : loading ? (
+            <LoadingState />
+          ) : series.length === 0 ? (
+            <EmptyState
+              title="No recurring series"
+              description="Schedule a series from a template to generate weekly sessions."
+            />
+          ) : (
+            <div className="training-cards-grid">
+              {series.map((row) => (
+                <TrainingSeriesCard
+                  key={row.id}
+                  series={row}
+                  onClick={() => navigate(`/training/series/${row.id}`)}
+                />
+              ))}
+            </div>
+          )}
+        </main>
+      </div>
     </div>
   );
 }

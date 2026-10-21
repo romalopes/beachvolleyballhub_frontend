@@ -21,7 +21,6 @@ import DrillDetail from "./pages/DrillDetail";
 import Videos from "./pages/Videos";
 import Training from "./pages/Training";
 import TrainingDetail from "./pages/TrainingDetail";
-import TrainingCalendar from "./pages/TrainingCalendar";
 import TrainingFormPage from "./pages/TrainingFormPage";
 import TrainingTemplates from "./pages/TrainingTemplates";
 import TrainingTemplateFormPage from "./pages/TrainingTemplateFormPage";
@@ -327,7 +326,10 @@ export default function App() {
                     </ManagerRoute>
                   }
                 />
-                <Route path="/calendar" element={<TrainingCalendar />} />
+                <Route
+                  path="/calendar"
+                  element={<Navigate to="/training?view=calendar" replace />}
+                />
                 <Route path="/schedule" element={<Schedule />} />
                 <Route path="/tournaments" element={<Tournaments />} />
                 <Route
