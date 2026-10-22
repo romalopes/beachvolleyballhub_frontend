@@ -2,10 +2,15 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import type { FormEvent } from "react";
 import {
   AlertCircle,
+  Archive,
+  Building2,
   ChevronRight,
   ChevronDown,
+  Network,
   Plus,
   Search,
+  ShieldCheck,
+  X,
 } from "lucide-react";
 import {
   api,
@@ -14,7 +19,6 @@ import {
 } from "../api";
 import { useAuth } from "../auth/AuthContext";
 import EmptyState from "../components/EmptyState";
-import PageHeader from "../components/PageHeader";
 import OrganisationTreeNode, { type OrganisationTreeNodeProps } from "../components/OrganisationTreeNode";
 
 const ORGANISATION_TYPES: Array<{ value: OrganisationType; label: string }> = [
@@ -150,6 +154,16 @@ export default function Organisations() {
 
     return matchingIds;
   }, [organisations, searchTerm]);
+  const matchingOrganisationCount = useMemo(() => {
+    const term = searchTerm.toLowerCase().trim();
+    if (!term) return organisations.length;
+
+    return organisations.filter((organisation) =>
+      organisation.name.toLowerCase().includes(term) ||
+      organisation.acronym?.toLowerCase().includes(term) ||
+      organisation.organisation_type.toLowerCase().includes(term)
+    ).length;
+  }, [organisations, searchTerm]);
   const tree = useMemo(() => {
     const byParent = new Map<number | null, Organisation[]>();
     organisations.forEach((organisation) => {
@@ -226,52 +240,103 @@ export default function Organisations() {
   }, [searchTerm, organisations, highlightedIds]);
 
   return (
-    <div className="page organisations-page">
-      <PageHeader title="Organisations">
-        <p className="page-header-description">
-          The federation, state and club structure this project sits in.
-        </p>
-        <div className="organisations-toolbar">
-          <label className="organisations-search">
-            <Search size={16} aria-hidden="true" />
-            <input
-              type="search"
-              placeholder="Search organisations…"
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              aria-label="Search organisations"
-            />
-          </label>
-          <label className="organisations-archived-toggle">
-            <input
-              type="checkbox"
-              checked={showArchived}
-              onChange={(event) => setShowArchived(event.target.checked)}
-            />
-            Show archived
-          </label>
-          {tree.length > 0 && (
-            <div className="organisations-expand-controls">
-              <button
-                type="button"
-                className="admin-btn"
-                onClick={expandAll}
-                aria-label="Expand all"
-              >
-                <ChevronDown size={14} /> Expand all
-              </button>
-              <button
-                type="button"
-                className="admin-btn"
-                onClick={collapseAll}
-                aria-label="Collapse all"
-              >
-                <ChevronRight size={14} /> Collapse all
-              </button>
-            </div>
-          )}
+    <div className="page organisations-page organisations-library-page">
+      <header className="organisations-library-hero">
+        <div className="organisations-library-hero-copy">
+          <span className="analysis-eyebrow">Organisation network</span>
+          <h1>Organisations</h1>
+          <p>Explore the federation, regional, club and academy structure behind your volleyball community.</p>
+          <div className="organisations-library-highlights" aria-label="Organisation directory features">
+            <span><Network size={14} /> Browse the hierarchy</span>
+            <span><Building2 size={14} /> Find clubs and federations</span>
+            <span><ShieldCheck size={14} /> Manage membership policies</span>
+          </div>
         </div>
-      </PageHeader>
+        {isAdmin && !showNew && (
+          <button
+            type="button"
+            className="btn-primary organisations-library-create"
+            onClick={() => setShowNew(true)}
+          >
+            <Plus size={17} />
+            New organisation
+          </button>
+        )}
+      </header>
+
+      <section className="organisations-library-toolbar" aria-label="Organisation filters">
+        <form
+          className="organisations-library-search"
+          role="search"
+          onSubmit={(event) => event.preventDefault()}
+        >
+          <Search size={17} aria-hidden="true" />
+          <input
+            type="search"
+            placeholder="Search organisations…"
+            value={searchTerm}
+            onChange={(event) => setSearchTerm(event.target.value)}
+            aria-label="Search organisations"
+          />
+          {searchTerm && (
+            <button type="button" aria-label="Clear search" onClick={() => setSearchTerm("")}>
+              <X size={15} />
+            </button>
+          )}
+        </form>
+
+        <div className="organisations-status-tabs" role="group" aria-label="Filter organisations by status">
+          <button
+            type="button"
+            className={!showArchived ? "active" : ""}
+            aria-pressed={!showArchived}
+            onClick={() => setShowArchived(false)}
+          >
+            Active
+          </button>
+          <button
+            type="button"
+            className={showArchived ? "active" : ""}
+            aria-pressed={showArchived}
+            onClick={() => setShowArchived(true)}
+          >
+            <Archive size={14} /> All statuses
+          </button>
+        </div>
+
+        {tree.length > 0 && (
+          <div className="organisations-expand-controls">
+            <button
+              type="button"
+              className="btn-outline"
+              onClick={expandAll}
+              aria-label="Expand all"
+            >
+              <ChevronDown size={14} /> Expand all
+            </button>
+            <button
+              type="button"
+              className="btn-outline"
+              onClick={collapseAll}
+              aria-label="Collapse all"
+            >
+              <ChevronRight size={14} /> Collapse all
+            </button>
+          </div>
+        )}
+      </section>
+
+      <div className="organisations-library-heading">
+        <div>
+          <h2>Organisation directory</h2>
+          <p>
+            {searchTerm
+              ? `${matchingOrganisationCount} matching organisation${matchingOrganisationCount === 1 ? "" : "s"} highlighted in the hierarchy.`
+              : `${organisations.length} organisation${organisations.length === 1 ? "" : "s"} across the network.`}
+          </p>
+        </div>
+        {showArchived && <span className="organisations-filter-indicator"><Archive size={13} /> Archived included</span>}
+      </div>
 
       {error && (
         <div className="admin-error" role="alert">
@@ -286,35 +351,25 @@ export default function Organisations() {
       )}
 
       {showNew && isAdmin && (
-        <NewOrganisationForm
-          organisations={organisations}
-          onCancel={() => setShowNew(false)}
-          onCreated={(created, logoError) => {
-            replace(created);
-            setShowNew(false);
-            if (logoError) {
-              // The organisation exists; only the crest failed. Saying so is
-              // better than a bare failure, which would read as "nothing happened".
-              setNotice(null);
-              setError(
-                `${created.name} was created, but the logo was not uploaded: ${logoError}`,
-              );
-            } else {
-              setNotice(`${created.name} created.`);
-            }
-          }}
-        />
-      )}
-      {isAdmin && !showNew && (
-        <div className="admin-form-actions session-actions">
-          <button
-            type="button"
-            className="admin-btn admin-btn-add"
-            onClick={() => setShowNew(true)}
-          >
-            <Plus size={14} />
-            New organisation
-          </button>
+        <div className="organisations-library-create-panel">
+          <NewOrganisationForm
+            organisations={organisations}
+            onCancel={() => setShowNew(false)}
+            onCreated={(created, logoError) => {
+              replace(created);
+              setShowNew(false);
+              if (logoError) {
+                // The organisation exists; only the crest failed. Saying so is
+                // better than a bare failure, which would read as "nothing happened".
+                setNotice(null);
+                setError(
+                  `${created.name} was created, but the logo was not uploaded: ${logoError}`,
+                );
+              } else {
+                setNotice(`${created.name} created.`);
+              }
+            }}
+          />
         </div>
       )}
       {tree.length === 0 ? (
@@ -323,11 +378,13 @@ export default function Organisations() {
           description="An organisation is a club, academy or federation. Create the top of the tree first, then add what sits under it."
         />
       ) : (
-        <ul className="organisations-tree" role="tree">
-          {tree.map((node) => (
-            <OrganisationTreeNode key={node.organisation.id} {...node} />
-          ))}
-        </ul>
+        <section className="organisations-directory-panel" aria-label="Organisation hierarchy">
+          <ul className="organisations-tree" role="tree">
+            {tree.map((node) => (
+              <OrganisationTreeNode key={node.organisation.id} {...node} />
+            ))}
+          </ul>
+        </section>
       )}
     </div>
   );
@@ -385,6 +442,7 @@ function NewOrganisationForm({
   const [type, setType] = useState<OrganisationType>("club");
   const [description, setDescription] = useState("");
   const [parentId, setParentId] = useState<number | null>(null);
+  const [requiresApproval, setRequiresApproval] = useState(false);
   const [logo, setLogo] = useState<File | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
@@ -399,6 +457,7 @@ function NewOrganisationForm({
         organisation_type: type,
         description: description || null,
         parent_organisation_id: parentId,
+        requires_approval: requiresApproval,
       });
       let logoError: string | null = null;
       if (logo) {
@@ -479,6 +538,21 @@ function NewOrganisationForm({
             </option>
           ))}
         </select>
+      </div>
+      <div className="form-row">
+        <label className="organisations-approval-toggle" htmlFor="new-requires-approval">
+          <input
+            id="new-requires-approval"
+            type="checkbox"
+            checked={requiresApproval}
+            onChange={(event) => setRequiresApproval(event.target.checked)}
+            disabled={busy}
+          />
+          <span>
+            Require approval for new members
+            <small>New membership requests will remain pending until approved.</small>
+          </span>
+        </label>
       </div>
       <div className="form-row">
         <label htmlFor="new-logo">Logo (optional)</label>

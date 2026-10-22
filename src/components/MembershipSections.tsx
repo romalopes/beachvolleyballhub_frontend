@@ -8,6 +8,7 @@ import {
   type PaginatedResponse,
   type UserGroupMembership,
 } from "../api";
+import OrganisationSelect from "./OrganisationSelect";
 
 interface MembershipSectionsProps {
   organisationMemberships?: OrganisationMembership[];
@@ -34,56 +35,91 @@ export default function MembershipSections({
   const [groups, setGroups] = useState<Group[]>([]);
   const [organisationsLoading, setOrganisationsLoading] = useState(false);
   const [groupsLoading, setGroupsLoading] = useState(false);
+  const [organisationsError, setOrganisationsError] = useState<string | null>(null);
+  const [groupsError, setGroupsError] = useState<string | null>(null);
   const [organisationId, setOrganisationId] = useState("");
+  const [groupSearchTerm, setGroupSearchTerm] = useState("");
   const [groupId, setGroupId] = useState("");
   const [joining, setJoining] = useState<"organisation" | "group" | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    if (!canManageOwnMemberships) return;
+    if (!showJoinOrganisation) return;
     let cancelled = false;
 
-    const loadOptions = async () => {
+    const loadOrganisations = async () => {
       setOrganisationsLoading(true);
-      setGroupsLoading(true);
+      setOrganisationsError(null);
       try {
-        const [organisationResponse, groupResponse] = await Promise.all([
-          api.organisations("active", undefined, false, false),
-          api.groups({ status: "active", mine: false }),
-        ]);
+        const organisationResponse = await api.organisations("active", undefined, false, false);
         if (cancelled) return;
         const organisationData =
           (organisationResponse as PaginatedResponse<Organisation>).data ?? organisationResponse;
-        const groupData = (groupResponse as PaginatedResponse<Group>).data ?? groupResponse;
         setOrganisations(Array.isArray(organisationData) ? organisationData : []);
-        setGroups(Array.isArray(groupData) ? groupData : []);
       } catch (loadError) {
-        if (!cancelled) console.error("Failed to load membership options", loadError);
-      } finally {
         if (!cancelled) {
-          setOrganisationsLoading(false);
-          setGroupsLoading(false);
+          console.error("Failed to load organisations", loadError);
+          setOrganisations([]);
+          setOrganisationsError("Could not load organisations. Please try again.");
         }
+      } finally {
+        if (!cancelled) setOrganisationsLoading(false);
       }
     };
 
-    void loadOptions();
+    void loadOrganisations();
     return () => {
       cancelled = true;
     };
-  }, [canManageOwnMemberships]);
+  }, [showJoinOrganisation]);
+
+  useEffect(() => {
+    if (!showJoinGroup) return;
+    let cancelled = false;
+
+    const loadGroups = async () => {
+      setGroupsLoading(true);
+      setGroupsError(null);
+      try {
+        const groupResponse = await api.groups(
+          managedProfile
+            ? { status: "active", mine: false }
+            : { status: "active", joinable: true },
+        );
+        if (cancelled) return;
+        const groupData = (groupResponse as PaginatedResponse<Group>).data ?? groupResponse;
+        setGroups(Array.isArray(groupData) ? groupData : []);
+      } catch (loadError) {
+        if (!cancelled) {
+          console.error("Failed to load groups", loadError);
+          setGroups([]);
+          setGroupsError("Could not load groups. Please try again.");
+        }
+      } finally {
+        if (!cancelled) setGroupsLoading(false);
+      }
+    };
+
+    void loadGroups();
+    return () => {
+      cancelled = true;
+    };
+  }, [managedProfile, showJoinGroup]);
 
   const notifyChanged = () => onMembershipsChanged?.();
 
   const closeOrganisationDialog = () => {
     setShowJoinOrganisation(false);
     setOrganisationId("");
+    setOrganisationsError(null);
     setError(null);
   };
 
   const closeGroupDialog = () => {
     setShowJoinGroup(false);
     setGroupId("");
+    setGroupSearchTerm("");
+    setGroupsError(null);
     setError(null);
   };
 
@@ -267,24 +303,23 @@ export default function MembershipSections({
             <div className="modal-body">
               <form onSubmit={(event) => { event.preventDefault(); void joinOrganisation(); }}>
                 {error && <div className="auth-flash auth-flash-error" role="alert">{error}</div>}
-                <label className="auth-field" htmlFor="membership-organisation-id">
+                <label className="auth-field" htmlFor="membership-organisation-search">
                   Organisation <span aria-hidden="true">*</span>
-                  <select
-                    id="membership-organisation-id"
-                    required
-                    value={organisationId}
-                    onChange={(event) => setOrganisationId(event.target.value)}
-                    disabled={joining !== null || organisationsLoading}
-                  >
-                    <option value="">Select organisation</option>
-                    {organisationsLoading ? (
-                      <option disabled>Loading organisations…</option>
-                    ) : (
-                      organisations.map((organisation) => (
-                        <option key={organisation.id} value={organisation.id}>{organisation.name}</option>
-                      ))
-                    )}
-                  </select>
+                  {organisationsLoading ? (
+                    <p className="membership-selector-status" role="status">Loading organisations…</p>
+                  ) : organisationsError ? (
+                    <p className="membership-selector-status membership-selector-error" role="alert">
+                      {organisationsError}
+                    </p>
+                  ) : (
+                    <OrganisationSelect
+                      id="membership-organisation-search"
+                      organisations={organisations}
+                      value={organisationId}
+                      onChange={setOrganisationId}
+                      disabled={joining !== null}
+                    />
+                  )}
                 </label>
                 <div className="modal-actions">
                   <button type="button" className="admin-btn" onClick={closeOrganisationDialog} disabled={joining !== null}>Cancel</button>
@@ -314,24 +349,63 @@ export default function MembershipSections({
             <div className="modal-body">
               <form onSubmit={(event) => { event.preventDefault(); void joinGroup(); }}>
                 {error && <div className="auth-flash auth-flash-error" role="alert">{error}</div>}
-                <label className="auth-field" htmlFor="membership-group-id">
+                <label className="auth-field" htmlFor="membership-group-search">
                   Group <span aria-hidden="true">*</span>
-                  <select
-                    id="membership-group-id"
-                    required
-                    value={groupId}
-                    onChange={(event) => setGroupId(event.target.value)}
-                    disabled={joining !== null || groupsLoading}
-                  >
-                    <option value="">Select group</option>
+                  <div className="organisation-search-wrapper">
+                    <input
+                      type="text"
+                      id="membership-group-search"
+                      placeholder="Search group..."
+                      value={groupSearchTerm}
+                      onChange={(e) => setGroupSearchTerm(e.target.value)}
+                      disabled={joining !== null || groupsLoading}
+                      aria-label="Search group"
+                    />
                     {groupsLoading ? (
-                      <option disabled>Loading groups…</option>
+                      <div className="organisation-search-results">
+                        <p>Loading groups…</p>
+                      </div>
+                    ) : groupsError ? (
+                      <p className="membership-selector-status membership-selector-error" role="alert">
+                        {groupsError}
+                      </p>
+                    ) : groups.length > 0 ? (
+                      <div
+                        className="organisation-search-results"
+                        role="listbox"
+                        aria-label="Group search results"
+                      >
+                        {groups
+                          .filter((group) =>
+                            group.name.toLowerCase().includes(groupSearchTerm.toLowerCase())
+                          )
+                          .map((group) => (
+                            <div
+                              key={group.id}
+                              role="option"
+                              onClick={() => {
+                                setGroupId(String(group.id));
+                                setGroupSearchTerm("");
+                              }}
+                            >
+                              {group.name} ({group.player_count})
+                              {group.organisation ? ` — ${group.organisation.name}` : ""}
+                            </div>
+                          ))}
+                        {!groups.some((group) =>
+                          group.name.toLowerCase().includes(groupSearchTerm.toLowerCase())
+                        ) ? (
+                          <div role="option" aria-label="No groups found">
+                            No groups found
+                          </div>
+                        ) : null}
+                      </div>
                     ) : (
-                      groups.map((group) => (
-                        <option key={group.id} value={group.id}>{group.name}</option>
-                      ))
+                      <p className="no-orgs-hint">
+                        No groups available
+                      </p>
                     )}
-                  </select>
+                  </div>
                 </label>
                 <div className="modal-actions">
                   <button type="button" className="admin-btn" onClick={closeGroupDialog} disabled={joining !== null}>Cancel</button>

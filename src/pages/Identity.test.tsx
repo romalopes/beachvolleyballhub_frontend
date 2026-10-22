@@ -2,7 +2,7 @@ import { render, screen, waitFor, within, fireEvent, act } from "@testing-librar
 import userEvent from "@testing-library/user-event";
 import { MemoryRouter, Route, Routes, useLocation } from "react-router-dom";
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { api, type ClaimInvitation } from "../api";
+import { api, type ClaimInvitation, type Group, type Organisation } from "../api";
 import { AuthContext, type AuthContextValue } from "../auth/AuthContext";
 import IdentityPage from "./Identity";
 
@@ -18,6 +18,51 @@ const user = { id: 7, name: "Alex Player", email_address: "alex@example.com", ro
 const userWithoutProfiles = { ...user, player_profiles: [] };
 const authValue = { user, loading: false, login: vi.fn(), register: vi.fn(), resetPassword: vi.fn(), logout: vi.fn(), impersonation: { active: false, realAdmin: null }, startImpersonating: vi.fn(), stopImpersonating: vi.fn() } as unknown as AuthContextValue;
 const renderPage = (entry = "/identity", currentUser: AuthContextValue["user"] = user) => render(<AuthContext.Provider value={{ ...authValue, user: currentUser } as unknown as AuthContextValue}><MemoryRouter initialEntries={[entry]}><IdentityPage /></MemoryRouter></AuthContext.Provider>);
+const organisation = (overrides: Partial<Organisation> = {}): Organisation => ({
+  id: 14,
+  name: "Confederação Brasileira de Vôlei de Areia",
+  slug: "cbva",
+  description: null,
+  acronym: "CBVA",
+  organisation_type: "club",
+  status: "active",
+  status_label: "Active",
+  parent_organisation_id: null,
+  parent_organisation: null,
+  child_count: 0,
+  depth: 0,
+  logo_url: null,
+  logo_attached: false,
+  can_edit: false,
+  can_delete: false,
+  can_manage_members: false,
+  can_approve_members: false,
+  requires_approval: false,
+  approval_required: false,
+  created_by_person: null,
+  created_at: "2026-01-01T00:00:00Z",
+  updated_at: "2026-01-01T00:00:00Z",
+  ...overrides,
+});
+const group = (overrides: Partial<Group> = {}): Group => ({
+  id: 21,
+  name: "Advanced Players",
+  slug: "advanced-players",
+  description: null,
+  status: "active",
+  status_label: "Active",
+  visibility: "shared",
+  requires_approval: false,
+  approval_required: false,
+  can_approve_members: false,
+  player_count: 8,
+  organisation: { id: 14, name: "Sydney Beach Volleyball Club" },
+  owner: null,
+  created_by: null,
+  created_at: "2026-01-01T00:00:00Z",
+  updated_at: "2026-01-01T00:00:00Z",
+  ...overrides,
+});
 function RouteState() {
   const location = useLocation();
   return <output data-testid="route-state">{JSON.stringify(location.state)}</output>;
@@ -56,6 +101,95 @@ describe("Identity", () => {
 
     await userEvent.click(screen.getByRole("button", { name: "Join Organisation" }));
     expect(await screen.findByRole("dialog", { name: "Join Organisation" })).toBeInTheDocument();
+  });
+
+  it("lets a player search and join an organisation even when groups are unavailable", async () => {
+    const userAction = userEvent.setup();
+    mockedApi.organisations.mockResolvedValue({
+      data: [organisation()],
+      meta: { page: 1, per_page: 20, total: 1, total_pages: 1 },
+    });
+    mockedApi.groups.mockRejectedValue(new Error("Forbidden"));
+    mockedApi.joinOrganisation.mockResolvedValue({ membership: {} } as never);
+    renderPage();
+
+    await userAction.click(await screen.findByRole("button", { name: "Join Organisation" }));
+    const dialog = await screen.findByRole("dialog", { name: "Join Organisation" });
+    const search = await within(dialog).findByRole("combobox", { name: /Organisation/i });
+
+    expect(mockedApi.organisations).toHaveBeenCalledWith("active", undefined, false, false);
+    expect(mockedApi.groups).not.toHaveBeenCalled();
+    expect(within(dialog).queryByRole("listbox")).not.toBeInTheDocument();
+
+    await userAction.type(search, "cbva");
+    const option = await within(dialog).findByRole("option", {
+      name: /Confederação Brasileira de Vôlei de Areia/i,
+    });
+    await userAction.click(option);
+
+    const submit = within(dialog).getByRole("button", { name: "Request Membership" });
+    expect(submit).toBeEnabled();
+    await userAction.click(submit);
+
+    await waitFor(() => expect(mockedApi.joinOrganisation).toHaveBeenCalledWith(14));
+  });
+
+  it("lets a player join a group from one of their organisations", async () => {
+    const userAction = userEvent.setup();
+    mockedApi.groups.mockResolvedValue({
+      data: [group()],
+      meta: { page: 1, per_page: 20, total: 1, total_pages: 1 },
+    });
+    mockedApi.joinGroup.mockResolvedValue({ membership: {} } as never);
+    renderPage();
+
+    await userAction.click(await screen.findByRole("button", { name: "Join Group" }));
+    const dialog = await screen.findByRole("dialog", { name: "Join Group" });
+
+    expect(mockedApi.groups).toHaveBeenCalledWith({ status: "active", joinable: true });
+    const search = within(dialog).getByRole("textbox", { name: "Search group" });
+    await userAction.type(search, "advanced");
+    const option = await within(dialog).findByRole("option", {
+      name: "Advanced Players (8) — Sydney Beach Volleyball Club",
+    });
+    await userAction.click(option);
+
+    const submit = within(dialog).getByRole("button", { name: "Request Membership" });
+    expect(submit).toBeEnabled();
+    await userAction.click(submit);
+
+    await waitFor(() => expect(mockedApi.joinGroup).toHaveBeenCalledWith(21));
+  });
+
+  it("keeps organisation suggestions collapsed until the search field is used", async () => {
+    const userAction = userEvent.setup();
+    mockedApi.organisations.mockResolvedValue({
+      data: [organisation()],
+      meta: { page: 1, per_page: 20, total: 1, total_pages: 1 },
+    });
+    renderPage("/identity", { ...user, roles: ["coach"] });
+
+    await userAction.click(await screen.findByRole("button", { name: "Join Organisation" }));
+    const dialog = await screen.findByRole("dialog", { name: "Join Organisation" });
+    const search = await within(dialog).findByRole("combobox", { name: /Organisation/i });
+
+    expect(within(dialog).queryByRole("listbox")).not.toBeInTheDocument();
+    await userAction.click(search);
+    expect(await within(dialog).findByRole("option", { name: /CBVA/i })).toBeInTheDocument();
+  });
+
+  it("shows an organisation load error instead of reporting an empty catalogue", async () => {
+    vi.spyOn(console, "error").mockImplementation(() => undefined);
+    mockedApi.organisations.mockRejectedValue(new Error("API Error: 500"));
+    renderPage();
+
+    await userEvent.click(await screen.findByRole("button", { name: "Join Organisation" }));
+    const dialog = await screen.findByRole("dialog", { name: "Join Organisation" });
+
+    expect(await within(dialog).findByRole("alert")).toHaveTextContent(
+      "Could not load organisations. Please try again.",
+    );
+    expect(within(dialog).queryByText("No organisations available")).not.toBeInTheDocument();
   });
 
   it("shows the management dashboard to a coach account", async () => {

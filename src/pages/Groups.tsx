@@ -1,19 +1,92 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import type { FormEvent } from "react";
-import { AlertCircle, Plus, Search, Trash2, X } from "lucide-react";
+import { AlertCircle, Plus, Search, Trash2, UserPlus, X } from "lucide-react";
 import {
   api,
   type Group as GroupRecord,
   type GroupDetail,
   type GroupInput,
+  type GroupMember,
   type GroupVisibility,
   type Organisation,
+  type OrganisationMemberCandidate,
   type OrganisationMembership,
 } from "../api";
 import { useAuth } from "../auth/AuthContext";
 import EmptyState from "../components/EmptyState";
 import PageHeader from "../components/PageHeader";
+
+/** Owner / Coach / Member, as the roster screen spells it. */
+const memberRoleLabel = (role: GroupMember["role"]) =>
+  role.charAt(0).toUpperCase() + role.slice(1);
+
+/**
+ * Does a roster row and a search candidate name the same subject? Rows prefer
+ * the polymorphic memberable; account-only rows fall back to `account_id`.
+ */
+const sameSubject = (
+  member: GroupMember,
+  candidate: OrganisationMemberCandidate,
+): boolean => {
+  if (member.memberable_type && member.memberable_id != null) {
+    return (
+      member.memberable_type === candidate.memberable_type &&
+      member.memberable_id === candidate.memberable_id
+    );
+  }
+  return (
+    candidate.memberable_type === "Account" &&
+    member.account_id != null &&
+    member.account_id === candidate.account_id
+  );
+};
+
+/**
+ * Every subject key under which an organisation membership row can match: the
+ * polymorphic memberable plus, when the row is account-backed, the account
+ * itself (a claimed player may sit on the roster via either subject).
+ */
+const membershipSubjectKeys = (membership: OrganisationMembership): string[] => {
+  const keys: string[] = [];
+  if (membership.memberable_type && membership.memberable_id != null) {
+    keys.push(`${membership.memberable_type}:${membership.memberable_id}`);
+  }
+  if (membership.account_id != null) {
+    keys.push(`Account:${membership.account_id}`);
+  }
+  return keys.length > 0 ? keys : [`Membership:${membership.id}`];
+};
+
+/** The same key set for a search candidate. */
+const candidateSubjectKeys = (
+  candidate: OrganisationMemberCandidate,
+): string[] => {
+  const keys = [`${candidate.memberable_type}:${candidate.memberable_id}`];
+  if (candidate.account_id != null) {
+    keys.push(`Account:${candidate.account_id}`);
+  }
+  return keys;
+};
+
+const sharesSubjectWith = (
+  keys: Set<string>,
+  candidate: OrganisationMemberCandidate,
+): boolean =>
+  candidateSubjectKeys(candidate).some((key) => keys.has(key));
+
+/** The organisation's active roster as one flat set of subject keys. */
+const activeRosterSubjectKeys = (
+  memberships: OrganisationMembership[],
+): Set<string> => {
+  const keys = new Set<string>();
+  memberships
+    .filter((membership) => membership.status === "active")
+    .forEach((membership) => {
+      membershipSubjectKeys(membership).forEach((key) => keys.add(key));
+    });
+  return keys;
+};
 
 /**
  * Groups are reusable rosters ("U19 squad"). A group exists purely so a coach
@@ -79,6 +152,26 @@ export default function Groups() {
   const [saving, setSaving] = useState(false);
   const [selectedKeys, setSelectedKeys] = useState<string[]>([]);
   const [formError, setFormError] = useState<string | null>(null);
+
+  // The add-member modal: which group it targets, its loaded roster, the
+  // candidate search and the chosen role for the next add.
+  const [memberTarget, setMemberTarget] = useState<GroupRecord | null>(null);
+  const [memberRoster, setMemberRoster] = useState<GroupDetail | null>(null);
+  const [memberQuery, setMemberQuery] = useState("");
+  const [memberCandidates, setMemberCandidates] = useState<
+    OrganisationMemberCandidate[]
+  >([]);
+  const [memberSelected, setMemberSelected] =
+    useState<OrganisationMemberCandidate | null>(null);
+  const [memberRole, setMemberRole] = useState<GroupMember["role"]>("member");
+  const [memberError, setMemberError] = useState<string | null>(null);
+  const [memberNotice, setMemberNotice] = useState<string | null>(null);
+  const [addingMember, setAddingMember] = useState(false);
+  // Subject keys of the organisation's active roster, fetched with the group
+  // when the modal opens. The search stays disabled until this lands, so
+  // candidates can never be offered outside the group's organisation — the
+  // global candidate endpoint searches everybody, the intersection narrows it.
+  const [orgSubjectKeys, setOrgSubjectKeys] = useState<Set<string> | null>(null);
 
   const load = useCallback(() => {
     return api
@@ -291,6 +384,210 @@ export default function Groups() {
       await load();
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to delete group.");
+    }
+  };
+
+  // ---------- Add member (modal) ---------------------------------------------
+
+  // Who the form is shown to: site oversight (admin/curator), the group's
+  // owner, or an owner of the group's organisation. The server stays the
+  // authority — it still answers 403 to anybody it does not recognise — this
+  // only decides whether the affordance is worth rendering.
+  const canAddMembersTo = (group: GroupRecord): boolean => {
+    if (group.status === "archived") return false;
+    const roles = user?.roles ?? [];
+    if (roles.includes("admin") || roles.includes("curator")) return true;
+    if (group.can_edit) return true;
+    if (
+      group.owner?.account_id != null &&
+      user?.account_id != null &&
+      group.owner.account_id === user.account_id
+    ) {
+      return true;
+    }
+    if (
+      group.organisation &&
+      user?.organisation_memberships?.some(
+        (membership) =>
+          membership.organisation_id === group.organisation!.id &&
+          membership.role === "owner" &&
+          membership.status === "active",
+      )
+    ) {
+      return true;
+    }
+    return false;
+  };
+
+  const closeMemberModal = () => {
+    if (addingMember) return;
+    setMemberTarget(null);
+    setMemberRoster(null);
+    setMemberQuery("");
+    setMemberCandidates([]);
+    setMemberSelected(null);
+    setMemberRole("member");
+    setMemberError(null);
+    setMemberNotice(null);
+  };
+
+  const openAddMember = async (group: GroupRecord) => {
+    setMemberTarget(group);
+    setMemberQuery("");
+    setMemberCandidates([]);
+    setMemberSelected(null);
+    setMemberRole("member");
+    setMemberError(null);
+    setMemberNotice(null);
+    setOrgSubjectKeys(null);
+    if (!group.organisation) return;
+    // Load the group detail and the organisation's active roster together: the
+    // candidate search stays disabled until the roster keys exist, so nothing
+    // outside the organisation can ever be offered, not even for a keystroke.
+    try {
+      const [detail, roster] = await Promise.all([
+        api.group(group.id),
+        api.organisationMembers(group.organisation.id),
+      ]);
+      setMemberRoster(detail.group);
+      setOrgSubjectKeys(activeRosterSubjectKeys(roster.data));
+    } catch (err) {
+      // Fail closed: with no roster the pool is empty, and the reason shows.
+      setOrgSubjectKeys(new Set());
+      setMemberError(
+        err instanceof Error
+          ? err.message
+          : "Failed to load the roster.",
+      );
+    }
+  };
+
+  // Roster subjects already on the team, keyed like the editor's checkboxes so
+  // a candidate who is already a member cannot be added twice.
+  const rosterKeys = new Set(
+    (memberRoster?.members ?? []).map((member) => groupMemberKey(member, 0)),
+  );
+
+  // Candidate pool = the group's organisation roster (§10): the global search
+  // endpoint returns anybody, so results are intersected with the
+  // organisation's active members before they are ever offered. The search
+  // itself waits until that roster is loaded (`orgSubjectKeys` non-null).
+  useEffect(() => {
+    const organisationId = memberTarget?.organisation?.id;
+    if (
+      !organisationId ||
+      orgSubjectKeys === null ||
+      memberQuery.trim().length < 2
+    ) {
+      return;
+    }
+    let cancelled = false;
+    api
+      .organisationMemberCandidates(organisationId, memberQuery.trim())
+      .then((result) => {
+        if (!cancelled) setMemberCandidates(result);
+      })
+      .catch((reason) => {
+        if (!cancelled) {
+          setMemberError(
+            reason instanceof Error
+              ? reason.message
+              : "Failed to search members.",
+          );
+        }
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [memberTarget, memberQuery, orgSubjectKeys]);
+  const memberCandidatesVisible =
+    memberTarget?.organisation != null &&
+    orgSubjectKeys !== null &&
+    memberQuery.trim().length >= 2
+      ? memberCandidates.filter((candidate) =>
+          sharesSubjectWith(orgSubjectKeys, candidate),
+        )
+      : [];
+  const memberSearchActive =
+    memberTarget?.organisation != null &&
+    orgSubjectKeys !== null &&
+    memberQuery.trim().length >= 2;
+
+  // The backend enrols new members with the default role; the requested role
+  // is applied to the fresh row right after, the same way the roster screen
+  // assigns roles to an existing row.
+  const submitMember = async (event: FormEvent) => {
+    event.preventDefault();
+    if (!memberTarget) return;
+    if (!memberSelected) {
+      setMemberError("Choose a person to add.");
+      return;
+    }
+    setAddingMember(true);
+    setMemberError(null);
+    setMemberNotice(null);
+    try {
+      const payload =
+        memberSelected.memberable_type === "Account" &&
+        memberSelected.account_id != null
+          ? { accountIds: [memberSelected.account_id] }
+          : {
+              memberableType: memberSelected.memberable_type as
+                | "PlayerProfile"
+                | "CoachProfile",
+              memberableId: memberSelected.memberable_id,
+            };
+      const { group: detail } = await api.addGroupMember(
+        memberTarget.id,
+        payload,
+      );
+      // Update the roster right away — before the role step — so the list
+      // reflects the addition even if the role change below fails.
+      let roster = detail;
+      const added = detail.members.find((member) =>
+        sameSubject(member, memberSelected),
+      );
+      if (added && memberRole !== "member") {
+        try {
+          const { membership } = await api.updateGroupMember(
+            memberTarget.id,
+            added.id,
+            memberRole,
+          );
+          roster = {
+            ...detail,
+            members: detail.members.map((member) =>
+              member.id === membership.id ? membership : member,
+            ),
+          };
+        } catch (err) {
+          // The member is on the roster; only the role change failed.
+          setMemberError(
+            err instanceof Error
+              ? err.message
+              : "Failed to set the member's role.",
+          );
+        }
+      }
+      setMemberRoster(roster);
+      setGroups((current) =>
+        current.map((item) =>
+          item.id === memberTarget.id
+            ? { ...item, player_count: roster.player_count }
+            : item,
+        ),
+      );
+      setMemberNotice(`${memberSelected.display_name} added to ${memberTarget.name}.`);
+      setMemberQuery("");
+      setMemberCandidates([]);
+      setMemberSelected(null);
+      setMemberRole("member");
+    } catch (err) {
+      setMemberError(
+        err instanceof Error ? err.message : "Failed to add the member.",
+      );
+    } finally {
+      setAddingMember(false);
     }
   };
 
@@ -531,6 +828,14 @@ export default function Groups() {
                 <p className="group-description">{group.description}</p>
               )}
               <div className="group-row-actions">
+                {canAddMembersTo(group) && <button
+                  type="button"
+                  className="admin-btn admin-btn-secondary"
+                  onClick={() => void openAddMember(group)}
+                >
+                  <UserPlus size={14} />
+                  Add member
+                </button>}
                 {group.can_edit && <button
                   type="button"
                   className="admin-btn admin-btn-secondary"
@@ -574,6 +879,151 @@ export default function Groups() {
               </button>
             </div>
             <div className="modal-body">{renderEditor()}</div>
+          </div>
+        </div>
+      )}
+
+      {memberTarget && (
+        <div className="modal-overlay" role="dialog" aria-modal="true">
+          <div className="modal-content">
+            <div className="modal-header">
+              <h3>Add member to {memberTarget.name}</h3>
+              <button
+                type="button"
+                className="modal-close"
+                onClick={closeMemberModal}
+                aria-label="Close"
+              >
+                <X size={18} />
+              </button>
+            </div>
+            <div className="modal-body">
+              {memberError && (
+                <div className="admin-error" role="alert">
+                  <AlertCircle size={16} />
+                  <span>{memberError}</span>
+                </div>
+              )}
+              {memberNotice && (
+                <p className="field-hint" role="status">
+                  {memberNotice}
+                </p>
+              )}
+
+              <div className="admin-field">
+                <span className="group-roster-label" id="member-roster-label">
+                  Roster ({memberRoster?.members.length ?? 0})
+                </span>
+                {!memberRoster ? (
+                  <p className="candidate-empty">Loading roster…</p>
+                ) : memberRoster.members.length > 0 ? (
+                  <ul className="identity-link-list" aria-labelledby="member-roster-label">
+                    {memberRoster.members.map((member) => (
+                      <li key={member.id}>
+                        <span>{member.name || "Member"}</span>
+                        <small>
+                          {" "}
+                          {memberRoleLabel(member.role)} · {member.status}
+                        </small>
+                      </li>
+                    ))}
+                  </ul>
+                ) : (
+                  <p className="candidate-empty">No members yet.</p>
+                )}
+              </div>
+
+              {!memberTarget.organisation ? (
+                <p className="field-hint">
+                  This group has no organisation yet, so its candidate pool
+                  cannot be searched. Ask an administrator to place it in an
+                  organisation first.
+                </p>
+              ) : (
+                <form className="organisations-add" onSubmit={submitMember}>
+                  <div className="form-row">
+                    <label htmlFor="group-member-search">Search by name</label>
+                    <input
+                      id="group-member-search"
+                      placeholder="Search by name"
+                      value={memberQuery}
+                      onChange={(e) => setMemberQuery(e.target.value)}
+                      disabled={addingMember}
+                    />
+                  </div>
+                  {memberCandidatesVisible.length > 0 && (
+                    <ul className="organisations-add-results">
+                      {memberCandidatesVisible.map((candidate) => {
+                        const key = `${candidate.memberable_type}:${candidate.memberable_id}`;
+                        const onRoster = rosterKeys.has(key);
+                        return (
+                          <li key={candidate.id}>
+                            <span>
+                              {candidate.display_name}
+                              <small> {candidate.member_type_label}</small>
+                            </span>
+                            <button
+                              type="button"
+                              className="admin-btn"
+                              disabled={onRoster || addingMember}
+                              onClick={() => setMemberSelected(candidate)}
+                            >
+                              {onRoster
+                                ? "Already on roster"
+                                : memberSelected?.id === candidate.id
+                                  ? "Selected"
+                                  : "Select"}
+                            </button>
+                          </li>
+                        );
+                      })}
+                    </ul>
+                  )}
+                  {memberSearchActive && memberCandidatesVisible.length === 0 && (
+                    <p className="candidate-empty">
+                      No members of {memberTarget.organisation.name} match “
+                      {memberQuery.trim()}”.
+                    </p>
+                  )}
+                  {memberSelected && (
+                    <p className="field-hint">
+                      Adding {memberSelected.display_name}.
+                    </p>
+                  )}
+                  <div className="form-row">
+                    <label htmlFor="group-member-role">Role</label>
+                    <select
+                      id="group-member-role"
+                      value={memberRole}
+                      onChange={(e) =>
+                        setMemberRole(e.target.value as GroupMember["role"])
+                      }
+                      disabled={addingMember}
+                    >
+                      <option value="member">Member</option>
+                      <option value="coach">Coach</option>
+                      <option value="owner">Owner</option>
+                    </select>
+                  </div>
+                  <div className="form-actions">
+                    <button
+                      type="submit"
+                      className="admin-btn admin-btn-primary"
+                      disabled={addingMember}
+                    >
+                      {addingMember ? "Adding…" : "Add member"}
+                    </button>
+                    <button
+                      type="button"
+                      className="admin-btn admin-btn-secondary"
+                      onClick={closeMemberModal}
+                    >
+                      Done
+                    </button>
+                  </div>
+                </form>
+              )}
+            </div>
           </div>
         </div>
       )}

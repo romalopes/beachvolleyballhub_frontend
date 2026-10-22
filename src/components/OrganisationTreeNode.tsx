@@ -1,4 +1,4 @@
-import { ChevronRight } from "lucide-react";
+import { Building2, ChevronRight } from "lucide-react";
 import { Link } from "react-router-dom";
 import type { Organisation } from "../api";
 
@@ -78,9 +78,9 @@ export default function OrganisationTreeNode({
             />
           )}
 
-          {!organisation.logo_attached && organisation.acronym && (
+          {!organisation.logo_attached && (
             <span className="organisation-tree-node__acronym" aria-hidden="true">
-              {organisation.acronym}
+              {organisation.acronym || <Building2 size={15} />}
             </span>
           )}
 

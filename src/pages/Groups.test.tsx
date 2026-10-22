@@ -2,7 +2,7 @@ import { render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { MemoryRouter } from "react-router-dom";
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { api, type Group as GroupRecord } from "../api";
+import { api, type Group as GroupRecord, type GroupDetail, type GroupMember } from "../api";
 import { AuthContext, type AuthContextValue } from "../auth/AuthContext";
 import Groups from "./Groups";
 
@@ -19,6 +19,9 @@ vi.mock("../api", async (importOriginal) => {
       createGroup: vi.fn(),
       updateGroup: vi.fn(),
       deleteGroup: vi.fn(),
+      addGroupMember: vi.fn(),
+      updateGroupMember: vi.fn(),
+      organisationMemberCandidates: vi.fn(),
     },
   };
 });
@@ -354,4 +357,147 @@ it("hides edit and archive actions without permission", async () => {
   await screen.findByRole("link", { name: "U19 squad" });
   expect(screen.queryByRole("button", { name: /^edit$/i })).not.toBeInTheDocument();
   expect(screen.queryByRole("button", { name: /^archive$/i })).not.toBeInTheDocument();
+});
+
+const rosterMember = (overrides: Partial<GroupMember> = {}): GroupMember => ({
+  id: 11,
+  account_id: 10,
+  memberable_type: "Account",
+  memberable_id: 10,
+  person_id: null,
+  name: "Ana Silva",
+  player_profile_id: null,
+  level: null,
+  preferred_position: null,
+  email: null,
+  role: "owner",
+  status: "active",
+  joined_at: "2026-09-01T00:00:00Z",
+  left_at: null,
+  ...overrides,
+});
+
+const groupDetail = (members: GroupMember[]): { group: GroupDetail } => ({
+  group: { ...squad(), members },
+});
+
+const brunoCandidate = {
+  id: "Account:20",
+  memberable_type: "Account" as const,
+  memberable_id: 20,
+  account_id: 20,
+  player_profile_id: null,
+  coach_profile_id: null,
+  display_name: "Bruno Alves",
+  member_type_label: "Account",
+  account_status: "active",
+};
+
+describe("Groups member add", () => {
+  it("searches the organisation roster and adds a member with the chosen role", async () => {
+    const user = userEvent.setup();
+    const bruno: GroupMember = rosterMember({
+      id: 12,
+      account_id: 20,
+      memberable_id: 20,
+      name: "Bruno Alves",
+      role: "member",
+    });
+    mockedApi.group.mockResolvedValue(groupDetail([rosterMember()]) as never);
+    mockedApi.organisationMemberCandidates.mockResolvedValue([brunoCandidate] as never);
+    mockedApi.addGroupMember.mockResolvedValue({
+      group: { ...squad(), player_count: 3, members: [rosterMember(), bruno] },
+      added: 1,
+    } as never);
+    mockedApi.updateGroupMember.mockResolvedValue({
+      membership: { ...bruno, role: "coach" },
+    } as never);
+    renderPage();
+    await screen.findByText("U19 squad");
+
+    await user.click(screen.getByRole("button", { name: /add member/i }));
+    const dialog = screen.getByRole("dialog");
+    await within(dialog).findByText("Ana Silva");
+
+    await user.type(within(dialog).getByLabelText("Search by name"), "Bru");
+    await user.click(await within(dialog).findByRole("button", { name: /^select$/i }));
+    await user.selectOptions(within(dialog).getByLabelText("Role"), "coach");
+    await user.click(within(dialog).getByRole("button", { name: /^add member$/i }));
+
+    await waitFor(() =>
+      expect(mockedApi.addGroupMember).toHaveBeenCalledWith(3, { accountIds: [20] }),
+    );
+    await waitFor(() =>
+      expect(mockedApi.updateGroupMember).toHaveBeenCalledWith(3, 12, "coach"),
+    );
+    expect(await within(dialog).findByRole("status")).toHaveTextContent(
+      "Bruno Alves added to U19 squad.",
+    );
+    // The roster updates in place, without waiting for a refetch.
+    expect(within(dialog).getByText("Bruno Alves")).toBeInTheDocument();
+    expect(await screen.findByText(/3 players/)).toBeInTheDocument();
+  });
+
+  it("only offers candidates who belong to the group's organisation", async () => {
+    const user = userEvent.setup();
+    mockedApi.group.mockResolvedValue(groupDetail([rosterMember()]) as never);
+    mockedApi.organisationMemberCandidates.mockResolvedValue([
+      brunoCandidate,
+      {
+        ...brunoCandidate,
+        id: "Account:99",
+        memberable_id: 99,
+        account_id: 99,
+        display_name: "Outsider Olive",
+      },
+    ] as never);
+    renderPage();
+    await screen.findByText("U19 squad");
+
+    await user.click(screen.getByRole("button", { name: /add member/i }));
+    const dialog = screen.getByRole("dialog");
+    await user.type(within(dialog).getByLabelText("Search by name"), "bru");
+
+    // The org roster gates the pool: Bruno is an active member of the group's
+    // organisation, Olive is not and never appears.
+    expect(mockedApi.organisationMembers).toHaveBeenCalledWith(1);
+    expect(await within(dialog).findByText("Bruno Alves")).toBeInTheDocument();
+    expect(within(dialog).queryByText("Outsider Olive")).not.toBeInTheDocument();
+  });
+
+  it("refuses to submit without a selected member", async () => {
+    const user = userEvent.setup();
+    mockedApi.group.mockResolvedValue(groupDetail([rosterMember()]) as never);
+    renderPage();
+    await screen.findByText("U19 squad");
+
+    await user.click(screen.getByRole("button", { name: /add member/i }));
+    const dialog = screen.getByRole("dialog");
+    await within(dialog).findByText("Ana Silva");
+    await user.click(within(dialog).getByRole("button", { name: /^add member$/i }));
+
+    expect(await within(dialog).findByRole("alert")).toHaveTextContent(
+      "Choose a person to add.",
+    );
+    expect(mockedApi.addGroupMember).not.toHaveBeenCalled();
+  });
+
+  it("hides the add-member affordance from users without authority", async () => {
+    mockedApi.groups.mockResolvedValue(page([squad({ can_edit: false })]));
+    renderPage(["player"]);
+    await screen.findByRole("link", { name: "U19 squad" });
+    expect(screen.queryByRole("button", { name: /add member/i })).not.toBeInTheDocument();
+  });
+
+  it("offers no add-member on archived groups", async () => {
+    const user = userEvent.setup();
+    mockedApi.groups.mockResolvedValue(
+      page([squad({ status: "archived", status_label: "Archived" })]),
+    );
+    renderPage(["admin"]);
+    // Archived groups are hidden until the toggle is on.
+    await user.click(screen.getByRole("checkbox"));
+    await screen.findByRole("link", { name: "U19 squad" });
+    expect(screen.queryByRole("button", { name: /add member/i })).not.toBeInTheDocument();
+  });
 });

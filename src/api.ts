@@ -138,8 +138,11 @@ function throwApiError(status: number, data: unknown, fallback: string): Error {
 }
 
 async function fetchAPI<T>(endpoint: string, init: RequestInit = {}): Promise<T> {
+  const defaultHeaders = init.body instanceof FormData
+    ? authHeaders()
+    : authHeaders({ "Content-Type": "application/json" });
   const response = await fetch(`${API_BASE_URL}${endpoint}`, {
-    headers: authHeaders({ "Content-Type": "application/json" }),
+    headers: defaultHeaders,
     ...init,
   });
   if (!response.ok) {
@@ -2090,6 +2093,97 @@ export interface Tournament {
 }
 // ===== End Tournament API Types =====
 
+// ===== Analysis types (Issue #242) =====
+
+export type AnalysisStatus = "draft" | "published" | "archived";
+
+export interface AnalysisParticipant {
+  id: number;
+  player_profile_id: number;
+  name: string;
+  notes?: string | null;
+}
+
+export interface AnalysisVideo {
+  id: number;
+  source_type: "external" | "upload";
+  title: string | null;
+  description: string | null;
+  position: number;
+  playback_url: string | null;
+  external_url: string | null;
+  can_embed: boolean | null;
+  duration_seconds: number | null;
+  annotations: AnalysisAnnotation[];
+}
+
+export interface AnalysisAnnotation {
+  id: number;
+  timestamp_seconds: number;
+  body: string;
+  author: { id: number; name: string };
+  player_profile: { id: number; name: string } | null;
+  created_at: string;
+}
+
+export interface AnalysisComment {
+  id: number;
+  body: string;
+  parent_id: number | null;
+  author: { id: number; name: string };
+  created_at: string;
+  can_delete: boolean;
+}
+
+export interface AnalysisAssessmentSession {
+  id: number;
+  name: string;
+  status: string;
+  scheduled_on: string | null;
+  assessment_definition: { id: number; name: string };
+}
+
+export interface AnalysisInput {
+  title: string;
+  summary?: string | null;
+  assigned_coach_profile_id?: number | null;
+  organisation_id?: number | null;
+  group_id?: number | null;
+  training_session_id?: number | null;
+  tournament_id?: number | null;
+  player_profile_ids?: number[];
+}
+
+export interface AnalysisSummary {
+  id: number;
+  title: string;
+  summary: string | null;
+  status: AnalysisStatus;
+  published_at: string | null;
+  archived_at: string | null;
+  created_at: string;
+  updated_at: string;
+  can_manage: boolean;
+  can_delete: boolean;
+  can_comment: boolean;
+  created_by: { id: number; name: string };
+  assigned_coach_profile: { id: number; name: string } | null;
+  organisation: { id: number; name: string } | null;
+  group: { id: number; name: string } | null;
+  training_session: { id: number; title: string } | null;
+  tournament: { id: number; name: string } | null;
+  participants: AnalysisParticipant[];
+  video_count: number;
+}
+
+export interface AnalysisDetail extends AnalysisSummary {
+  videos: AnalysisVideo[];
+  comments: AnalysisComment[];
+  assessment_sessions: AnalysisAssessmentSession[];
+}
+
+// ===== End Analysis API Types =====
+
 export const api = {
   categories: () => fetchAPI<Category[]>("/categories"),
   skills: () => fetchAPI<Skill[]>("/skills"),
@@ -3059,8 +3153,9 @@ export const api = {
     }>(`/assessment_sessions/${id}/ranking`),
 
   // ---------- Groups (Phase A / D23) ----------
-  // Read is open to training managers; any player, coach, curator, or admin
-  // can create a group. Update/delete retain the server's ownership rules.
+  // Full catalogue read is open to training managers; `joinable` is the narrow
+  // self-service catalogue for a caller's organisations. Any player, coach,
+  // curator, or admin can create a group. Update/delete retain ownership rules.
   // The picker asks for `include_private` because visibility is presentation
   // only — a coach may schedule any group they can see the name of.
   groups: async (params?: {
@@ -3069,6 +3164,8 @@ export const api = {
     include_private?: boolean;
     mine?: boolean;
     organisation_id?: number;
+    /** Self-service catalogue limited to groups in the caller's organisations. */
+    joinable?: boolean;
   }) => {
     const qs = new URLSearchParams();
     if (params?.q) qs.set("q", params.q);
@@ -3077,6 +3174,7 @@ export const api = {
     if (params?.mine) qs.set("mine", "1");
     if (params?.organisation_id)
       qs.set("organisation_id", String(params.organisation_id));
+    if (params?.joinable) qs.set("joinable", "1");
     const query = qs.toString();
     const response = await fetchAPI<Group[] | PaginatedResponse<Group>>(
       `/groups${query ? `?${query}` : ""}`,
@@ -3911,4 +4009,110 @@ export const api = {
   deleteTournament: (id: number | string) =>
     postJSON<void>(`/tournaments/${encodeURIComponent(String(id))}`, {}, "DELETE"),
   // ===== End Tournament API Methods =====
+
+  // ===== Analysis API Methods (Issue #242) =====
+
+  analyses: (params?: {
+    status?: AnalysisStatus;
+    organisation_id?: number;
+    group_id?: number;
+    q?: string;
+    page?: number;
+    per_page?: number;
+  }) => {
+    const qs = new URLSearchParams();
+    if (params?.status) qs.set("status", params.status);
+    if (params?.organisation_id) qs.set("organisation_id", String(params.organisation_id));
+    if (params?.group_id) qs.set("group_id", String(params.group_id));
+    if (params?.q) qs.set("q", params.q);
+    if (params?.page) qs.set("page", String(params.page));
+    if (params?.per_page) qs.set("per_page", String(params.per_page));
+    const query = qs.toString();
+    return fetchAPI<{ data: AnalysisSummary[]; meta: { page: number; per_page: number; total_count: number } }>(
+      `/analyses${query ? `?${query}` : ""}`,
+    );
+  },
+
+  analysis: (id: number) => fetchAPI<{ analysis: AnalysisDetail }>(`/analyses/${id}`),
+
+  createAnalysis: (data: AnalysisInput) =>
+    postJSON<{ analysis: AnalysisDetail }>("/analyses", { analysis: data }),
+
+  updateAnalysis: (id: number, data: Partial<AnalysisInput>) =>
+    postJSON<{ analysis: AnalysisDetail }>(`/analyses/${id}`, { analysis: data }, "PATCH"),
+
+  deleteAnalysis: (id: number) => postJSON<void>(`/analyses/${id}`, {}, "DELETE"),
+
+  publishAnalysis: (id: number) =>
+    postJSON<{ analysis: AnalysisDetail }>(`/analyses/${id}/publish`, {}),
+
+  archiveAnalysis: (id: number) =>
+    postJSON<{ analysis: AnalysisDetail }>(`/analyses/${id}/archive`, {}),
+
+  linkAssessmentSession: (analysisId: number, assessmentSessionId: number) =>
+    postJSON<{ analysis: AnalysisDetail }>(
+      `/analyses/${analysisId}/link_assessment_session`,
+      { assessment_session_id: assessmentSessionId },
+    ),
+
+  unlinkAssessmentSession: (analysisId: number, assessmentSessionId: number) =>
+    postJSON<void>(
+      `/analyses/${analysisId}/assessment_sessions/${assessmentSessionId}`,
+      {},
+      "DELETE",
+    ),
+
+  createAnalysisVideo: (analysisId: number, data: { file?: File; source_url?: string; title?: string; description?: string; position?: number }) => {
+    const formData = new FormData();
+    if (data.file) formData.append("file", data.file);
+    if (data.title) formData.append("title", data.title);
+    if (data.description) formData.append("description", data.description ?? "");
+    if (data.position !== undefined) formData.append("position", String(data.position));
+    if (data.source_url) formData.append("source_url", data.source_url);
+    return fetchAPI<{ analysis_video_id: number }>(
+      `/analyses/${analysisId}/videos`,
+      {
+        method: "POST",
+        body: formData,
+      },
+    );
+  },
+
+  deleteAnalysisVideo: (analysisId: number, videoId: number) =>
+    postJSON<void>(`/analyses/${analysisId}/videos/${videoId}`, {}, "DELETE"),
+
+  createAnalysisAnnotation: (analysisVideoId: number, data: { timestamp_seconds: number; body: string; player_profile_id?: number }) =>
+    postJSON<{ id: number }>(
+      `/analysis_videos/${analysisVideoId}/annotations`,
+      { annotation: data },
+    ),
+
+  updateAnalysisAnnotation: (analysisVideoId: number, annotationId: number, data: Partial<{ timestamp_seconds: number; body: string; player_profile_id?: number }>) =>
+    postJSON<{ id: number }>(
+      `/analysis_videos/${analysisVideoId}/annotations/${annotationId}`,
+      { annotation: data },
+      "PATCH",
+    ),
+
+  deleteAnalysisAnnotation: (analysisVideoId: number, annotationId: number) =>
+    postJSON<void>(
+      `/analysis_videos/${analysisVideoId}/annotations/${annotationId}`,
+      {},
+      "DELETE",
+    ),
+
+  createAnalysisComment: (analysisId: number, data: { body: string; parent_id?: number }) =>
+    postJSON<{ id: number }>(
+      `/analyses/${analysisId}/comments`,
+      { comment: data },
+    ),
+
+  deleteAnalysisComment: (analysisId: number, commentId: number) =>
+    postJSON<void>(
+      `/analyses/${analysisId}/comments/${commentId}`,
+      {},
+      "DELETE",
+    ),
+
+  // ===== End Analysis API Methods =====
 };

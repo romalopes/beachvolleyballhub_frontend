@@ -24,6 +24,7 @@ import {
   Users,
   UsersRound,
   Volleyball,
+  FileText,
   type LucideIcon,
 } from "lucide-react";
 import { useAuth } from "../auth/AuthContext";
@@ -105,6 +106,11 @@ const navGroups: SidebarGroup[] = [
         label: "Assessment definitions",
         icon: ClipboardList,
       },
+      {
+        path: "/analyses",
+        label: "Analysis",
+        icon: FileText,
+      },
     ],
   },
 ];
@@ -131,6 +137,12 @@ const tournamentsLink: SidebarLink = {
   path: "/tournaments",
   label: "Tournaments",
   icon: Trophy,
+};
+
+const analysisLink: SidebarLink = {
+  path: "/analyses",
+  label: "Analysis",
+  icon: FileText,
 };
 
 /**
@@ -314,6 +326,9 @@ export default function Sidebar({
         )}
         {user && (
           <SidebarNavLink link={accountLink} menuCollapsed={menuCollapsed} />
+        )}
+        {user && (
+          <SidebarNavLink link={analysisLink} menuCollapsed={menuCollapsed} />
         )}
       </nav>
       <div className="sidebar-footer">

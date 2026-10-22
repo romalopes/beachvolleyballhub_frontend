@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import type { FormEvent } from "react";
-import { AlertCircle, ImageUp, Trash2, UsersRound } from "lucide-react";
+import { AlertCircle, ImageUp, Plus, Trash2, UsersRound } from "lucide-react";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import {
   api,
@@ -11,7 +11,9 @@ import {
   type OrganisationMembershipRole,
   type OrganisationType,
   type Group as GroupRecord,
+  type GroupVisibility,
 } from "../api";
+import { useAuth } from "../auth/AuthContext";
 
 const ORGANISATION_TYPES: Array<{ value: OrganisationType; label: string }> = [
   { value: "international_federation", label: "International federation" },
@@ -35,6 +37,7 @@ const LOGO_ACCEPT = "image/png,image/jpeg,image/gif,image/webp,image/svg+xml";
 const MAX_LOGO_BYTES = 10 * 1024 * 1024;
 
 export default function OrganisationDetail() {
+  const { user } = useAuth();
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const organisationId = Number(id);
@@ -45,6 +48,11 @@ export default function OrganisationDetail() {
   const [notice, setNotice] = useState<string | null>(null);
   const [busy, setBusy] = useState<string | null>(null);
   const [editing, setEditing] = useState(false);
+  const canCreateGroups = Boolean(
+    user?.roles?.some((role) =>
+      role === "player" || role === "coach" || role === "curator" || role === "admin"
+    ),
+  );
 
   const load = useCallback(async () => {
     if (!Number.isFinite(organisationId)) return;
@@ -224,7 +232,7 @@ export default function OrganisationDetail() {
         </div>
       </section>
 
-      {groups.length > 0 && (
+      {(groups.length > 0 || (canCreateGroups && organisation.status === "active")) && (
         <section className="detail-section">
           <div className="organisations-detail-section-head">
             <h2>Groups</h2>
@@ -232,24 +240,152 @@ export default function OrganisationDetail() {
               View all groups
             </Link>
           </div>
-          <ul className="organisations-roster-list">
-            {groups.map((group) => (
-              <li key={group.id} className="organisations-roster-group">
-                <Link className="identity-link" to={`/groups/${group.id}`}>
-                  {group.name}
-                </Link>
-                <span className="organisations-roster-meta">
-                  {group.player_count} player{group.player_count !== 1 ? "s" : ""} · {group.visibility}
-                  {group.status === "archived" && " · archived"}
-                </span>
-              </li>
-            ))}
-          </ul>
+          {canCreateGroups && organisation.status === "active" && (
+            <GroupCreationCard
+              organisation={organisation}
+              onCreated={(created) => {
+                setGroups((current) => [created, ...current.filter((group) => group.id !== created.id)]);
+                setError(null);
+                setNotice(`${created.name} created.`);
+              }}
+            />
+          )}
+          {groups.length > 0 ? (
+            <ul className="organisations-roster-list organisation-groups-list">
+              {groups.map((group) => (
+                <li key={group.id} className="organisations-roster-group">
+                  <Link className="identity-link" to={`/groups/${group.id}`}>
+                    {group.name}
+                  </Link>
+                  <span className="organisations-roster-meta">
+                    {group.player_count} player{group.player_count !== 1 ? "s" : ""} · {group.visibility}
+                    {group.status === "archived" && " · archived"}
+                  </span>
+                </li>
+              ))}
+            </ul>
+          ) : (
+            <p className="organisation-groups-empty">No groups have been created for this organisation yet.</p>
+          )}
         </section>
       )}
 
       <OrganisationRoster organisation={organisation} />
     </div>
+  );
+}
+
+function GroupCreationCard({
+  organisation,
+  onCreated,
+}: {
+  organisation: Organisation;
+  onCreated: (group: GroupRecord) => void;
+}) {
+  const [name, setName] = useState("");
+  const [description, setDescription] = useState("");
+  const [visibility, setVisibility] = useState<GroupVisibility>("shared");
+  const [requiresApproval, setRequiresApproval] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [busy, setBusy] = useState(false);
+
+  const submit = async (event: FormEvent) => {
+    event.preventDefault();
+    if (!name.trim()) return;
+
+    setBusy(true);
+    setError(null);
+    try {
+      const result = await api.createGroup({
+        name: name.trim(),
+        description: description.trim() || null,
+        visibility,
+        organisation_id: organisation.id,
+        requires_approval: requiresApproval,
+      });
+      onCreated(result.group);
+      setName("");
+      setDescription("");
+      setVisibility("shared");
+      setRequiresApproval(false);
+    } catch (reason) {
+      setError(reason instanceof Error ? reason.message : "Failed to create group.");
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  return (
+    <form className="organisation-group-create-card" onSubmit={submit}>
+      <div className="organisation-group-create-copy">
+        <span className="organisation-group-create-icon" aria-hidden="true"><UsersRound size={18} /></span>
+        <div>
+          <h3>Create a group</h3>
+          <p>Build a reusable roster for training sessions, assessments and analysis.</p>
+        </div>
+      </div>
+
+      {error && <p className="form-error organisation-group-create-error" role="alert">{error}</p>}
+
+      <div className="organisation-group-create-fields">
+        <div className="form-row">
+          <label htmlFor="organisation-group-name">Name</label>
+          <input
+            id="organisation-group-name"
+            type="text"
+            value={name}
+            onChange={(event) => setName(event.target.value)}
+            placeholder="e.g. U19 squad"
+            required
+            disabled={busy}
+          />
+        </div>
+        <div className="form-row">
+          <label htmlFor="organisation-group-visibility">Visibility</label>
+          <select
+            id="organisation-group-visibility"
+            value={visibility}
+            onChange={(event) => setVisibility(event.target.value as GroupVisibility)}
+            disabled={busy}
+          >
+            <option value="shared">Shared</option>
+            <option value="private">Private</option>
+          </select>
+        </div>
+        <div className="form-row organisation-group-create-description">
+          <label htmlFor="organisation-group-description">Description</label>
+          <textarea
+            id="organisation-group-description"
+            rows={2}
+            value={description}
+            onChange={(event) => setDescription(event.target.value)}
+            placeholder="Optional context for this roster"
+            disabled={busy}
+          />
+        </div>
+      </div>
+
+      <label className="organisations-approval-toggle organisation-group-approval" htmlFor="organisation-group-requires-approval">
+        <input
+          id="organisation-group-requires-approval"
+          type="checkbox"
+          checked={requiresApproval}
+          onChange={(event) => setRequiresApproval(event.target.checked)}
+          disabled={busy}
+        />
+        <span>
+          Require approval for new members
+          <small>Self-service join requests will remain pending until approved.</small>
+        </span>
+      </label>
+
+      <div className="organisation-group-create-actions">
+        <small>The group will belong to {organisation.name}.</small>
+        <button type="submit" className="btn-primary" disabled={busy || !name.trim()}>
+          <Plus size={16} /> {busy ? "Creating…" : "Create group"}
+        </button>
+      </div>
+    </form>
   );
 }
 

@@ -74,6 +74,51 @@ describe("fetchAPI (GET helpers)", () => {
     const [url] = fetchMock.mock.calls[0] as [string, RequestInit];
     expect(url).toBe("/api/v1/admin/users/7");
   });
+
+  it("requests the self-service joinable group catalogue", async () => {
+    const fetchMock = mockFetchOnce({
+      ok: true,
+      status: 200,
+      body: { data: [], meta: { page: 1, per_page: 20, total: 0, total_pages: 0 } },
+    });
+
+    await api.groups({ status: "active", joinable: true });
+
+    const [url] = fetchMock.mock.calls[0] as [string, RequestInit];
+    expect(url).toBe("/api/v1/groups?status=active&joinable=1");
+  });
+});
+
+describe("analysis mutations", () => {
+  it("lets the browser set the multipart boundary for video uploads", async () => {
+    const fetchMock = mockFetchOnce({
+      ok: true,
+      status: 201,
+      body: { analysis_video_id: 20 },
+    });
+    const file = new File(["video"], "training.mp4", { type: "video/mp4" });
+    await api.createAnalysisVideo(7, { file, title: "Set one" });
+    const [url, init] = fetchMock.mock.calls[0] as [string, RequestInit];
+    expect(url).toBe("/api/v1/analyses/7/videos");
+    expect(init.body).toBeInstanceOf(FormData);
+    expect((init.headers as Record<string, string>)["Content-Type"]).toBeUndefined();
+  });
+
+  it("uses the nested route when deleting a comment", async () => {
+    const fetchMock = mockFetchOnce({ ok: true, status: 204 });
+    await api.deleteAnalysisComment(7, 12);
+    const [url, init] = fetchMock.mock.calls[0] as [string, RequestInit];
+    expect(url).toBe("/api/v1/analyses/7/comments/12");
+    expect(init.method).toBe("DELETE");
+  });
+
+  it("uses the nested route when deleting an annotation", async () => {
+    const fetchMock = mockFetchOnce({ ok: true, status: 204 });
+    await api.deleteAnalysisAnnotation(9, 14);
+    const [url, init] = fetchMock.mock.calls[0] as [string, RequestInit];
+    expect(url).toBe("/api/v1/analysis_videos/9/annotations/14");
+    expect(init.method).toBe("DELETE");
+  });
 });
 
 describe("tournaments client", () => {

@@ -32,6 +32,7 @@ vi.mock("../api", async (importOriginal) => {
       approveOrganisationMembership: vi.fn(),
       rejectOrganisationMembership: vi.fn(),
       groups: vi.fn(),
+      createGroup: vi.fn(),
     },
   };
 });
@@ -123,6 +124,8 @@ describe("Organisations tree", () => {
   it("renders organisations as links to their detail pages", async () => {
     renderWithAuth(<Organisations />);
 
+    expect(screen.getByRole("heading", { name: "Organisations" })).toBeInTheDocument();
+    expect(screen.getByText("Browse the hierarchy")).toBeInTheDocument();
     const link = await screen.findByRole("link", { name: "FIVB" });
     expect(link).toHaveAttribute("href", "/organisations/1");
   });
@@ -145,7 +148,7 @@ describe("Organisations tree", () => {
     renderWithAuth(<Organisations />);
     await screen.findByRole("link", { name: "FIVB" });
 
-    await userEvent.click(screen.getByLabelText(/show archived/i));
+    await userEvent.click(screen.getByRole("button", { name: /all statuses/i }));
 
     await waitFor(() => expect(mockedApi.organisations).toHaveBeenLastCalledWith(undefined, undefined, true));
   });
@@ -157,10 +160,30 @@ describe("Organisations tree", () => {
 
     await userEvent.click(screen.getByRole("button", { name: /new organisation/i }));
     await userEvent.type(screen.getByLabelText(/^name$/i), "New Club");
+    await userEvent.click(screen.getByLabelText(/require approval for new members/i));
     await userEvent.click(screen.getByRole("button", { name: /^create$/i }));
 
-    expect(mockedApi.createOrganisation).toHaveBeenCalledWith(expect.objectContaining({ name: "New Club" }));
+    expect(mockedApi.createOrganisation).toHaveBeenCalledWith(expect.objectContaining({
+      name: "New Club",
+      requires_approval: true,
+    }));
     expect(await screen.findByRole("status")).toHaveTextContent("New Club created.");
+  });
+
+  it("creates an open organisation when approval is not selected", async () => {
+    mockedApi.createOrganisation.mockResolvedValue(organisation({ id: 2, name: "Open Club" }));
+    renderWithAuth(<Organisations />, authValue({ user: adminUser }));
+    await screen.findByRole("link", { name: "FIVB" });
+
+    await userEvent.click(screen.getByRole("button", { name: /new organisation/i }));
+    await userEvent.type(screen.getByLabelText(/^name$/i), "Open Club");
+    expect(screen.getByLabelText(/require approval for new members/i)).not.toBeChecked();
+    await userEvent.click(screen.getByRole("button", { name: /^create$/i }));
+
+    expect(mockedApi.createOrganisation).toHaveBeenCalledWith(expect.objectContaining({
+      name: "Open Club",
+      requires_approval: false,
+    }));
   });
 });
 
@@ -178,6 +201,64 @@ describe("Organisation detail", () => {
 
     expect(await screen.findByRole("heading", { name: "FIVB" })).toBeInTheDocument();
     expect(await screen.findByText("Alex Owner")).toBeInTheDocument();
+  });
+
+  it("creates a group for the current organisation from the detail card", async () => {
+    const user = userEvent.setup();
+    const organisation16 = organisation({ id: 16, name: "Northern Club" });
+    mockedApi.organisation.mockResolvedValue(organisation16);
+    mockedApi.organisations.mockResolvedValue(paginated([organisation16]));
+    mockedApi.createGroup.mockResolvedValue({
+      group: {
+        id: 31,
+        name: "Monday squad",
+        slug: "monday-squad",
+        description: "Development roster",
+        status: "active",
+        status_label: "Active",
+        visibility: "private",
+        requires_approval: true,
+        approval_required: true,
+        can_approve_members: true,
+        player_count: 0,
+        organisation: { id: 16, name: "Northern Club" },
+        owner: null,
+        created_by: null,
+        created_at: "2026-10-22T00:00:00Z",
+        updated_at: "2026-10-22T00:00:00Z",
+        members: [],
+      },
+    });
+
+    renderWithAuth(
+      <OrganisationDetail />,
+      authValue({ user: { id: 7, email: "coach@example.com", roles: ["coach"] } as unknown as AuthContextValue["user"] }),
+      "/organisations/16",
+      "/organisations/:id",
+    );
+
+    expect(await screen.findByRole("heading", { name: "Create a group" })).toBeInTheDocument();
+    await user.type(screen.getByLabelText(/^name$/i), "Monday squad");
+    await user.type(screen.getByLabelText(/^description$/i), "Development roster");
+    await user.selectOptions(screen.getByLabelText(/^visibility$/i), "private");
+    await user.click(screen.getByLabelText(/require approval for new members/i));
+    await user.click(screen.getByRole("button", { name: /create group/i }));
+
+    expect(mockedApi.createGroup).toHaveBeenCalledWith({
+      name: "Monday squad",
+      description: "Development roster",
+      visibility: "private",
+      organisation_id: 16,
+      requires_approval: true,
+    });
+    expect(await screen.findByRole("link", { name: "Monday squad" })).toHaveAttribute("href", "/groups/31");
+    expect(screen.getByRole("status")).toHaveTextContent("Monday squad created.");
+  });
+
+  it("does not show the group creation card to users without a group creator role", async () => {
+    renderWithAuth(<OrganisationDetail />, authValue(), "/organisations/1", "/organisations/:id");
+    await screen.findByRole("heading", { name: "FIVB" });
+    expect(screen.queryByRole("heading", { name: "Create a group" })).not.toBeInTheDocument();
   });
 
   it("edits organisation details", async () => {

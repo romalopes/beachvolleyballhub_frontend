@@ -65,6 +65,10 @@ import ApiHealth from "./pages/settings/ApiHealth";
 import VideoCategoriesSettings from "./pages/settings/VideoCategories";
 import VideoTagsSettings from "./pages/settings/VideoTags";
 import VideosDetail from "./pages/VideosDetail";
+import AnalysisListPage from "./pages/AnalysisListPage";
+import AnalysisDetailPage from "./pages/AnalysisDetailPage";
+import AnalysisFormPage from "./pages/AnalysisFormPage";
+import HireAnalysisPage from "./pages/HireAnalysisPage";
 
 import AccountPage from "./pages/Account";
 import AccountDetail from "./pages/AccountDetail";
@@ -656,6 +660,15 @@ export default function App() {
                 <Route path="/account" element={<AccountPage />} />
                 <Route path="/accounts/:id" element={<AccountDetail />} />
                 <Route path="/identity" element={<IdentityPage />} />
+                <Route path="/analysis" element={<AnalysisListPage />} />
+                <Route path="/analysis/new" element={<AnalysisFormPage />} />
+                <Route path="/analysis/:id" element={<AnalysisDetailPage />} />
+                <Route path="/analysis/:id/edit" element={<AnalysisFormPage />} />
+                <Route path="/analyses" element={<AnalysisListPage />} />
+                <Route path="/analyses/new" element={<AnalysisFormPage />} />
+                <Route path="/analyses/:id" element={<AnalysisDetailPage />} />
+                <Route path="/analyses/:id/edit" element={<AnalysisFormPage />} />
+                <Route path="/hire-analysis" element={<HireAnalysisPage />} />
                 <Route path="*" element={<Navigate to="/" replace />} />
               </Routes>
             </Layout>
