@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
-import { ArrowUpDown, CalendarDays, ChevronLeft, Globe2, Trophy } from "lucide-react";
+import { ArrowUpDown, CalendarDays, ChevronLeft, ChevronRight, Globe2, Trophy } from "lucide-react";
 import {
   api,
   type Organisation,
