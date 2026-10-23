@@ -11721,3 +11721,41 @@
   }
 }
 
+/* Tournaments filter collapse/expand */
+.tournaments-filters.collapsed {
+  max-height: 0;
+  overflow: hidden;
+  transition: max-height 0.3s ease-out;
+}
+
+.tournaments-filters.collapsed h2 {
+  margin-bottom: 0;
+}
+
+.tournaments-filters:not(.collapsed) {
+  transition: max-height 0.3s ease-in;
+}
+
+.filter-toggle-btn {
+  background: none;
+  border: none;
+  padding: 0.25rem 0.5rem;
+  margin-left: 0.5rem;
+  cursor: pointer;
+  color: var(--text-primary);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  border-radius: var(--radius-sm);
+  transition: background-color 0.2s;
+}
+
+.filter-toggle-btn:hover {
+  background: var(--bg-tertiary);
+}
+
+.filter-toggle-btn[aria-pressed="true"] {
+  transform: rotate(180deg);
+}

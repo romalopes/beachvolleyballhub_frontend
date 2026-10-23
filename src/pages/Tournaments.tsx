@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
-import { CalendarDays, ChevronLeft, ChevronRight, Globe2, Trophy } from "lucide-react";
+import { ArrowUpDown, CalendarDays, ChevronLeft, Globe2, Trophy } from "lucide-react";
 import {
   api,
   type Organisation,
@@ -46,6 +46,7 @@ export default function TournamentsPage() {
   const days = useMemo(() => monthGridDays(month), [month]);
   const [options, setOptions] = useState<TournamentOptions | null>(null);
   const [organisations, setOrganisations] = useState<Organisation[]>([]);
+  const [isFiltersCollapsed, setIsFiltersCollapsed] = useState(false);
   const { user } = useAuth();
 
   const updateUrl = useCallback(
@@ -146,16 +147,26 @@ export default function TournamentsPage() {
         </span>
       </div>
       <div className="tournaments-page-content">
-        <aside className="tournaments-filters" aria-label="Tournament filters">
+        <aside className="tournaments-filters" aria-label="Tournament filters" aria-expanded={!isFiltersCollapsed}>
           <h2>Filters</h2>
-          <TournamentFilterForm
-            filters={filters}
-            options={options ?? undefined}
-            organisations={organisations}
-            onChange={(changes) =>
-              updateUrl({ ...filters, ...changes }, view, month)
-            }
-          />
+          <button
+            type="button"
+            className="filter-toggle-btn"
+            onClick={() => setIsFiltersCollapsed((prev) => !prev)}
+            aria-pressed={isFiltersCollapsed}
+          >
+            {isFiltersCollapsed ? <ArrowUpDown size={24} /> : <ArrowUpDown size={24} />}
+          </button>
+          {isFiltersCollapsed ? null : (
+            <TournamentFilterForm
+              filters={filters}
+              options={options ?? undefined}
+              organisations={organisations}
+              onChange={(changes) =>
+                updateUrl({ ...filters, ...changes }, view, month)
+              }
+            />
+          )}
         </aside>
         <main className="tournaments-list">
           <div className="training-calendar-nav tournament-calendar-nav">
