@@ -3,17 +3,20 @@ import { Link } from "react-router-dom";
 import {
   Archive,
   ArchiveRestore,
+  CalendarCheck,
   Eye,
   EyeOff,
+  Link2,
   Pencil,
   Search,
   Trash2,
   UserPlus,
+  Users,
 } from "lucide-react";
 import { api, type PaginationMeta, type Player } from "../api";
 import { useAuth } from "../auth/AuthContext";
 import EmptyState from "../components/EmptyState";
-import PageHeader from "../components/PageHeader";
+import LibraryHero from "../components/LibraryHero";
 import Pagination from "../components/settings/Pagination";
 import DeleteConfirm from "../components/settings/DeleteConfirm";
 import Tag from "../components/Tag";
@@ -176,9 +179,16 @@ export default function Players() {
 
   return (
     <div className="page">
-      <PageHeader
+      <LibraryHero
+        eyebrow="Player directory"
         title="Players"
         description="Everyone who can be added to a training session."
+        highlights={[
+          { icon: Users, label: "Build the roster" },
+          { icon: CalendarCheck, label: "Fill the sessions" },
+          { icon: Link2, label: "Link accounts" },
+        ]}
+        highlightsLabel="Player directory features"
       />
 
       <div className="people-toolbar">

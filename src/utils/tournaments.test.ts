@@ -7,6 +7,7 @@ import {
   tournamentRelationship,
   tournamentSearchParams,
   tournamentsByDay,
+  tournamentsByWeek,
 } from "./tournaments";
 
 const tournament = (overrides: Partial<Tournament> = {}): Tournament => ({
@@ -96,5 +97,66 @@ describe("tournament directory helpers", () => {
     // The payload flags only exist for signed-in callers, but a flag alone
     // still carries the tie (the account match is only needed for "created").
     expect(tournamentRelationship(tournament({ my_following: true }), undefined)).toBe("following");
+  });
+});
+
+describe("tournamentsByWeek", () => {
+  it("returns no groups for an empty list", () => {
+    expect(tournamentsByWeek([])).toEqual([]);
+  });
+
+  it("groups tournaments into Monday-Sunday weeks of their local start date", () => {
+    // Mon 2026-10-05, Sun 2026-10-11 and Mon 2026-10-12.
+    const groups = tournamentsByWeek([
+      tournament({ id: 1, starts_at: "2026-10-05T15:00:00Z" }),
+      tournament({ id: 2, starts_at: "2026-10-11T15:00:00Z" }),
+      tournament({ id: 3, starts_at: "2026-10-12T15:00:00Z" }),
+    ]);
+
+    expect(groups).toHaveLength(2);
+    expect(groups[0].key).toBe("2026-10-05");
+    expect(groups[0].tournaments.map(({ id }) => id)).toEqual([1, 2]);
+    expect(groups[1].key).toBe("2026-10-12");
+    expect(groups[1].tournaments.map(({ id }) => id)).toEqual([3]);
+  });
+
+  it("places a multi-day tournament in the week of its start date", () => {
+    const groups = tournamentsByWeek([
+      tournament({ id: 1, starts_at: "2026-10-09T15:00:00Z", ends_at: "2026-10-11T16:00:00Z" }),
+    ]);
+
+    expect(groups).toHaveLength(1);
+    expect(groups[0].key).toBe("2026-10-05");
+  });
+
+  it("uses the tournament timezone to decide the week", () => {
+    // 2026-10-05T02:00:00Z is still Oct 4 in New York, so it belongs to the
+    // week starting Monday 2026-09-28.
+    const groups = tournamentsByWeek([
+      tournament({ id: 1, starts_at: "2026-10-05T02:00:00Z", timezone: "America/New_York" }),
+    ]);
+
+    expect(groups[0].key).toBe("2026-09-28");
+  });
+
+  it("labels each week and exposes its Monday and Sunday", () => {
+    const [group] = tournamentsByWeek([
+      tournament({ id: 1, starts_at: "2026-10-07T15:00:00Z" }),
+    ]);
+
+    expect(group.start.getDay()).toBe(1);
+    expect(group.end.getDay()).toBe(0);
+    expect(group.label).toBe("Week from Oct 5 to Oct 11");
+  });
+
+  it("returns weeks oldest first with tournaments ordered by start time", () => {
+    const groups = tournamentsByWeek([
+      tournament({ id: 1, starts_at: "2026-10-19T15:00:00Z" }),
+      tournament({ id: 2, starts_at: "2026-10-06T15:00:00Z" }),
+      tournament({ id: 3, starts_at: "2026-10-08T15:00:00Z" }),
+    ]);
+
+    expect(groups.map((group) => group.key)).toEqual(["2026-10-05", "2026-10-19"]);
+    expect(groups[0].tournaments.map(({ id }) => id)).toEqual([2, 3]);
   });
 });

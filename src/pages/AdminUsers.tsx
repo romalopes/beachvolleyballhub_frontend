@@ -1,7 +1,9 @@
 import { useEffect, useState } from "react";
+import { Search, ShieldCheck, Users } from "lucide-react";
 import { api, type AdminUser, type PaginationMeta } from "../api";
 import { useAuth } from "../auth/AuthContext";
 import AdminUserRoleControls from "../components/AdminUserRoleControls";
+import LibraryHero from "../components/LibraryHero";
 import Pagination from "../components/settings/Pagination";
 
 const PER_PAGE = 20;
@@ -69,10 +71,18 @@ export default function AdminUsers() {
 
   return (
     <div className="page">
-      <header className="page-header">
-        <h1>Users</h1>
-        <p>Manage roles for every account in the system.</p>
-      </header>
+      <LibraryHero
+        eyebrow="Administration"
+        title="Users"
+        description="Manage roles for every account in the system."
+        highlights={[
+          { icon: Users, label: "Every account" },
+          { icon: ShieldCheck, label: "Assign roles" },
+          { icon: Search, label: "Find anyone" },
+        ]}
+        highlightsLabel="User administration features"
+        theme="library-hero--admin"
+      />
 
       <form
         onSubmit={applySearch}

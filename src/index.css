@@ -140,6 +140,26 @@ ul { list-style: none; }
 .page-exit { opacity: 1; }
 .page-exit-active { opacity: 0; transition: opacity 200ms ease; }
 
+
+
+/* Improve spacing between identity-context name/value pairs */
+.identity-context dt,
+.identity-context dd {
+  margin-bottom: 0.5rem;
+}
+
+.identity-context dt {
+  font-weight: 600;
+  margin-right: 1rem;
+  vertical-align: top;
+  margin-bottom: 0.5rem;
+}
+
+.identity-context dd {
+  color: var(--text-secondary);
+  vertical-align: top;
+  margin-bottom: 0.5rem;
+}
 /* ==== Grid utilities for identity and player detail pages ==== */
 .identity-grid,
 .player-detail-grid {
@@ -202,3 +222,6 @@ ul { list-style: none; }
   flex: 1 1 auto;
   min-width: 150px;
 }
+
+
+

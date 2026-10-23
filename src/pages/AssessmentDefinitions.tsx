@@ -1,6 +1,8 @@
 import { useEffect, useState } from "react";
+import { ListChecks, Repeat, Scale } from "lucide-react";
 import { api, type AssessmentCategory, type AssessmentDefinition, type AssessmentDefinitionInput, type Category } from "../api";
 import { useAuth } from "../auth/AuthContext";
+import LibraryHero from "../components/LibraryHero";
 
 type DraftRow = AssessmentCategory & { weight: number };
 const emptyRow = (position: number): DraftRow => ({ id: 0, category_id: null, category_custom_id: null, source_type: "category", label: "Select a category", weight: 0, position, category: null, category_custom: null });
@@ -125,35 +127,42 @@ export default function AssessmentDefinitions() {
 
   return (
     <div className="page assessment-definitions-page">
-      <header className="assessment-definitions-header">
-        <div>
-          <span className="section-label">Assessment configuration</span>
-          <h1>Assessment definitions</h1>
-          <p>Build reusable weighted assessments.</p>
-        </div>
-        <label className="assessment-definition-select">
-          Definition
-          <select
-            aria-label="Assessment definition"
-            value={selectedId ?? "new"}
-            onChange={(event) => {
-              const value = event.target.value;
-              if (value === "new") select(null);
-              else {
-                const definition = definitions.find((item) => String(item.id) === value);
-                if (definition) select(definition);
-              }
-            }}
-          >
-            <option value="new">New definition</option>
-            {definitions.map((definition) => (
-              <option key={definition.id} value={definition.id}>
-                {definition.name} ({definition.status})
-              </option>
-            ))}
-          </select>
-        </label>
-      </header>
+      <LibraryHero
+        eyebrow="Assessment configuration"
+        title="Assessment definitions"
+        description="Build reusable weighted assessments."
+        highlights={[
+          { icon: ListChecks, label: "Define categories" },
+          { icon: Scale, label: "Weight what matters" },
+          { icon: Repeat, label: "Reuse across sessions" },
+        ]}
+        highlightsLabel="Assessment definition features"
+        theme="library-hero--assessments"
+        action={
+          <label className="assessment-definition-select">
+            Definition
+            <select
+              aria-label="Assessment definition"
+              value={selectedId ?? "new"}
+              onChange={(event) => {
+                const value = event.target.value;
+                if (value === "new") select(null);
+                else {
+                  const definition = definitions.find((item) => String(item.id) === value);
+                  if (definition) select(definition);
+                }
+              }}
+            >
+              <option value="new">New definition</option>
+              {definitions.map((definition) => (
+                <option key={definition.id} value={definition.id}>
+                  {definition.name} ({definition.status})
+                </option>
+              ))}
+            </select>
+          </label>
+        }
+      />
 
       {error && <div className="admin-error" role="alert">{error}</div>}
       {notice && !error && <p className="admin-success" role="status">{notice}</p>}

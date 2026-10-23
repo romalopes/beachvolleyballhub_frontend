@@ -11344,25 +11344,29 @@
   margin-bottom: 1rem;
 }
 
-.training-cards-grid {
+.training-cards-grid,
+.tournament-cards-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
   gap: 1.5rem;
 }
 
-.training-weeks {
+.training-weeks,
+.tournament-weeks {
   display: flex;
   flex-direction: column;
   gap: 2.25rem;
 }
 
-.training-week {
+.training-week,
+.tournament-week {
   display: flex;
   flex-direction: column;
   gap: 1rem;
 }
 
-.training-week-heading {
+.training-week-heading,
+.tournament-week-heading {
   margin: 0;
   padding-bottom: 0.5rem;
   border-bottom: 1px solid var(--border);
@@ -11441,12 +11445,279 @@
 
 
 @media (max-width: 640px) {
-  .training-weeks {
+  .training-weeks,
+  .tournament-weeks {
     gap: 1.75rem;
   }
 
-  .training-week-heading {
+  .training-week-heading,
+  .tournament-week-heading {
     font-size: 0.8125rem;
+  }
+}
+
+/* ===== Library hero (shared) =====
+   Same anatomy as .analysis-library-hero and .organisations-library-hero, but
+   written once and themed per section through custom properties, so every
+   library can carry its own accent without duplicating the block. */
+.library-hero {
+  --hero-border: #ead9bb;
+  --hero-glow: rgba(91, 66, 28, 0.08);
+  --hero-chip-border: rgba(133, 89, 18, 0.12);
+  --hero-chip-text: #725b35;
+  --hero-copy-text: #615b50;
+  --hero-shadow: rgba(154, 94, 7, 0.2);
+  --hero-gradient: linear-gradient(
+    125deg,
+    #fff9ec 0%,
+    #f8e6bc 58%,
+    #eabf68 145%
+  );
+  position: relative;
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 2rem;
+  overflow: hidden;
+  padding: 2rem;
+  border: 1px solid var(--hero-border);
+  border-radius: 1.35rem;
+  background:
+    radial-gradient(circle at 88% 20%, rgba(255, 255, 255, 0.25), transparent 23%),
+    var(--hero-gradient);
+  box-shadow: 0 12px 30px var(--hero-glow);
+}
+
+.library-hero::after {
+  position: absolute;
+  right: -4rem;
+  bottom: -7rem;
+  width: 18rem;
+  height: 18rem;
+  border: 1px solid rgba(132, 87, 16, 0.12);
+  border-radius: 50%;
+  box-shadow:
+    0 0 0 2.5rem rgba(255, 255, 255, 0.1),
+    0 0 0 5rem rgba(255, 255, 255, 0.08);
+  content: "";
+  pointer-events: none;
+}
+
+.library-hero-copy {
+  position: relative;
+  z-index: 1;
+  max-width: 710px;
+}
+
+.library-hero h1 {
+  margin-bottom: 0.45rem;
+  color: var(--charcoal);
+  font-size: clamp(2rem, 4vw, 3.35rem);
+  line-height: 1.03;
+  letter-spacing: -0.045em;
+}
+
+.library-hero-copy > p {
+  max-width: 620px;
+  color: var(--hero-copy-text);
+  font-size: 0.98rem;
+  line-height: 1.65;
+}
+
+.library-hero-highlights {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.55rem;
+  margin-top: 1rem;
+}
+
+.library-hero-highlights span {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.38rem 0.6rem;
+  border: 1px solid var(--hero-chip-border);
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.48);
+  color: var(--hero-chip-text);
+  font-size: 0.72rem;
+  font-weight: 700;
+  backdrop-filter: blur(4px);
+}
+
+.library-hero-action {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  align-items: flex-end;
+  flex: 0 0 auto;
+}
+
+.library-hero-action .btn-primary,
+.library-hero-action .admin-btn {
+  justify-content: center;
+  min-width: 10.5rem;
+  box-shadow: 0 8px 18px var(--hero-shadow);
+}
+
+/* Section accents: same layout, different temperature. */
+.library-hero--groups {
+  --hero-border: #cfdff2;
+  --hero-glow: rgba(30, 64, 120, 0.08);
+  --hero-chip-border: rgba(38, 84, 142, 0.13);
+  --hero-chip-text: #33567e;
+  --hero-copy-text: #4e5d6e;
+  --hero-shadow: rgba(38, 84, 142, 0.18);
+  --hero-gradient: linear-gradient(125deg, #f2f7ff 0%, #dbe8fa 58%, #8db4e8 145%);
+}
+
+.library-hero--skills {
+  --hero-border: #e2d9f2;
+  --hero-glow: rgba(76, 45, 120, 0.08);
+  --hero-chip-border: rgba(96, 58, 148, 0.13);
+  --hero-chip-text: #5b3f82;
+  --hero-copy-text: #5d5566;
+  --hero-shadow: rgba(96, 58, 148, 0.18);
+  --hero-gradient: linear-gradient(125deg, #f8f4ff 0%, #e9defa 58%, #b394e0 145%);
+}
+
+.library-hero--drills {
+  --hero-border: #f2ddc9;
+  --hero-glow: rgba(122, 74, 15, 0.08);
+  --hero-chip-border: rgba(146, 88, 20, 0.13);
+  --hero-chip-text: #7a5222;
+  --hero-copy-text: #66594a;
+  --hero-shadow: rgba(146, 88, 20, 0.2);
+  --hero-gradient: linear-gradient(125deg, #fff6ec 0%, #f9e3c8 58%, #e8a355 145%);
+}
+
+.library-hero--assessments {
+  --hero-border: #cfe3e0;
+  --hero-glow: rgba(24, 84, 74, 0.08);
+  --hero-chip-border: rgba(27, 101, 90, 0.13);
+  --hero-chip-text: #2f6b60;
+  --hero-copy-text: #4e635e;
+  --hero-shadow: rgba(27, 101, 90, 0.18);
+  --hero-gradient: linear-gradient(125deg, #f0faf8 0%, #d5ece7 58%, #7fc4b5 145%);
+}
+
+.library-hero--ranking {
+  --hero-border: #f0e2b8;
+  --hero-glow: rgba(120, 90, 10, 0.1);
+  --hero-chip-border: rgba(133, 100, 17, 0.14);
+  --hero-chip-text: #6f5a1a;
+  --hero-copy-text: #665f4c;
+  --hero-shadow: rgba(133, 100, 17, 0.22);
+  --hero-gradient: linear-gradient(125deg, #fffaef 0%, #f5e7bd 58%, #dfb545 145%);
+}
+
+.library-hero--identity {
+  --hero-border: #d7dbe2;
+  --hero-glow: rgba(40, 52, 68, 0.08);
+  --hero-chip-border: rgba(52, 66, 84, 0.13);
+  --hero-chip-text: #3d4c5e;
+  --hero-copy-text: #525c68;
+  --hero-shadow: rgba(52, 66, 84, 0.18);
+  --hero-gradient: linear-gradient(125deg, #f5f7fa 0%, #e2e7ee 58%, #9fb0c4 145%);
+}
+
+.library-hero--settings {
+  --hero-border: #d9dee2;
+  --hero-glow: rgba(45, 58, 64, 0.07);
+  --hero-chip-border: rgba(58, 74, 80, 0.12);
+  --hero-chip-text: #43545b;
+  --hero-copy-text: #556066;
+  --hero-shadow: rgba(58, 74, 80, 0.16);
+  --hero-gradient: linear-gradient(125deg, #f6f8f9 0%, #e6ebee 58%, #b7c4cc 145%);
+}
+
+.library-hero--account {
+  --hero-border: #cfe0f0;
+  --hero-glow: rgba(24, 68, 118, 0.08);
+  --hero-chip-border: rgba(34, 82, 136, 0.13);
+  --hero-chip-text: #2f5a86;
+  --hero-copy-text: #4c5c6d;
+  --hero-shadow: rgba(34, 82, 136, 0.18);
+  --hero-gradient: linear-gradient(125deg, #f1f7fd 0%, #dbe8f6 58%, #8fb6de 145%);
+}
+
+.library-hero--tournaments {
+  --hero-border: #f4dcbe;
+  --hero-glow: rgba(134, 78, 12, 0.09);
+  --hero-chip-border: rgba(160, 96, 18, 0.14);
+  --hero-chip-text: #82581b;
+  --hero-copy-text: #6a5a45;
+  --hero-shadow: rgba(160, 96, 18, 0.2);
+  --hero-gradient: linear-gradient(125deg, #fff8ec 0%, #f9e4c6 58%, #eda64d 145%);
+}
+
+.library-hero--training {
+  --hero-border: #cfe6da;
+  --hero-glow: rgba(24, 92, 66, 0.08);
+  --hero-chip-border: rgba(28, 108, 78, 0.13);
+  --hero-chip-text: #2f6b53;
+  --hero-copy-text: #4d6158;
+  --hero-shadow: rgba(28, 108, 78, 0.18);
+  --hero-gradient: linear-gradient(125deg, #f1faf5 0%, #d9efe3 58%, #83c9a8 145%);
+}
+
+.library-hero--videos {
+  --hero-border: #ecd9ea;
+  --hero-glow: rgba(94, 34, 92, 0.08);
+  --hero-chip-border: rgba(118, 44, 116, 0.13);
+  --hero-chip-text: #6d3a6b;
+  --hero-copy-text: #635562;
+  --hero-shadow: rgba(118, 44, 116, 0.18);
+  --hero-gradient: linear-gradient(125deg, #fdf5fd 0%, #f2dff1 58%, #d194ce 145%);
+}
+
+.library-hero--schedule {
+  --hero-border: #d7e3ee;
+  --hero-glow: rgba(30, 66, 100, 0.08);
+  --hero-chip-border: rgba(40, 84, 124, 0.13);
+  --hero-chip-text: #37597b;
+  --hero-copy-text: #4f5d6b;
+  --hero-shadow: rgba(40, 84, 124, 0.18);
+  --hero-gradient: linear-gradient(125deg, #f2f7fc 0%, #dee9f4 58%, #9dbcd8 145%);
+}
+
+.library-hero--admin {
+  --hero-border: #dcd9e6;
+  --hero-glow: rgba(48, 42, 76, 0.08);
+  --hero-chip-border: rgba(62, 54, 96, 0.13);
+  --hero-chip-text: #4a416f;
+  --hero-copy-text: #565268;
+  --hero-shadow: rgba(62, 54, 96, 0.18);
+  --hero-gradient: linear-gradient(125deg, #f7f5fb 0%, #e8e4f3 58%, #b3aad4 145%);
+}
+
+/*
+ * Secondary controls that used to live inside the old page headers (view
+ * toggles, timezone notes) now sit in a slim toolbar right below the hero.
+ */
+.library-hero-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  flex-wrap: wrap;
+  margin: 1.25rem 0 1rem;
+}
+
+@media (max-width: 720px) {
+  .library-hero {
+    align-items: stretch;
+    flex-direction: column;
+    padding: 1.35rem;
+  }
+
+  .library-hero-action {
+    align-self: flex-start;
+  }
+
+  .library-hero-toolbar {
+    align-items: flex-start;
+    flex-direction: column;
+    gap: 0.75rem;
   }
 }
 

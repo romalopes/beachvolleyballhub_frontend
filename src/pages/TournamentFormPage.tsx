@@ -51,8 +51,12 @@ export default function TournamentFormPage() {
       title={title}
       description={description}
       backTo={backTo}
-      backLabel="Back"
-    >
+    actions={
+      <a className="admin-btn" href="/tournaments">
+        Back to tournaments
+      </a>
+    }
+  >
       {error && <div className="auth-flash auth-flash-error">{error}</div>}
       {/* If the edit fetch failed there is nothing to seed the form with, so
           show the error instead of falling back to a blank create form. */}

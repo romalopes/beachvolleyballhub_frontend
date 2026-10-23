@@ -1,7 +1,9 @@
 import { useEffect, useState } from "react";
 import { useSearchParams } from "react-router-dom";
+import { KeyRound, MapPin, User } from "lucide-react";
 import { api, type Account } from "../api";
 import { useAuth } from "../auth/AuthContext";
+import LibraryHero from "../components/LibraryHero";
 
 const emptyAccount: Account = {
   id: null, first_name: null, last_name: null, email: null, phone: null, date_of_birth: null,
@@ -113,10 +115,18 @@ export default function AccountPage() {
 
   return (
     <div className="page">
-      <header className="page-header">
-        <h1>{accountId ? "Edit account" : "Account"}</h1>
-        <p>{accountId ? "Manage this account's personal information and address." : "Manage your personal information and address."}</p>
-      </header>
+      <LibraryHero
+        eyebrow="Your profile"
+        title={accountId ? "Edit account" : "Account"}
+        description={accountId ? "Manage this account's personal information and address." : "Manage your personal information and address."}
+        highlights={[
+          { icon: User, label: "Personal details" },
+          { icon: MapPin, label: "Address" },
+          { icon: KeyRound, label: "Change password" },
+        ]}
+        highlightsLabel="Account features"
+        theme="library-hero--account"
+      />
 
       {error && <div className="auth-flash auth-flash-error">{error}</div>}
       {success && <div className="auth-flash auth-flash-notice">{success}</div>}

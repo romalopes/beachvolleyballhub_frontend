@@ -7,6 +7,7 @@ import {
   LayoutTemplate,
   List,
   Plus,
+  Users,
 } from "lucide-react";
 import {
   api,
@@ -17,7 +18,7 @@ import { useAuth } from "../auth/AuthContext";
 import EmptyState from "../components/EmptyState";
 import ErrorState from "../components/ErrorState";
 import LoadingState from "../components/LoadingState";
-import PageHeader from "../components/PageHeader";
+import LibraryHero from "../components/LibraryHero";
 import TrainingCalendarGrid from "../components/training/TrainingCalendarGrid";
 import TrainingFilterForm from "../components/training/TrainingFilterForm";
 import TrainingSessionCard from "../components/training/TrainingSessionCard";
@@ -133,10 +134,31 @@ export default function Training() {
 
   return (
     <div className="page">
-      <PageHeader
+      <LibraryHero
+        eyebrow="Coaching schedule"
         title="Training"
         description="The shared training schedule. Switch between the list and the calendar; select a session to open its details."
-      >
+        highlights={[
+          { icon: CalendarRange, label: "List or calendar" },
+          { icon: LayoutTemplate, label: "Reusable templates" },
+          { icon: Users, label: "Plan series" },
+        ]}
+        highlightsLabel="Training features"
+        theme="library-hero--training"
+        action={
+          canManage && (
+            <button
+              type="button"
+              className="admin-btn admin-btn-add"
+              onClick={() => navigate("/training/new")}
+            >
+              <Plus size={16} /> New Training
+            </button>
+          )
+        }
+      />
+
+      <div className="library-hero-toolbar">
         <div className="training-view-toggle" role="tablist" aria-label="Training view">
           {(
             [
@@ -179,16 +201,9 @@ export default function Training() {
             >
               <CalendarRange size={16} /> Series
             </button>
-            <button
-              type="button"
-              className="admin-btn admin-btn-add"
-              onClick={() => navigate("/training/new")}
-            >
-              <Plus size={16} /> New Training
-            </button>
           </>
         )}
-      </PageHeader>
+      </div>
 
       <div className="training-page-content">
         <aside className="training-filters" aria-label="Training filters">

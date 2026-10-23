@@ -3,17 +3,20 @@ import { Link } from "react-router-dom";
 import {
   Archive,
   ArchiveRestore,
+  ClipboardList,
   Eye,
   EyeOff,
   Pencil,
   Search,
+  TrendingUp,
   Trash2,
   UserPlus,
+  Users,
 } from "lucide-react";
 import { api, type Coach, type PaginationMeta } from "../api";
 import { useAuth } from "../auth/AuthContext";
 import EmptyState from "../components/EmptyState";
-import PageHeader from "../components/PageHeader";
+import LibraryHero from "../components/LibraryHero";
 import Pagination from "../components/settings/Pagination";
 import DeleteConfirm from "../components/settings/DeleteConfirm";
 import Tag from "../components/Tag";
@@ -168,9 +171,16 @@ export default function Coaches() {
 
   return (
     <div className="page">
-      <PageHeader
+      <LibraryHero
+        eyebrow="Coaching staff"
         title="Coaches"
         description="The coaching staff of the club, with or without an account."
+        highlights={[
+          { icon: ClipboardList, label: "Assign to sessions" },
+          { icon: Users, label: "Share the roster" },
+          { icon: TrendingUp, label: "Follow development" },
+        ]}
+        highlightsLabel="Coach directory features"
       />
 
       <div className="people-toolbar">

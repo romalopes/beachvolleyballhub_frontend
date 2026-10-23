@@ -6,7 +6,10 @@ import type {
   TrainingSessionVisibility,
 } from "../api";
 import type { User } from "../api";
-import { addDays, startOfIsoWeek } from "./calendar";
+import { addDays, formatWeekRange, startOfIsoWeek } from "./calendar";
+
+/** The week heading helper is shared with the tournament directory. */
+export { formatWeekRange } from "./calendar";
 
 /** Managers (coach/curator/admin) see drafts and can create/edit trainings. */
 export function canManageTrainings(user: User | null | undefined): boolean {
@@ -131,26 +134,6 @@ export interface TrainingWeekGroup {
   label: string;
   /** Sessions of this week, ordered by start time. */
   sessions: TrainingSession[];
-}
-
-/**
- * Heading for a week: "Week from Sep 7 to Sep 13". A week that spans a year
- * boundary shows the year on both ends, e.g. "Week from Dec 29, 2025 to
- * Jan 4, 2026".
- */
-export function formatWeekRange(start: Date, end: Date): string {
-  const sameYear = start.getFullYear() === end.getFullYear();
-  const startText = start.toLocaleDateString("en-US", {
-    month: "short",
-    day: "numeric",
-    ...(sameYear ? {} : { year: "numeric" }),
-  });
-  const endText = end.toLocaleDateString("en-US", {
-    month: "short",
-    day: "numeric",
-    ...(sameYear ? {} : { year: "numeric" }),
-  });
-  return `Week from ${startText} to ${endText}`;
 }
 
 /**

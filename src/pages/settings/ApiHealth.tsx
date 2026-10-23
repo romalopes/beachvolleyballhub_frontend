@@ -1,3 +1,4 @@
+import { Activity, Server, ShieldCheck } from "lucide-react";
 import { useMemo, useState } from "react";
 import { APP_VERSION } from "../../constants/versions";
 import { getApiToken } from "../../api";
@@ -297,8 +298,17 @@ export default function ApiHealth() {
       description={`${API_CHECKS.length} checks configured · app version ${APP_VERSION}`}
       backTo="/settings"
       backLabel="Back to Settings"
-    >
-      <div className="health-toolbar">
+      hero={{
+        eyebrow: "Observability",
+        highlights: [
+          { icon: Activity, label: "Probe the API" },
+          { icon: ShieldCheck, label: "Check the guards" },
+          { icon: Server, label: "Inspect the data" },
+        ],
+        highlightsLabel: "API health features",
+        theme: "library-hero--settings",
+      }}
+      actions={
         <button
           type="button"
           className="admin-btn admin-btn-add"
@@ -307,8 +317,8 @@ export default function ApiHealth() {
         >
           {runningAll ? "Running…" : "Run All Checks"}
         </button>
-      </div>
-
+      }
+    >
       {versionMatched != null && (
         <div
           className={`health-version-notice ${versionMatched ? "health-version-ok" : "health-version-warn"}`}

@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { FileText, Mail, Sliders } from "lucide-react";
 import { api, type AppConfiguration, type AppSettingRow } from "../../api";
 import { useAuth } from "../../auth/AuthContext";
 import SettingsLayout from "../../components/settings/SettingsLayout";
@@ -190,6 +191,16 @@ export default function ConfigurationSettings() {
       description="Global application settings. Changes take effect immediately for every user of the system."
       backTo="/settings"
       backLabel="Back to Settings"
+      hero={{
+        eyebrow: "System configuration",
+        highlights: [
+          { icon: Sliders, label: "Global settings" },
+          { icon: FileText, label: "Log persistence" },
+          { icon: Mail, label: "Test email mode" },
+        ],
+        highlightsLabel: "Configuration features",
+        theme: "library-hero--settings",
+      }}
     >
       {loading ? (
         <div className="loading">Loading configuration...</div>

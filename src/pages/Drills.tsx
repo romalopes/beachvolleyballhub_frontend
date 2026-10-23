@@ -2,11 +2,11 @@ import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { api, type Category, type Drill, type Skill } from "../api";
 import { useAuth } from "../auth/AuthContext";
-import PageHeader from "../components/PageHeader";
+import LibraryHero from "../components/LibraryHero";
 import DrillCard from "../components/DrillCard";
 import EmptyState from "../components/EmptyState";
 import Pagination from "../components/settings/Pagination";
-import { Plus, Search, X } from "lucide-react";
+import { Filter, Gauge, Link2, Plus, Search, X } from "lucide-react";
 import {
   DIFFICULTY_LEVELS,
   TRAINING_STAGES,
@@ -226,16 +226,25 @@ export default function Drills() {
 
   return (
     <div className="page">
-      <PageHeader
+      <LibraryHero
+        eyebrow="Drill library"
         title="Drills"
         description="Search and filter drills by difficulty, training stage, and player range. Each drill develops specific skills."
-        children={
+        highlights={[
+          { icon: Filter, label: "Filter by stage" },
+          { icon: Gauge, label: "Scale difficulty" },
+          { icon: Link2, label: "Pair with skills" },
+        ]}
+        highlightsLabel="Drill library features"
+        theme="library-hero--drills"
+        action={
           isAdmin && (
             <button
-              className="admin-btn admin-btn-add"
+              type="button"
+              className="btn-primary"
               onClick={() => navigate("/settings/drills/new")}
             >
-              <Plus size={16} />
+              <Plus size={17} />
               Add Drill
             </button>
           )

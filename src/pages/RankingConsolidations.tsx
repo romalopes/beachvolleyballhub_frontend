@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import type { FormEvent } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { Plus, AlertCircle, X } from "lucide-react";
+import { Plus, FileCheck, AlertCircle, Lock, Merge, X } from "lucide-react";
 import {
   api,
   type RankingConsolidation,
@@ -9,6 +9,7 @@ import {
   type RankingConsolidationInput,
 } from "../api";
 import EmptyState from "../components/EmptyState";
+import LibraryHero from "../components/LibraryHero";
 import PageHeader from "../components/PageHeader";
 
 export default function RankingConsolidations() {
@@ -338,20 +339,29 @@ export default function RankingConsolidations() {
 
   return (
     <div className="page ranking-consolidations-page">
-      <PageHeader
+      <LibraryHero
+        eyebrow="Club rankings"
         title="Ranking consolidations"
         description="Club-level rankings merged from several coaches' sessions. Each one is a draft until you publish it, and a permanent snapshot thereafter."
-      >
-        <button
-          type="button"
-          className="admin-btn admin-btn-add"
-          onClick={handleStartCreate}
-          disabled={consolidatableSessions.length === 0}
-        >
-          <Plus size={16} />
-          New consolidation
-        </button>
-      </PageHeader>
+        highlights={[
+          { icon: Merge, label: "Merge coach sessions" },
+          { icon: FileCheck, label: "Draft, then publish" },
+          { icon: Lock, label: "Permanent snapshots" },
+        ]}
+        highlightsLabel="Ranking consolidation features"
+        theme="library-hero--ranking"
+        action={
+          <button
+            type="button"
+            className="btn-primary"
+            onClick={handleStartCreate}
+            disabled={consolidatableSessions.length === 0}
+          >
+            <Plus size={17} />
+            New consolidation
+          </button>
+        }
+      />
 
       {consolidations.length === 0 ? (
         <EmptyState

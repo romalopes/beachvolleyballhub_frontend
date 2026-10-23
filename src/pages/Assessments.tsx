@@ -1,8 +1,9 @@
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
+import { ClipboardCheck, TrendingUp, Users } from "lucide-react";
 import { api, type Assessment, type AssessmentStatus, type PaginationMeta } from "../api";
 import EmptyState from "../components/EmptyState";
-import PageHeader from "../components/PageHeader";
+import LibraryHero from "../components/LibraryHero";
 import Pagination from "../components/settings/Pagination";
 import Tag from "../components/Tag";
 import { ASSESSMENT_STATUSES, assessmentStatusLabel } from "../utils/assessments";
@@ -60,9 +61,17 @@ export default function Assessments() {
 
   return (
     <div className="page">
-      <PageHeader
+      <LibraryHero
+        eyebrow="Coach feedback"
         title="Assessments"
         description="Coaching ratings of players, newest first."
+        highlights={[
+          { icon: ClipboardCheck, label: "Rate every category" },
+          { icon: Users, label: "Compare coaches" },
+          { icon: TrendingUp, label: "Track progress" },
+        ]}
+        highlightsLabel="Assessment features"
+        theme="library-hero--assessments"
       />
 
       <div className="people-toolbar">

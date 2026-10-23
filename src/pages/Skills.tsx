@@ -2,11 +2,11 @@ import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { api, type Category, type Skill } from "../api";
 import { useAuth } from "../auth/AuthContext";
-import PageHeader from "../components/PageHeader";
+import LibraryHero from "../components/LibraryHero";
 import SkillCard from "../components/SkillCard";
 import EmptyState from "../components/EmptyState";
 import Pagination from "../components/settings/Pagination";
-import { Plus, Search, X } from "lucide-react";
+import { LayoutGrid, Link2, Plus, Search, Target, X } from "lucide-react";
 
 const ITEMS_PER_SECTION = 9;
 const ITEMS_PER_PAGE = 20;
@@ -87,16 +87,25 @@ export default function Skills() {
 
   return (
     <div className="page">
-      <PageHeader
+      <LibraryHero
+        eyebrow="Skill library"
         title="Skills"
         description="Browse all beach volleyball skills organised by category. Click a skill to see details and related drills."
-        children={
+        highlights={[
+          { icon: LayoutGrid, label: "Browse by category" },
+          { icon: Link2, label: "Connect drills" },
+          { icon: Target, label: "Coach the details" },
+        ]}
+        highlightsLabel="Skill library features"
+        theme="library-hero--skills"
+        action={
           isAdmin && (
             <button
-              className="admin-btn admin-btn-add"
+              type="button"
+              className="btn-primary"
               onClick={() => navigate("/settings/skills/new")}
             >
-              <Plus size={16} />
+              <Plus size={17} />
               Add Skill
             </button>
           )

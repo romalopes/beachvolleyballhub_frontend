@@ -1,7 +1,7 @@
 import { useEffect, useId, useMemo, useState } from "react";
 import type { FormEvent } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { Plus, Calendar, AlertCircle, X } from "lucide-react";
+import { Plus, Calendar, ClipboardCheck, AlertCircle, Send, Users, X } from "lucide-react";
 import {
   api,
   type AssessmentSession,
@@ -14,7 +14,7 @@ import {
 } from "../api";
 import { useAuth } from "../auth/AuthContext";
 import EmptyState from "../components/EmptyState";
-import PageHeader from "../components/PageHeader";
+import LibraryHero from "../components/LibraryHero";
 import Tag from "../components/Tag";
 import Pagination from "../components/settings/Pagination";
 
@@ -266,19 +266,28 @@ export default function AssessmentSessions() {
 
   return (
     <div className="page assessment-sessions-page">
-      <PageHeader
+      <LibraryHero
+        eyebrow="Assessment workspace"
         title="Assessment Sessions"
         description="Rostered player assessments scored against a defined rubric."
-      >
-        <button
-          type="button"
-          className="admin-btn admin-btn-add"
-          onClick={handleStartCreate}
-        >
-          <Plus size={16} />
-          New Session
-        </button>
-      </PageHeader>
+        highlights={[
+          { icon: Users, label: "Roster the squad" },
+          { icon: ClipboardCheck, label: "Score the rubric" },
+          { icon: Send, label: "Publish results" },
+        ]}
+        highlightsLabel="Assessment session features"
+        theme="library-hero--assessments"
+        action={
+          <button
+            type="button"
+            className="btn-primary"
+            onClick={handleStartCreate}
+          >
+            <Plus size={17} />
+            New Session
+          </button>
+        }
+      />
 
       {error && (
         <div className="admin-error" role="alert">

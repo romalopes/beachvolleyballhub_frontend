@@ -1,5 +1,5 @@
 import { Link } from "react-router-dom";
-import { Target, Tags, Dumbbell, FileText, Shield, Activity, PlayCircle, Settings } from "lucide-react";
+import { Activity, Database, ShieldCheck, Tags, Target, Dumbbell, FileText, Shield, PlayCircle, Settings } from "lucide-react";
 import { useAuth } from "../../auth/AuthContext";
 import SettingsLayout from "../../components/settings/SettingsLayout";
 
@@ -74,6 +74,16 @@ export default function SettingsDashboard() {
     <SettingsLayout
       title="Settings"
       description="Manage application data. Only admins can access these pages."
+      hero={{
+        eyebrow: "Admin console",
+        highlights: [
+          { icon: ShieldCheck, label: "Admins only" },
+          { icon: Database, label: "Manage app data" },
+          { icon: Activity, label: "Health and logs" },
+        ],
+        highlightsLabel: "Settings console features",
+        theme: "library-hero--settings",
+      }}
     >
       <div className="settings-grid">
         {RESOURCES.map((r) => {

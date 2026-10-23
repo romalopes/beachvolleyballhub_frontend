@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { Link, useLocation, useNavigate, useSearchParams } from "react-router-dom";
-import { Search } from "lucide-react";
+import { Link2, Search, Tags, Target } from "lucide-react";
 import { api, type Drill, type Skill } from "../../api";
 import { useAuth } from "../../auth/AuthContext";
 import SettingsLayout from "../../components/settings/SettingsLayout";
@@ -156,6 +156,16 @@ export default function Skills() {
       description="Manage skills. Click a name to view details."
       backLabel="Back"
       backFallback="/settings"
+      hero={{
+        eyebrow: "Data management",
+        highlights: [
+          { icon: Target, label: "Define skills" },
+          { icon: Link2, label: "Connect to drills" },
+          { icon: Tags, label: "Categorise" },
+        ],
+        highlightsLabel: "Skill management features",
+        theme: "library-hero--settings",
+      }}
       actions={
         <Link to="/settings/skills/new" className="admin-btn admin-btn-add settings-add-btn">
           + Add New Skill

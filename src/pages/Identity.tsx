@@ -1,10 +1,6 @@
 import { useEffect, useState } from "react";
-import {
-  Link,
-  useLocation,
-  useNavigate,
-  useSearchParams,
-} from "react-router-dom";
+import { Link, useLocation, useNavigate, useSearchParams } from "react-router-dom";
+import { BadgeCheck, Fingerprint, Link2 } from "lucide-react";
 import {
   api,
   type Account,
@@ -15,6 +11,7 @@ import {
 } from "../api";
 import { useAuth } from "../auth/AuthContext";
 import EmptyState from "../components/EmptyState";
+import LibraryHero from "../components/LibraryHero";
 import MembershipSections from "../components/MembershipSections";
 import ProfileManagementDashboard from "../components/identity/ProfileManagementDashboard";
 import {
@@ -410,10 +407,18 @@ export default function IdentityPage() {
 
   return (
     <div className="page identity-page">
-      <header className="page-header">
-        <h1>Identity</h1>
-        <p>Your account, profiles, memberships, and profile claim requests.</p>
-      </header>
+      <LibraryHero
+        eyebrow="Your account"
+        title="Identity"
+        description="Your account, profiles, memberships, and profile claim requests."
+        highlights={[
+          { icon: Fingerprint, label: "One person, many profiles" },
+          { icon: BadgeCheck, label: "Claim your records" },
+          { icon: Link2, label: "Link your accounts" },
+        ]}
+        highlightsLabel="Identity features"
+        theme="library-hero--identity"
+      />
       {error && (
         <div className="auth-flash auth-flash-error" role="alert">
           {error}

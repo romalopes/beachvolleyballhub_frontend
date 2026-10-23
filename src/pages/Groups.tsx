@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import type { FormEvent } from "react";
-import { AlertCircle, Plus, Search, Trash2, UserPlus, X } from "lucide-react";
+import { AlertCircle, Archive, Plus, Search, Trash2, UserPlus, Users, X, Zap } from "lucide-react";
 import {
   api,
   type Group as GroupRecord,
@@ -15,7 +15,7 @@ import {
 } from "../api";
 import { useAuth } from "../auth/AuthContext";
 import EmptyState from "../components/EmptyState";
-import PageHeader from "../components/PageHeader";
+import LibraryHero from "../components/LibraryHero";
 
 /** Owner / Coach / Member, as the roster screen spells it. */
 const memberRoleLabel = (role: GroupMember["role"]) =>
@@ -752,19 +752,28 @@ export default function Groups() {
 
   return (
     <div className="page groups-page">
-      <PageHeader
+      <LibraryHero
+        eyebrow="Session rosters"
         title="Groups"
         description="Reusable rosters for assessment sessions. A group is a selection aid: membership is not attendance, and it grants no access."
-      >
-        <button
-          type="button"
-          className="admin-btn admin-btn-add"
-          onClick={() => void openCreate()}
-        >
-          <Plus size={16} />
-          New group
-        </button>
-      </PageHeader>
+        highlights={[
+          { icon: Users, label: "Roster a squad" },
+          { icon: Zap, label: "Fill sessions fast" },
+          { icon: Archive, label: "Archive, not delete" },
+        ]}
+        highlightsLabel="Group roster features"
+        theme="library-hero--groups"
+        action={
+          <button
+            type="button"
+            className="btn-primary"
+            onClick={() => void openCreate()}
+          >
+            <Plus size={17} />
+            New group
+          </button>
+        }
+      />
 
       {error && (
         <div className="admin-error" role="alert">

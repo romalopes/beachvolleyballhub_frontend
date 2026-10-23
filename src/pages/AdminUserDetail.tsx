@@ -1,9 +1,11 @@
 import { useEffect, useState } from "react";
 import { Link, useParams } from "react-router-dom";
+import { Mail, ShieldCheck, Users } from "lucide-react";
 import { api, type Account, type AdminUser } from "../api";
 import AdminUserRoleControls from "../components/AdminUserRoleControls";
 import { adminUserDisplayName } from "../utils/adminUsers";
 import EmptyState from "../components/EmptyState";
+import LibraryHero from "../components/LibraryHero";
 import MembershipSections from "../components/MembershipSections";
 
 const addressLines = (account: Account) =>
@@ -74,13 +76,23 @@ export default function AdminUserDetail() {
 
   return (
     <div className="page">
-      <header className="page-header">
-        <h1>{adminUserDisplayName(adminUser)}</h1>
-        <p>User, role, account and linked volleyball profile details.</p>
-        <Link className="admin-btn" to="/admin/users">
-          Back to users
-        </Link>
-      </header>
+      <LibraryHero
+        eyebrow="Administration"
+        title={adminUserDisplayName(adminUser)}
+        description="User, role, account and linked volleyball profile details."
+        highlights={[
+          { icon: Users, label: "User profile" },
+          { icon: ShieldCheck, label: "Role controls" },
+          { icon: Mail, label: "Account and contact" },
+        ]}
+        highlightsLabel="User administration features"
+        theme="library-hero--admin"
+        action={
+          <Link className="admin-btn" to="/admin/users">
+            Back to users
+          </Link>
+        }
+      />
 
       <section className="detail-section">
         <h2>User</h2>

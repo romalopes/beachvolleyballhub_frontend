@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
-import { ChevronLeft, ChevronRight } from "lucide-react";
+import { CalendarDays, ChevronLeft, ChevronRight, Globe2, Trophy } from "lucide-react";
 import {
   api,
   type Organisation,
@@ -9,7 +9,7 @@ import {
 } from "../api";
 import { useAuth } from "../auth/AuthContext";
 import FilterState from "../components/FilterState";
-import PageHeader from "../components/PageHeader";
+import LibraryHero from "../components/LibraryHero";
 import TournamentFilterForm from "../components/TournamentFilterForm";
 import TournamentList from "../components/TournamentList";
 import { useTournaments } from "../hooks/useTournaments";
@@ -99,47 +99,52 @@ export default function TournamentsPage() {
 
   return (
     <div className="page tournament-directory-page">
-      <PageHeader
+      <LibraryHero
+        eyebrow="Competition directory"
         title="Tournaments"
         description="Browse beach volleyball events in the visible calendar period."
-      >
-        <div className="tournament-directory-actions">
-          <div
-            className="training-view-toggle"
-            role="tablist"
-            aria-label="Tournament view"
-          >
-            {(["calendar", "list"] as TournamentView[]).map((mode) => (
-              <button
-                key={mode}
-                type="button"
-                role="tab"
-                aria-selected={view === mode}
-                className={`filter-btn${view === mode ? " active" : ""}`}
-                onClick={() => updateUrl(filters, mode, month)}
-              >
-                {mode === "calendar" ? "Calendar" : "List"}
-              </button>
-            ))}
-          </div>
-          {/* Create Tournament button: see the list below — any signed-in
-              user may open the form; it only offers the organisations they
-              own or administer, and the server still authorises per request. */}
-          {user && (
-            <div className="tournament-list-actions">
-              <button
-                className="admin-btn admin-btn-add settings-add-btn"
-                onClick={() => navigate("/tournaments/new")}
-              >
-                Create Tournament
-              </button>
-            </div>
-          )}
-          <span className="tournament-timezone">
-            Calendar dates use each tournament’s timezone.
-          </span>
+        highlights={[
+          { icon: Trophy, label: "Find your events" },
+          { icon: CalendarDays, label: "Calendar or list" },
+          { icon: Globe2, label: "Timezone aware" },
+        ]}
+        highlightsLabel="Tournament directory features"
+        theme="library-hero--tournaments"
+        action={
+          user && (
+            <button
+              type="button"
+              className="admin-btn admin-btn-add settings-add-btn"
+              onClick={() => navigate("/tournaments/new")}
+            >
+              Create Tournament
+            </button>
+          )
+        }
+      />
+      <div className="library-hero-toolbar">
+        <div
+          className="training-view-toggle"
+          role="tablist"
+          aria-label="Tournament view"
+        >
+          {(["calendar", "list"] as TournamentView[]).map((mode) => (
+            <button
+              key={mode}
+              type="button"
+              role="tab"
+              aria-selected={view === mode}
+              className={`filter-btn${view === mode ? " active" : ""}`}
+              onClick={() => updateUrl(filters, mode, month)}
+            >
+              {mode === "calendar" ? "Calendar" : "List"}
+            </button>
+          ))}
         </div>
-      </PageHeader>
+        <span className="tournament-timezone">
+          Calendar dates use each tournament’s timezone.
+        </span>
+      </div>
       <div className="tournaments-page-content">
         <aside className="tournaments-filters" aria-label="Tournament filters">
           <h2>Filters</h2>
@@ -189,6 +194,7 @@ export default function TournamentsPage() {
               filter="all"
               baseFilters={rangeFilters}
               tournaments={tournaments}
+              groupByWeek
             />
           ) : (
             <div

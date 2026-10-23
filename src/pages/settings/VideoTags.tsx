@@ -5,7 +5,7 @@ import SettingsLayout from "../../components/settings/SettingsLayout";
 import EmptyState from "../../components/EmptyState";
 import DeleteConfirm from "../../components/settings/DeleteConfirm";
 import { formatVideoTagName } from "../../utils/videos";
-import { GripVertical } from "lucide-react";
+import { GripVertical, Search, Tags } from "lucide-react";
 
 /**
  * Admin management for video tags (`/settings/video-tags`).
@@ -213,6 +213,16 @@ export default function VideoTags() {
       description="Manage the tags coaches can attach to videos."
       backTo="/settings"
       backLabel="Back to Settings"
+      hero={{
+        eyebrow: "Data management",
+        highlights: [
+          { icon: Tags, label: "Tag every clip" },
+          { icon: GripVertical, label: "Drag to reorder" },
+          { icon: Search, label: "Find fast" },
+        ],
+        highlightsLabel: "Video tag management features",
+        theme: "library-hero--settings",
+      }}
       actions={
         <button
           type="button"

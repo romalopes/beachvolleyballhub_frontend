@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
+import { Copy, FileText, Search } from "lucide-react";
 import { api, type Log, type LogsMeta } from "../../api";
 import { useAuth } from "../../auth/AuthContext";
 import SettingsLayout from "../../components/settings/SettingsLayout";
@@ -427,6 +428,16 @@ export default function Logs() {
       description="Audit trail of application activity."
       backTo="/settings"
       backLabel="Back to Settings"
+      hero={{
+        eyebrow: "Observability",
+        highlights: [
+          { icon: FileText, label: "Audit trail" },
+          { icon: Search, label: "Filter by action" },
+          { icon: Copy, label: "Copy entries" },
+        ],
+        highlightsLabel: "Log features",
+        theme: "library-hero--settings",
+      }}
     >
       <div className="settings-toolbar" role="tablist" aria-label="Log source">
         <button

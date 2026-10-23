@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { Link, useLocation, useNavigate, useSearchParams } from "react-router-dom";
-import { Search } from "lucide-react";
+import { Dumbbell, Link2, Search } from "lucide-react";
 import { api, type Category, type Drill, type Skill } from "../../api";
 import { useAuth } from "../../auth/AuthContext";
 import SettingsLayout from "../../components/settings/SettingsLayout";
@@ -269,6 +269,16 @@ export default function Drills() {
       description="Manage drills. Click a name to view details."
       backTo="/settings"
       backLabel="Back to Settings"
+      hero={{
+        eyebrow: "Data management",
+        highlights: [
+          { icon: Dumbbell, label: "Author drills" },
+          { icon: Link2, label: "Attach skills" },
+          { icon: Search, label: "Filter and find" },
+        ],
+        highlightsLabel: "Drill management features",
+        theme: "library-hero--settings",
+      }}
       actions={
         <Link to="/settings/drills/new" className="admin-btn admin-btn-add settings-add-btn">
           + Add New Drill

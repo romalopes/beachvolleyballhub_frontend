@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
+import { FolderTree, Layers, Tags } from "lucide-react";
 import { api, type Category, type PaginationMeta, type Skill } from "../../api";
 import { useAuth } from "../../auth/AuthContext";
 import SettingsLayout from "../../components/settings/SettingsLayout";
@@ -80,6 +81,16 @@ export default function Categories() {
       description="Manage categories. Click a name to view details."
       backTo="/settings"
       backLabel="Back to Settings"
+      hero={{
+        eyebrow: "Data management",
+        highlights: [
+          { icon: Tags, label: "Group skills" },
+          { icon: Layers, label: "Nest categories" },
+          { icon: FolderTree, label: "Reorder freely" },
+        ],
+        highlightsLabel: "Category management features",
+        theme: "library-hero--settings",
+      }}
       actions={
         <Link to="/settings/categories/new" className="admin-btn admin-btn-add settings-add-btn">
           + Add New Category

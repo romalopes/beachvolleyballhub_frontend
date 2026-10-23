@@ -109,4 +109,21 @@ describe("Tournaments directory", () => {
     await new Promise(resolve => window.setTimeout(resolve, 30));
     expect(screen.queryByText("Stale tournament")).not.toBeInTheDocument();
   });
+
+  it("groups the list view into calendar weeks", async () => {
+    mockedApi.tournaments.mockResolvedValue({
+      data: [
+        tournament({ id: 1, name: "Week one tournament", starts_at: "2026-03-08T16:00:00Z", ends_at: "2026-03-08T19:00:00Z" }),
+        tournament({ id: 2, name: "Week two tournament", starts_at: "2026-03-18T16:00:00Z", ends_at: "2026-03-18T19:00:00Z" }),
+      ],
+      meta: { page: 1, per_page: 100, total: 2, total_pages: 1 },
+    });
+
+    renderPage("/tournaments?view=list&month=2026-03");
+
+    expect(await screen.findByText("Week from Mar 2 to Mar 8")).toBeInTheDocument();
+    expect(screen.getByText("Week from Mar 16 to Mar 22")).toBeInTheDocument();
+    expect(screen.getByText("Week one tournament")).toBeInTheDocument();
+    expect(screen.getByText("Week two tournament")).toBeInTheDocument();
+  });
 });

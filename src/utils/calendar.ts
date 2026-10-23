@@ -59,3 +59,23 @@ export function toISODate(date: Date): string {
     date.getDate()
   ).padStart(2, "0")}`;
 }
+
+/**
+ * Heading for a week: "Week from Sep 7 to Sep 13". A week that spans a year
+ * boundary shows the year on both ends, e.g. "Week from Dec 29, 2025 to
+ * Jan 4, 2026".
+ */
+export function formatWeekRange(start: Date, end: Date): string {
+  const sameYear = start.getFullYear() === end.getFullYear();
+  const startText = start.toLocaleDateString("en-US", {
+    month: "short",
+    day: "numeric",
+    ...(sameYear ? {} : { year: "numeric" }),
+  });
+  const endText = end.toLocaleDateString("en-US", {
+    month: "short",
+    day: "numeric",
+    ...(sameYear ? {} : { year: "numeric" }),
+  });
+  return `Week from ${startText} to ${endText}`;
+}

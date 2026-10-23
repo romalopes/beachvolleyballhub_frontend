@@ -4,6 +4,7 @@ import type {
   TournamentFilters,
   TournamentRelationship,
 } from "../api";
+import { addDays, formatWeekRange, startOfIsoWeek, toISODate } from "./calendar";
 
 export type TournamentView = "calendar" | "list";
 
@@ -134,4 +135,61 @@ export function tournamentsByDay(tournaments: Tournament[]): Map<string, Tournam
 
 export function isAbortError(error: unknown): boolean {
   return error instanceof DOMException && error.name === "AbortError";
+}
+
+/**
+ * A calendar week (Monday-Sunday) of tournaments, mirroring the training
+ * list's week groups.
+ */
+export interface TournamentWeekGroup {
+  /** Local YYYY-MM-DD key of the week's Monday. */
+  key: string;
+  /** Monday of the week, at local midnight. */
+  start: Date;
+  /** Sunday of the week, at local midnight. */
+  end: Date;
+  /** Heading shown above the week's cards, e.g. "Week from Sep 7 to Sep 13". */
+  label: string;
+  /** Tournaments starting in this week, ordered by start time. */
+  tournaments: Tournament[];
+}
+
+/**
+ * The local calendar day of a tournament's start, in its own timezone, at
+ * local midnight. Multi-day tournaments therefore land in the week of their
+ * first day.
+ */
+export function tournamentLocalStart(tournament: Tournament): Date {
+  const parts = zonedDateKey(tournament.starts_at, tournament.timezone).split("-");
+  return new Date(Number(parts[0]), Number(parts[1]) - 1, Number(parts[2]));
+}
+
+/**
+ * Group tournaments into calendar weeks (Monday-Sunday) for the list view.
+ * Weeks are returned oldest first, tournaments inside a week are ordered by
+ * start time, and weeks without tournaments are omitted.
+ */
+export function tournamentsByWeek(tournaments: Tournament[]): TournamentWeekGroup[] {
+  const sorted = [...tournaments].sort((a, b) => a.starts_at.localeCompare(b.starts_at));
+  const groups = new Map<string, TournamentWeekGroup>();
+
+  for (const tournament of sorted) {
+    const start = startOfIsoWeek(tournamentLocalStart(tournament));
+    const key = toISODate(start);
+    let group = groups.get(key);
+    if (!group) {
+      const end = addDays(start, 6);
+      group = {
+        key,
+        start,
+        end,
+        label: formatWeekRange(start, end),
+        tournaments: [],
+      };
+      groups.set(key, group);
+    }
+    group.tournaments.push(tournament);
+  }
+
+  return [...groups.values()].sort((a, b) => a.key.localeCompare(b.key));
 }

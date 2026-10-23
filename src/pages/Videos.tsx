@@ -1,8 +1,8 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { Plus } from "lucide-react";
+import { FolderTree, PlayCircle, Plus, Tags } from "lucide-react";
 import { api, type VideoCategory, type VideoSummary } from "../api";
 import { useAuth } from "../auth/AuthContext";
-import PageHeader from "../components/PageHeader";
+import LibraryHero from "../components/LibraryHero";
 import EmptyState from "../components/EmptyState";
 import VideoCard from "../components/video/VideoCard";
 import VideoCreateForm from "../components/video/VideoCreateForm";
@@ -93,7 +93,8 @@ export default function Videos() {
 
   return (
     <div className="page">
-      <PageHeader
+      <LibraryHero
+        eyebrow="Video library"
         title="Video Library"
         description={
           loading
@@ -102,17 +103,25 @@ export default function Videos() {
                 groups.length === 1 ? "" : "s"
               }.`
         }
-      >
-        {canManage && !adding && (
-          <button
-            type="button"
-            className="admin-btn admin-btn-add"
-            onClick={() => setAdding(true)}
-          >
-            <Plus size={14} /> Add video
-          </button>
-        )}
-      </PageHeader>
+        highlights={[
+          { icon: PlayCircle, label: "Watch and share" },
+          { icon: FolderTree, label: "Grouped by section" },
+          { icon: Tags, label: "Tagged for search" },
+        ]}
+        highlightsLabel="Video library features"
+        theme="library-hero--videos"
+        action={
+          canManage && !adding && (
+            <button
+              type="button"
+              className="admin-btn admin-btn-add"
+              onClick={() => setAdding(true)}
+            >
+              <Plus size={14} /> Add video
+            </button>
+          )
+        }
+      />
 
       {adding && (
         <VideoCreateForm

@@ -4,7 +4,7 @@ import { useAuth } from "../../auth/AuthContext";
 import SettingsLayout from "../../components/settings/SettingsLayout";
 import EmptyState from "../../components/EmptyState";
 import DeleteConfirm from "../../components/settings/DeleteConfirm";
-import { GripVertical } from "lucide-react";
+import { FolderTree, GripVertical, PlayCircle } from "lucide-react";
 
 /**
  * Admin management for video categories (`/settings/video-categories`).
@@ -214,6 +214,16 @@ export default function VideoCategories() {
       description="Manage the sections of the video library. Videos without a category appear under Uncategorized."
       backTo="/settings"
       backLabel="Back to Settings"
+      hero={{
+        eyebrow: "Data management",
+        highlights: [
+          { icon: PlayCircle, label: "Section the library" },
+          { icon: GripVertical, label: "Drag to reorder" },
+          { icon: FolderTree, label: "Uncategorised fallback" },
+        ],
+        highlightsLabel: "Video category management features",
+        theme: "library-hero--settings",
+      }}
       actions={
         <button
           type="button"

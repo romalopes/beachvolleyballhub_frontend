@@ -2,10 +2,10 @@ import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { api, type TrainingSession } from '../api';
 import { useAuth } from '../auth/AuthContext';
-import PageHeader from '../components/PageHeader';
 import EmptyState from '../components/EmptyState';
+import LibraryHero from '../components/LibraryHero';
 import Tag from '../components/Tag';
-import { CalendarCheck, MapPin } from 'lucide-react';
+import { CalendarCheck, MapPin, Users } from 'lucide-react';
 import { isPrivateSession, statusLabel } from '../utils/training';
 
 export default function Schedule() {
@@ -49,9 +49,17 @@ export default function Schedule() {
 
   return (
     <div className="page">
-      <PageHeader
+      <LibraryHero
+        eyebrow="Your schedule"
         title="Schedule"
         description="Upcoming training sessions and practice calendar."
+        highlights={[
+          { icon: CalendarCheck, label: "Upcoming sessions" },
+          { icon: Users, label: "My sessions only" },
+          { icon: MapPin, label: "Venue details" },
+        ]}
+        highlightsLabel="Schedule features"
+        theme="library-hero--schedule"
       />
 
       {user && (
