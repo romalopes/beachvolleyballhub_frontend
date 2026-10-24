@@ -1,4 +1,4 @@
-import { render, screen } from "@testing-library/react";
+import { render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { MemoryRouter } from "react-router-dom";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
@@ -38,6 +38,18 @@ const row = (overrides: Partial<Assessment> = {}): Assessment => ({
   score_label: "70/100",
   status_label: "Published",
   created_by: { id: 2, name: "Coach Ana" },
+  player_profile: { id: 12, display_name: "Coogee 2", account_name: "Roma Lopes" },
+  coach_profile: { id: 7, display_name: "Coach profile", account_name: "Maria Silva" },
+  coach_name: "Coach profile",
+  coach_account_name: "Maria Silva",
+  assessment_session_id: 31,
+  assessment_session: {
+    id: 31,
+    name: "Spring evaluation",
+    scheduled_on: "2026-09-01",
+  },
+  assessment_session_name: "Spring evaluation",
+  assessment_session_scheduled_on: "2026-09-01",
   category: { id: 5, name: "Attack", slug: "attack" },
   ...overrides,
 });
@@ -64,14 +76,145 @@ describe("Assessments", () => {
     mockedApi.assessments.mockResolvedValue(paginated([row()]));
     renderPage();
 
-    expect(await screen.findByText("Player #12")).toBeInTheDocument();
-    expect(screen.getByText("Attack")).toBeInTheDocument();
+    expect(await screen.findByText("Roma Lopes (Coogee 2)")).toBeInTheDocument();
+    const assessmentRow = screen.getByRole("link", { name: "Roma Lopes (Coogee 2)" }).closest("li");
+    expect(assessmentRow).not.toBeNull();
+    expect(screen.getByText("Attack", { selector: ".people-contact" })).toBeInTheDocument();
+    expect(assessmentRow).toHaveTextContent("Responsible coach: Maria Silva (Coach profile)");
+    expect(screen.getByRole("link", { name: "Spring evaluation" })).toHaveAttribute(
+      "href",
+      "/assessment-sessions/31",
+    );
+    expect(within(assessmentRow!).getByText("Assessment date:").nextElementSibling).toHaveAttribute(
+      "datetime",
+      "2026-09-01",
+    );
     expect(screen.getByText("70/100 · 7/10 · 4/5")).toBeInTheDocument();
     const statusTag = screen.getByTitle("70/100").closest("li");
     expect(statusTag).toHaveTextContent("Published");
-    expect(screen.getByText("Coach Ana")).toBeInTheDocument();
-    const link = screen.getByRole("link", { name: "Player #12" });
+    expect(screen.getByText("Recorded by Coach Ana")).toBeInTheDocument();
+    const link = screen.getByRole("link", { name: "Roma Lopes (Coogee 2)" });
     expect(link).toHaveAttribute("href", "/players/12");
+  });
+
+  it("shows the selected assessment definition as the rubric", async () => {
+    mockedApi.assessments.mockResolvedValue(
+      paginated([
+        row({
+          category_id: null,
+          category: null,
+          assessment_definition_id: 7,
+          assessment_definition: {
+            id: 7,
+            name: "Test",
+            description: null,
+            status: "active",
+            created_by_id: 2,
+            assessment_categories: [],
+            created_at: "2026-09-01T00:00:00.000Z",
+            updated_at: "2026-09-01T00:00:00.000Z",
+            total_weight: 100,
+            remaining_weight: 0,
+            weights_balanced: true,
+            referenced: true,
+          },
+        }),
+      ]),
+    );
+    renderPage();
+
+    expect(await screen.findByText("Test")).toBeInTheDocument();
+    expect(screen.queryByText("Unspecified rubric")).not.toBeInTheDocument();
+  });
+
+  it("uses the profile name when the player profile has no account", async () => {
+    mockedApi.assessments.mockResolvedValue(
+      paginated([
+        row({
+          player_profile: {
+            id: 12,
+            display_name: "Player from Coach Kasia",
+            account_name: null,
+          },
+        }),
+      ]),
+    );
+    renderPage();
+
+    expect(await screen.findByText("Player from Coach Kasia")).toBeInTheDocument();
+  });
+
+  it("falls back to profile coach, standalone label, and creation date for a legacy assessment", async () => {
+    mockedApi.assessments.mockResolvedValue(
+      paginated([
+        row({
+          coach_profile: {
+            id: 7,
+            display_name: "Roster Coach",
+            account_name: null,
+          },
+          coach_name: "Roster Coach",
+          coach_account_name: null,
+          assessment_session_id: null,
+          assessment_session: null,
+          assessment_session_name: null,
+          assessment_session_scheduled_on: null,
+          created_at: "2026-08-20T10:00:00.000Z",
+        }),
+      ]),
+    );
+    renderPage();
+
+    const assessmentRow = (await screen.findByText("Roma Lopes (Coogee 2)")).closest("li");
+    expect(assessmentRow).toHaveTextContent("Responsible coach: Roster Coach");
+    expect(assessmentRow).toHaveTextContent("Assessment session: Standalone assessment");
+    expect(within(assessmentRow!).getByText("Assessment date:").nextElementSibling).toHaveAttribute(
+      "datetime",
+      "2026-08-20T10:00:00.000Z",
+    );
+  });
+
+  it("uses explicit coach identity fields when the nested profile is absent", async () => {
+    mockedApi.assessments.mockResolvedValue(
+      paginated([
+        row({
+          coach_profile_id: 31,
+          coach_profile: undefined,
+          coach_name: "Coach from Kasia",
+          coach_account_name: "Kasia Sobiesiak",
+        }),
+      ]),
+    );
+    renderPage();
+
+    const assessmentRow = (await screen.findByText("Roma Lopes (Coogee 2)")).closest("li");
+    expect(assessmentRow).toHaveTextContent(
+      "Responsible coach: Kasia Sobiesiak (Coach from Kasia)",
+    );
+    expect(assessmentRow).not.toHaveTextContent("Coach #31");
+  });
+
+  it("uses explicit session fields when the nested session is absent", async () => {
+    mockedApi.assessments.mockResolvedValue(
+      paginated([
+        row({
+          assessment_session_id: 33,
+          assessment_session: undefined,
+          assessment_session_name: "Test 3",
+          assessment_session_scheduled_on: "2026-10-24",
+        }),
+      ]),
+    );
+    renderPage();
+
+    const sessionLink = await screen.findByRole("link", { name: "Test 3" });
+    expect(sessionLink).toHaveAttribute("href", "/assessment-sessions/33");
+    const assessmentRow = sessionLink.closest("li");
+    expect(assessmentRow).not.toHaveTextContent("Standalone assessment");
+    expect(within(assessmentRow!).getByText("Assessment date:").nextElementSibling).toHaveAttribute(
+      "datetime",
+      "2026-10-24",
+    );
   });
 
   it("requests active rows by default and applies the status filter", async () => {

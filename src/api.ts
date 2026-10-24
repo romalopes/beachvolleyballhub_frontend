@@ -498,9 +498,32 @@ export interface AssessmentCategoryScore {
 export interface Assessment {
   id: number;
   player_profile_id: number;
+  player_profile?: {
+    id: number;
+    display_name: string;
+    account_name: string | null;
+  };
   coach_profile_id: number;
+  coach_profile?: {
+    id: number;
+    display_name: string;
+    account_name: string | null;
+  };
+  /** Responsible CoachProfile display name. */
+  coach_name?: string | null;
+  /** Linked account name, when the responsible CoachProfile belongs to an account. */
+  coach_account_name?: string | null;
   assessment_definition_id?: number | null;
   assessment_definition?: AssessmentDefinition | null;
+  assessment_session_id?: number | null;
+  assessment_session?: {
+    id: number;
+    name: string | null;
+    scheduled_on: string | null;
+  } | null;
+  /** Stable session identity fields for assessment catalogue rows. */
+  assessment_session_name?: string | null;
+  assessment_session_scheduled_on?: string | null;
   assessment_category_scores?: AssessmentCategoryScore[];
   category_scores?: AssessmentCategoryScore[];
   category_id: number | null;
@@ -1631,6 +1654,7 @@ export interface PlayerClaim {
   reviewed_by_account_id?: number | null;
   rejection_reason?: string | null;
   player_name?: string;
+  claimable_name?: string | null;
 }
 
 /** Safe, unconfirmed suggestion returned by player profile candidate search. */
@@ -1670,6 +1694,7 @@ export interface ClaimInvitation {
 
 export interface ManagementClaim extends PlayerClaim {
   can_review: boolean;
+  claimant_account_name?: string | null;
 }
 
 export interface ManagementClaimableProfile {

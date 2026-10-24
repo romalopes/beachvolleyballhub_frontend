@@ -244,6 +244,39 @@ describe("Identity", () => {
     expect(await screen.findByText(/profile is now linked/i)).toBeInTheDocument();
   });
 
+  it("shows player profile names in claims, received invitations, and history", async () => {
+    mockedApi.playerClaims.mockResolvedValue([
+      {
+        id: 6,
+        player_profile_id: 58,
+        claimable_type: "PlayerProfile",
+        claimable_id: 58,
+        claimant_account_id: 9,
+        status: "approved",
+        created_at: "2026-10-07T08:56:23.921Z",
+        reviewed_at: "2026-10-07T08:57:56.326Z",
+        claimable_name: "Player 1",
+      },
+    ]);
+    mockedApi.receivedClaimInvitations.mockResolvedValue([
+      {
+        ...invitation,
+        id: 9,
+        claimable_id: 41,
+        player_profile_id: 41,
+        status: "active",
+        claimable_name: "P1",
+      },
+    ]);
+
+    renderPage();
+
+    const claimLinks = await screen.findAllByRole("link", { name: "Player 1 #58" });
+    expect(claimLinks).toHaveLength(2);
+    expect(claimLinks[0]).toHaveAttribute("href", "/players/58");
+    expect(screen.getByRole("link", { name: "P1 #41" })).toHaveAttribute("href", "/players/41");
+  });
+
   it("lets a verified recipient decline an invitation", async () => {
     mockedApi.receivedClaimInvitations.mockResolvedValue([{ ...invitation, invitee_email: "alex@example.com", status: "active" }]);
     mockedApi.declineReceivedClaimInvitation.mockResolvedValue({ ...invitation, status: "declined" });

@@ -20,7 +20,10 @@ export function canManageAssessments(user: User | null | undefined): boolean {
 }
 
 export function assessmentRubricLabel(assessment: Assessment): string {
-  return assessment.category?.name ?? assessment.custom_category ?? "Unspecified rubric";
+  return assessment.assessment_definition?.name ??
+    assessment.category?.name ??
+    assessment.custom_category ??
+    "Unspecified rubric";
 }
 
 export function assessmentRecorderLabel(assessment: Assessment): string {

@@ -7,6 +7,8 @@ import LibraryHero from "../components/LibraryHero";
 import Pagination from "../components/settings/Pagination";
 import Tag from "../components/Tag";
 import { ASSESSMENT_STATUSES, assessmentStatusLabel } from "../utils/assessments";
+import { formatApiDate } from "../utils/dateFormatter";
+import { profileDisplayName } from "../utils/profileName";
 
 /** Page size for the assessment catalogue (the API's own default). */
 const PER_PAGE = 20;
@@ -121,10 +123,18 @@ export default function Assessments() {
             <li key={row.id} className="people-row">
               <div className="people-identity">
                 <Link to={`/players/${row.player_profile_id}`} className="people-name">
-                  Player #{row.player_profile_id}
+                  {row.player_profile
+                    ? profileDisplayName(
+                        row.player_profile.account_name,
+                        row.player_profile.display_name,
+                      )
+                    : `Player #${row.player_profile_id}`}
                 </Link>
                 <span className="people-contact">
-                  {row.category ? (
+                  <strong>Rubric:</strong>{" "}
+                  {row.assessment_definition ? (
+                    row.assessment_definition.name
+                  ) : row.category ? (
                     row.category.name
                   ) : (
                     row.custom_category ?? "Unspecified rubric"
@@ -136,11 +146,44 @@ export default function Assessments() {
                     </>
                   )}
                 </span>
+                <span className="people-meta">
+                  <strong>Responsible coach:</strong>{" "}
+                  {profileDisplayName(
+                    row.coach_account_name ?? row.coach_profile?.account_name,
+                    row.coach_name ?? row.coach_profile?.display_name,
+                  ) || "Unknown coach"}
+                  {" · "}
+                  <strong>Assessment session:</strong>{" "}
+                  {row.assessment_session_id ? (
+                    <Link to={`/assessment-sessions/${row.assessment_session_id}`}>
+                      {row.assessment_session_name ||
+                        row.assessment_session?.name ||
+                        `Session #${row.assessment_session_id}`}
+                    </Link>
+                  ) : (
+                    "Standalone assessment"
+                  )}
+                  {" · "}
+                  <strong>Assessment date:</strong>{" "}
+                  <time
+                    dateTime={
+                      row.assessment_session_scheduled_on ||
+                      row.assessment_session?.scheduled_on ||
+                      row.created_at
+                    }
+                  >
+                    {formatApiDate(
+                      row.assessment_session_scheduled_on ||
+                        row.assessment_session?.scheduled_on ||
+                        row.created_at,
+                    )}
+                  </time>
+                </span>
                 {row.notes && <span className="people-meta">{row.notes}</span>}
               </div>
               <div className="assessment-row-actions">
-                {row.created_by && (
-                  <span className="people-meta">{row.created_by.name}</span>
+                {row.created_by?.name && (
+                  <span className="people-meta">Recorded by {row.created_by.name}</span>
                 )}
                 <Tag variant={row.status === "active" ? "teal" : "default"}>
                   {assessmentStatusLabel(row.status)}

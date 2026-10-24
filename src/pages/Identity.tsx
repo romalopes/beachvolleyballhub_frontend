@@ -75,6 +75,22 @@ export default function IdentityPage() {
   const accountId = user?.account_id;
   const invitationReturnPath = `${location.pathname}${location.search}${location.hash}`;
 
+  const profileIdentity = (
+    type: string | null | undefined,
+    id: number | null | undefined,
+    name?: string | null,
+  ) => {
+    const profileType = type === "CoachProfile" ? "Coach profile" : "Player profile";
+    return `${name || profileType} #${id ?? "—"}`;
+  };
+
+  const profileHref = (type: string | null | undefined, id: number | null | undefined) => {
+    if (!id) return null;
+    if (type === "PlayerProfile") return `/players/${id}`;
+    if (type === "CoachProfile") return `/coaches/${id}`;
+    return null;
+  };
+
   useEffect(() => {
     if (token) rememberClaimInvitationPath(invitationReturnPath);
   }, [token, invitationReturnPath]);
@@ -755,13 +771,12 @@ export default function IdentityPage() {
           <h2>My claim requests</h2>
           {claims.length ? (
             <ul>
-              {claims.map((claim) => (
-                <li key={claim.id}>
-                  Claim #{claim.id} ·{" "}
-                  {claim.claimable_type?.replace("Profile", " profile ") ||
-                    "Profile"}{" "}
-                  #{claim.claimable_id ?? claim.player_profile_id ?? "—"} ·{" "}
-                  {claim.status}
+              {claims.map((claim) => {
+                const id = claim.claimable_id ?? claim.player_profile_id;
+                const href = profileHref(claim.claimable_type, id);
+                const identity = profileIdentity(claim.claimable_type, id, claim.claimable_name);
+                return <li key={claim.id}>
+                  Claim #{claim.id} · {href ? <Link to={href}>{identity}</Link> : identity} · {claim.status}
                   {claim.status === "pending" && (
                     <button
                       className="admin-btn"
@@ -771,8 +786,8 @@ export default function IdentityPage() {
                       Cancel request
                     </button>
                   )}
-                </li>
-              ))}
+                </li>;
+              })}
             </ul>
           ) : (
             <p>You have no claim requests.</p>
@@ -784,21 +799,14 @@ export default function IdentityPage() {
           {receivedInvitations.length ? (
             <ul>
               {receivedInvitations.map((invitation) => {
-                const name =
-                  invitation.claimable_name ??
-                  `${invitation.claimable_type.replace("Profile", " profile ")} #${invitation.claimable_id}`;
-                const href =
-                  invitation.claimable_type === "PlayerProfile"
-                    ? `/players/${invitation.claimable_id}`
-                    : invitation.claimable_type === "CoachProfile"
-                      ? `/coaches/${invitation.claimable_id}`
-                      : null;
+                const name = profileIdentity(invitation.claimable_type, invitation.claimable_id, invitation.claimable_name);
+                const href = profileHref(invitation.claimable_type, invitation.claimable_id);
                 return (
                   <li key={invitation.id}>
                     {href ? (
-                      <a href={href}>
+                      <Link to={href}>
                         <strong>{name}</strong>
-                      </a>
+                      </Link>
                     ) : (
                       <span>
                         <strong>{name}</strong>
@@ -845,26 +853,26 @@ export default function IdentityPage() {
             <ul>
               {claims
                 .filter((claim) => claim.status !== "pending")
-                .map((claim) => (
-                  <li key={`claim-${claim.id}`}>
-                    Claim #{claim.id} ·{" "}
-                    {claim.claimable_type?.replace("Profile", " profile ") ||
-                      "Profile"}{" "}
-                    · {claim.status}
+                .map((claim) => {
+                  const id = claim.claimable_id ?? claim.player_profile_id;
+                  const href = profileHref(claim.claimable_type, id);
+                  const identity = profileIdentity(claim.claimable_type, id, claim.claimable_name);
+                  return <li key={`claim-${claim.id}`}>
+                    Claim #{claim.id} · {href ? <Link to={href}>{identity}</Link> : identity} · {claim.status}
                     {claim.reviewed_at
                       ? ` · ${new Date(claim.reviewed_at).toLocaleDateString()}`
                       : ""}
-                  </li>
-                ))}
+                  </li>;
+                })}
               {receivedInvitations
                 .filter((invitation) => invitation.status !== "active")
-                .map((invitation) => (
-                  <li key={`invitation-${invitation.id}`}>
-                    Invitation #{invitation.id} ·{" "}
-                    {invitation.claimable_type.replace("Profile", " profile ")}{" "}
-                    · {invitation.status}
-                  </li>
-                ))}
+                .map((invitation) => {
+                  const href = profileHref(invitation.claimable_type, invitation.claimable_id);
+                  const identity = profileIdentity(invitation.claimable_type, invitation.claimable_id, invitation.claimable_name);
+                  return <li key={`invitation-${invitation.id}`}>
+                    Invitation #{invitation.id} · {href ? <Link to={href}>{identity}</Link> : identity} · {invitation.status}
+                  </li>;
+                })}
             </ul>
           ) : (
             <p>No claim or invitation history yet.</p>

@@ -490,23 +490,38 @@ describe("PlayerDetail", () => {
     expect(screen.queryByText("Private")).not.toBeInTheDocument();
   });
 
-  it("shows the player's assessment history with scores", async () => {
+  it("shows the player's assessment rubric, coach, session, date and scores", async () => {
     mockedApi.player.mockResolvedValue(player({
       assessment_count: 1,
       assessments: [{
-        id: 1, player_profile_id: 12, coach_profile_id: 7, category_id: 5, custom_category: null,
+        id: 1, player_profile_id: 12, coach_profile_id: 7, category_id: null, custom_category: null,
         training_session_id: null, score: 70, reported_value: 4, scale: "one_to_five",
-        notes: null, status: "active", created_at: "2026-09-01T00:00:00.000Z",
-        updated_at: "2026-09-01T00:00:00.000Z", category_label: "Attack", ten_scale: 7,
+        notes: null, status: "active", created_at: "2026-09-02T00:00:00.000Z",
+        updated_at: "2026-09-02T00:00:00.000Z", category_label: "Test", ten_scale: 7,
         five_scale: 4, score_label: "70/100", status_label: "Published",
         created_by: { id: 2, name: "Coach Ana" },
-        category: { id: 5, name: "Attack", slug: "attack" },
+        category: null,
+        assessment_definition_id: 7,
+        assessment_definition: {
+          id: 7, name: "Test", description: null, status: "active", created_by_id: 2,
+          created_at: "2026-09-01T00:00:00.000Z", updated_at: "2026-09-01T00:00:00.000Z",
+          total_weight: 100, remaining_weight: 0, weights_balanced: true, referenced: true,
+          assessment_categories: [],
+        },
+        coach_name: "Coach from Kasia",
+        coach_account_name: "Kasia Sobiesiak",
+        assessment_session_id: 33,
+        assessment_session_name: "Test 3",
+        assessment_session_scheduled_on: "2026-10-24",
       }],
     }));
     renderDetail();
 
     expect(await screen.findByRole("heading", { name: "Assessments" })).toBeInTheDocument();
-    expect(screen.getByText("Attack")).toBeInTheDocument();
+    expect(screen.getByText("Test")).toBeInTheDocument();
+    expect(screen.getByText("Kasia Sobiesiak (Coach from Kasia)")).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "Test 3" })).toHaveAttribute("href", "/assessment-sessions/33");
+    expect(screen.getByText("Assessment date:").nextElementSibling).toHaveAttribute("datetime", "2026-10-24");
     expect(screen.getByText("70/100 · 7/10 · 4/5")).toBeInTheDocument();
   });
 
