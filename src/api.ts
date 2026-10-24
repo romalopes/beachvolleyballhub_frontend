@@ -687,6 +687,8 @@ export interface GroupInput {
 export interface AssessmentSessionRankingRow {
   player_profile_id: number;
   player_name: string;
+  /** The linked account name, when the profile is claimed by an account; null for a profile-only player. */
+  account_name?: string | null;
   assessment_id?: number | null;
   overall_score: number | null;
   rank: number | null;
@@ -707,6 +709,8 @@ export interface AssessmentSessionParticipant {
   id: number;
   player_profile_id: number;
   player_name: string;
+  /** The linked account's name, when the profile is claimed by an account; null for a staff-recorded profile-only player. */
+  account_name?: string | null;
   inclusion: AssessmentSessionInclusion;
   missing_reason?: string | null;
   result?: AssessmentSessionRankingRow;
@@ -905,6 +909,8 @@ export interface AssessmentSession {
   coach_profile: {
     id: number;
     full_name: string;
+    /** The linked account name, when the coach profile is claimed by an account; null for a profile-only coach. */
+    account_name?: string | null;
   };
   group_id?: number | null;
   group?: { id: number; name: string } | null;
@@ -965,6 +971,8 @@ export interface RankingConsolidationSource {
   assessment_session_id: number;
   name: string | null;
   coach_name: string | null;
+  /** The linked account name, when the coach profile is claimed by an account. */
+  coach_account_name?: string | null;
   /**
    * Whether this source is finished. A draft source holds the whole consolidation
    * back from being published, so the UI badges it rather than hiding it.
@@ -1003,6 +1011,8 @@ export interface RankingConsolidationSource {
 export interface RankingConsolidationRow {
   player_profile_id: number;
   player_name: string;
+  /** The linked account name, when the player profile is claimed by an account. */
+  account_name?: string | null;
   coach_scores: Record<string, number>;
   coverage: number;
   average_score: number;

@@ -9,6 +9,7 @@ import {
   type Organisation, type Player, type Tournament, type TrainingSession,
 } from "../api";
 import LoadingState from "../components/LoadingState";
+import { accountDisplayName } from "../utils/profileName";
 
 interface FormState {
   title: string;
@@ -40,7 +41,10 @@ function playerName(player: Player) {
 }
 
 function coachName(coach: Coach) {
-  return coach.full_name || coach.display_name || coach.person?.first_name || `Coach ${coach.id}`;
+  return accountDisplayName(
+    coach.account?.full_name,
+    coach.full_name || coach.display_name || coach.person?.first_name || `Coach ${coach.id}`,
+  );
 }
 
 export default function AnalysisFormPage() {

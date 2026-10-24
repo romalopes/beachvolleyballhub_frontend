@@ -330,3 +330,32 @@ describe("SpreadsheetScoreGrid editing", () => {
     expect(screen.getByLabelText("Rating scale:")).toBeDisabled();
   });
 });
+
+describe("SpreadsheetScoreGrid account-linked names", () => {
+  it("shows the account name with the profile name in parentheses", () => {
+    render(
+      <SpreadsheetScoreGrid
+        categories={categories}
+        participants={[{ ...participant(), account_name: "Roma Lopes" }]}
+        isDraft
+        onSaveScores={vi.fn()}
+      />,
+    );
+
+    expect(screen.getByText("Roma Lopes (Ana Silva)")).toBeInTheDocument();
+    expect(screen.getByLabelText("Roma Lopes (Ana Silva) Attack")).toBeInTheDocument();
+  });
+
+  it("shows only the profile name when no account is linked", () => {
+    render(
+      <SpreadsheetScoreGrid
+        categories={categories}
+        participants={[participant()]}
+        isDraft
+        onSaveScores={vi.fn()}
+      />,
+    );
+
+    expect(screen.getByLabelText("Ana Silva Attack")).toBeInTheDocument();
+  });
+});

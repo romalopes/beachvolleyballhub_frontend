@@ -17,6 +17,7 @@ import EmptyState from "../components/EmptyState";
 import LibraryHero from "../components/LibraryHero";
 import Tag from "../components/Tag";
 import Pagination from "../components/settings/Pagination";
+import { accountDisplayName, profileDisplayName } from "../utils/profileName";
 
 /** Page size for assessment sessions list. */
 const PER_PAGE = 20;
@@ -259,10 +260,16 @@ export default function AssessmentSessions() {
 
   const myCoach = coaches.find((c) => c.id === myCoachId);
 
+  // The account is the real identity: a coach profile linked to an account is
+  // labelled by the account name, and the profile display name is only the
+  // fallback for a profile recorded without an account.
   const coachLabel = (coach: Coach) =>
-    `${coach.full_name ||
-      [coach.person?.first_name, coach.person?.last_name].filter(Boolean).join(" ") ||
-      "Coach"} · profile #${coach.id}`;
+    `${accountDisplayName(
+      coach.account?.full_name,
+      coach.full_name ||
+        [coach.person?.first_name, coach.person?.last_name].filter(Boolean).join(" ") ||
+        "Coach",
+    )} · profile #${coach.id}`;
 
   return (
     <div className="page assessment-sessions-page">
@@ -322,7 +329,7 @@ export default function AssessmentSessions() {
               >
                 <span className="session-name">{session.name}</span>
                 <span className="session-def">{session.assessment_definition?.name}</span>
-                <span className="session-coach">{session.coach_profile?.full_name}</span>
+                <span className="session-coach">{profileDisplayName(session.coach_profile?.account_name, session.coach_profile?.full_name)}</span>
                 <span className="session-date">
                   <Calendar size={14} />
                   {formatDate(session.scheduled_on)}

@@ -16,6 +16,7 @@ import {
 } from "../api";
 import { useAuth } from "../auth/AuthContext";
 import PageHeader from "../components/PageHeader";
+import { profileDisplayName } from "../utils/profileName";
 
 /**
  * A readable local timestamp. Withdrawal times are shown against published ones to
@@ -487,7 +488,7 @@ export default function RankingConsolidationDetail() {
                   </span>
                   <span className="consolidation-warning-detail">
                     {s.coach_name
-                      ? `Withdrawn by ${s.coach_name}`
+                      ? `Withdrawn by ${profileDisplayName(s.coach_account_name, s.coach_name)}`
                       : "Withdrawn"}
                   </span>
                 </li>
@@ -525,7 +526,7 @@ export default function RankingConsolidationDetail() {
                   </span>
                   <span className="consolidation-warning-detail">
                     {s.coach_name
-                      ? `Withdrawn by ${s.coach_name}`
+                      ? `Withdrawn by ${profileDisplayName(s.coach_account_name, s.coach_name)}`
                       : "Withdrawn"}
                     {s.withdrawn_at
                       ? ` · ${formatDateTime(s.withdrawn_at)}`
@@ -568,7 +569,7 @@ export default function RankingConsolidationDetail() {
                   </span>
                   <span className="consolidation-warning-detail">
                     {s.coach_name
-                      ? `Scored by ${s.coach_name}`
+                      ? `Scored by ${profileDisplayName(s.coach_account_name, s.coach_name)}`
                       : "Published again"}
                   </span>
                 </li>
@@ -631,7 +632,7 @@ export default function RankingConsolidationDetail() {
                     </span>
                     {s.coach_name && (
                       <span className="consolidation-coach-name">
-                        {s.coach_name}
+                        {profileDisplayName(s.coach_account_name, s.coach_name)}
                       </span>
                     )}
                   </th>
@@ -648,7 +649,7 @@ export default function RankingConsolidationDetail() {
                     </span>
                   </td>
                   <td className="cell-player">
-                    <span className="player-name">{row.player_name}</span>
+                    <span className="player-name">{profileDisplayName(row.account_name, row.player_name)}</span>
                     {row.coverage < sessionCount && (
                       <span className="consolidation-coverage-badge">
                         {row.coverage}/{sessionCount} sessions
@@ -694,7 +695,7 @@ export default function RankingConsolidationDetail() {
                 key={row.player_profile_id}
                 className="incomplete-player-item"
               >
-                <span className="player-name">{row.player_name}</span>
+                <span className="player-name">{profileDisplayName(row.account_name, row.player_name)}</span>
                 <span className="incomplete-categories-badge">
                   Ranked by {row.coverage} of {sessionCount}
                 </span>

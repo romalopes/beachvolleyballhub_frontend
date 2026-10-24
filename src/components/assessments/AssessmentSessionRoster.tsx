@@ -7,6 +7,7 @@ import type {
 } from "../../api";
 import { personName } from "../../utils/training";
 import { playerSubtitle } from "../training/participantDraft";
+import { accountDisplayName, profileDisplayName } from "../../utils/profileName";
 
 interface AssessmentSessionRosterProps {
   participants: AssessmentSessionParticipant[];
@@ -210,7 +211,7 @@ export default function AssessmentSessionRoster({
                   {candidates.slice(0, 10).map((player) => (
                     <li key={player.id} className="candidate-item">
                       <div>
-                        <strong>{player.full_name ?? personName(player.person)}</strong>
+                        <strong>{accountDisplayName(player.account?.full_name, player.full_name ?? personName(player.person))}</strong>
                         {playerSubtitle(player) && (
                           <span className="related-item-meta"> · {playerSubtitle(player)}</span>
                         )}
@@ -303,7 +304,7 @@ export default function AssessmentSessionRoster({
             <li key={participant.id} className="session-roster-item">
               <span className="roster-item-index">{index + 1}.</span>
               <div className="roster-item-info">
-                <span className="roster-player-name">{participant.player_name}</span>
+                <span className="roster-player-name">{profileDisplayName(participant.account_name, participant.player_name)}</span>
                 {participant.inclusion === "excluded" && (
                   <span className="roster-badge excluded">
                     Excluded{participant.missing_reason ? `: ${participant.missing_reason}` : ""}
@@ -324,8 +325,8 @@ export default function AssessmentSessionRoster({
                   <button
                     type="button"
                     className="admin-btn admin-btn-remove"
-                    title={`Remove ${participant.player_name} from session`}
-                    aria-label={`Remove ${participant.player_name}`}
+                    title={`Remove ${profileDisplayName(participant.account_name, participant.player_name)} from session`}
+                    aria-label={`Remove ${profileDisplayName(participant.account_name, participant.player_name)}`}
                     onClick={() => void handleRemove(participant.player_profile_id)}
                     disabled={working}
                   >

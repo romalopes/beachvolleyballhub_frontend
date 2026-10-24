@@ -163,3 +163,37 @@ describe("SessionRankingTable", () => {
     ).toBeInTheDocument();
   });
 });
+
+describe("SessionRankingTable account-linked names", () => {
+  it("shows the account name with the profile name in parentheses for linked profiles", () => {
+    renderTable({
+      ranking: [
+        row({ player_profile_id: 1, player_name: "Coogee 2", account_name: "Roma Lopes" }),
+      ],
+      incomplete: [
+        row({
+          player_profile_id: 2,
+          player_name: "Coogge 1",
+          account_name: "Roma Lopes",
+          overall_score: null,
+          rank: null,
+          missing_category_ids: [1],
+          status: "incomplete",
+        }),
+      ],
+      excluded: [
+        row({ player_profile_id: 3, player_name: "Coogee 3", account_name: null, status: "excluded" }),
+      ],
+    });
+
+    expect(screen.getByText("Roma Lopes (Coogee 2)")).toBeInTheDocument();
+    expect(screen.getByText("Roma Lopes (Coogge 1)")).toBeInTheDocument();
+    expect(screen.getByText("Coogee 3")).toBeInTheDocument();
+  });
+
+  it("shows only the profile name when it matches the account name", () => {
+    renderTable({ ranking: [row({ player_name: "Ana Silva", account_name: "Ana Silva" })] });
+
+    expect(screen.getByText("Ana Silva")).toBeInTheDocument();
+  });
+});

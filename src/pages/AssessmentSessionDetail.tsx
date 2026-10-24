@@ -23,6 +23,7 @@ import AssessmentSessionRoster from "../components/assessments/AssessmentSession
 import SpreadsheetScoreGrid from "../components/assessments/SpreadsheetScoreGrid";
 import SessionRankingTable from "../components/assessments/SessionRankingTable";
 import SessionConsolidations from "../components/assessments/SessionConsolidations";
+import { profileDisplayName } from "../utils/profileName";
 
 type SessionTab = "roster" | "scores" | "ranking" | "consolidated";
 
@@ -282,7 +283,7 @@ export default function AssessmentSessionDetail() {
           </span>
           <span className="session-meta-item">
             <User size={14} />
-            {session.coach_profile?.full_name}
+            {profileDisplayName(session.coach_profile?.account_name, session.coach_profile?.full_name)}
           </span>
           <span className="session-meta-item">
             Rubric: {session.assessment_definition?.name}

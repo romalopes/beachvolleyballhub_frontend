@@ -249,3 +249,70 @@ describe("AssessmentSessionRoster inline player creation", () => {
     expect(screen.getByText(/Roster is finalized/i)).toBeInTheDocument();
   });
 });
+
+describe("AssessmentSessionRoster roster names", () => {
+  it("shows the account name with the profile name in parentheses for a linked profile", () => {
+    render(
+      <AssessmentSessionRoster
+        participants={[{ ...participant(10, 1, "Coogee 2"), account_name: "Roma Lopes" }]}
+        searchPlayers={vi.fn()}
+        isDraft={false}
+        onAddPlayers={vi.fn()}
+        onRemovePlayers={vi.fn()}
+      />,
+    );
+
+    expect(screen.getByText("Roma Lopes (Coogee 2)")).toBeInTheDocument();
+  });
+
+  it("shows only the profile name when it already matches the account name", () => {
+    render(
+      <AssessmentSessionRoster
+        participants={[{ ...participant(11, 2, "Roma Lopes"), account_name: "Roma Lopes" }]}
+        searchPlayers={vi.fn()}
+        isDraft={false}
+        onAddPlayers={vi.fn()}
+        onRemovePlayers={vi.fn()}
+      />,
+    );
+
+    expect(screen.getByText("Roma Lopes")).toBeInTheDocument();
+  });
+
+  it("shows only the profile name when no account is linked", () => {
+    render(
+      <AssessmentSessionRoster
+        participants={[participant(12, 3, "Pedro Santos")]}
+        searchPlayers={vi.fn()}
+        isDraft={false}
+        onAddPlayers={vi.fn()}
+        onRemovePlayers={vi.fn()}
+      />,
+    );
+
+    expect(screen.getByText("Pedro Santos")).toBeInTheDocument();
+  });
+});
+
+describe("AssessmentSessionRoster candidate labels", () => {
+  it("labels a candidate by its account name when the profile is linked", async () => {
+    const user = userEvent.setup();
+    const linked = { ...player(4, "Coogee 2"), account: { id: 9, full_name: "Roma Lopes" } };
+    const searchPlayers = vi.fn().mockResolvedValue([linked]);
+    render(
+      <AssessmentSessionRoster
+        participants={[]}
+        searchPlayers={searchPlayers}
+        isDraft
+        onAddPlayers={vi.fn()}
+        onRemovePlayers={vi.fn()}
+      />,
+    );
+
+    await user.type(screen.getByLabelText("Search available players"), "coo");
+
+    // The account is the real identity; the profile display name is the
+    // fallback for an accountless profile only.
+    expect(await screen.findByText("Roma Lopes")).toBeInTheDocument();
+  });
+});

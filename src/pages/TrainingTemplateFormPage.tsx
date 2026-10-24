@@ -11,6 +11,7 @@ import {
 } from "../api";
 import LoadingState from "../components/LoadingState";
 import PageHeader from "../components/PageHeader";
+import { accountDisplayName } from "../utils/profileName";
 import {
   DEFAULT_TRAINING_DURATION_MINUTES,
   TRAINING_DURATION_OPTIONS,
@@ -229,7 +230,7 @@ export default function TrainingTemplateFormPage() {
             <option value="">No coach selected</option>
             {coaches.map((coach) => (
               <option key={coach.id} value={coach.id}>
-                {coach.display_name || coach.full_name || `Coach #${coach.id}`}
+                {accountDisplayName(coach.account?.full_name, coach.display_name || coach.full_name || `Coach #${coach.id}`)}
               </option>
             ))}
           </select>

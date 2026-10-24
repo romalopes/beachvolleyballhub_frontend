@@ -9,6 +9,7 @@ import type {
   AssessmentSessionScoreInput,
 } from "../../api";
 import { legalValue, toScore, SCALE_LABELS, SCALE_MAXIMA } from "../../utils/rating";
+import { profileDisplayName } from "../../utils/profileName";
 
 interface SpreadsheetScoreGridProps {
   categories: AssessmentSessionCategory[];
@@ -208,7 +209,7 @@ export default function SpreadsheetScoreGrid({
           const num = Number(rawVal);
           if (!legalValue(num, selectedScale)) {
             throw new Error(
-              `Invalid value "${rawVal}" for ${p.player_name} in ${cat.label}. Scale is ${selectedScale}.`
+              `Invalid value "${rawVal}" for ${profileDisplayName(p.account_name, p.player_name)} in ${cat.label}. Scale is ${selectedScale}.`
             );
           }
           categoryScores.push({
@@ -314,7 +315,7 @@ export default function SpreadsheetScoreGrid({
               return (
                 <tr key={p.id} className="session-score-row">
                   <td className="cell-player-name">
-                    <span className="player-name-text">{p.player_name}</span>
+                    <span className="player-name-text">{profileDisplayName(p.account_name, p.player_name)}</span>
                   </td>
                   {sortedCategories.map((cat, cIdx) => {
                     const cellVal = gridValues[p.player_profile_id]?.[cat.id] ?? "";
@@ -346,7 +347,7 @@ export default function SpreadsheetScoreGrid({
                               handleCellChange(p.player_profile_id, cat.id, e.target.value)
                             }
                             onKeyDown={(e) => handleKeyDown(e, rIdx, cIdx)}
-                            aria-label={`${p.player_name} ${cat.label}`}
+                            aria-label={`${profileDisplayName(p.account_name, p.player_name)} ${cat.label}`}
                           />
                           {scaleDiffers && cellVal.trim() !== "" && (
                             <span

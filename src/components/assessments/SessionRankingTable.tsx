@@ -3,6 +3,7 @@ import type {
   AssessmentSessionCategory,
   AssessmentSessionRankingPayload,
 } from "../../api";
+import { profileDisplayName } from "../../utils/profileName";
 
 interface SessionRankingTableProps {
   categories: AssessmentSessionCategory[];
@@ -55,7 +56,7 @@ export default function SessionRankingTable({
                       </span>
                     </td>
                     <td className="cell-player">
-                      <span className="player-name">{row.player_name}</span>
+                      <span className="player-name">{profileDisplayName(row.account_name, row.player_name)}</span>
                     </td>
                     <td className="cell-score">
                       <span className="overall-score-badge">{row.overall_score}</span>
@@ -91,7 +92,7 @@ export default function SessionRankingTable({
               return (
                 <li key={row.player_profile_id} className="incomplete-player-item">
                   <div className="incomplete-player-info">
-                    <span className="player-name">{row.player_name}</span>
+                    <span className="player-name">{profileDisplayName(row.account_name, row.player_name)}</span>
                     <span className="incomplete-categories-badge">
                       Missing: {missingNames || "unscored"}
                     </span>
@@ -117,7 +118,7 @@ export default function SessionRankingTable({
             {excluded.map((row) => (
               <li key={row.player_profile_id} className="excluded-player-item">
                 <div className="excluded-player-info">
-                  <span className="player-name">{row.player_name}</span>
+                  <span className="player-name">{profileDisplayName(row.account_name, row.player_name)}</span>
                   {row.missing_reason && (
                     <span className="excluded-reason">Reason: {row.missing_reason}</span>
                   )}

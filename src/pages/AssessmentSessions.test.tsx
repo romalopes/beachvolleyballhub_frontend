@@ -351,4 +351,24 @@ describe("AssessmentSessions wizard", () => {
     );
     expect(screen.getByLabelText(/Session name/i)).toHaveValue("Autumn Combine");
   });
+
+  it("labels a coach by the account name when the profile is linked to an account", async () => {
+    const user = userEvent.setup();
+    mockedApi.coaches.mockResolvedValue({
+      data: [
+        { id: 7, full_name: "Coach from Kasia", status: "active", account: { id: 50, full_name: "Roma Lopes" } },
+        { id: 8, full_name: "Coach Will", status: "active" },
+      ],
+    } as never);
+    renderPage();
+    await openWizard(user);
+
+    // The account is the real identity: the picker leads with the account name,
+    // and the profile display name only appears for an accountless profile.
+    const picker = screen.getByLabelText(/coach of record/i);
+    await waitFor(() => expect(picker).toHaveDisplayValue(/Roma Lopes/));
+    expect(
+      screen.getByRole("option", { name: /Coach Will/ }),
+    ).toHaveTextContent("Coach Will · profile #8");
+  });
 });
