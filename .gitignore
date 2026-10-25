@@ -9,6 +9,7 @@ lerna-debug.log*
 
 node_modules
 dist
+coverage
 \n# Environment variables
 .env
 .env.local

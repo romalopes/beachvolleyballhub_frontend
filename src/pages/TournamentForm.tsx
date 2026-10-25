@@ -1,9 +1,17 @@
-import { useEffect, useState, type FormEvent } from "react";
+import {
+  useCallback,
+  useEffect,
+  useRef,
+  useState,
+  type FormEvent,
+} from "react";
 import {
   api,
   type Division,
   type DivisionScheme,
   type Organisation,
+  type Location,
+  type Court,
   type PublicationState,
   type Tournament,
   type TournamentOptions,
@@ -11,6 +19,7 @@ import {
   type WatchLink,
 } from "../api";
 import { useAuth } from "../auth/AuthContext";
+import LocationCreateForm from "../components/locations/LocationCreateForm";
 
 interface TournamentFormProps {
   initial: Tournament | null;
@@ -24,6 +33,9 @@ interface FormState {
   description: string;
   website_url: string;
   location_name: string;
+  location_id: string;
+  court_id: string;
+  location_detail: string;
   city: string;
   state: string;
   country: string;
@@ -137,6 +149,9 @@ export default function TournamentForm({
       description: initial?.description ?? "",
       website_url: initial?.website_url ?? "",
       location_name: initial?.location_name ?? "",
+      location_id: initial?.location ? String(initial.location.id) : "",
+      court_id: initial?.court ? String(initial.court.id) : "",
+      location_detail: initial?.location_detail ?? "",
       city: initial?.city ?? "",
       state: initial?.state ?? "",
       country: initial?.country ?? "",
@@ -156,6 +171,33 @@ export default function TournamentForm({
   // and the server-stamped `can_edit` flag narrows that to their officer seats
   // — the same judgement the API applies when the create request arrives.
   const isAdminUser = user?.roles?.includes("admin") ?? false;
+  const [locations, setLocations] = useState<Location[]>([]);
+  const [courts, setCourts] = useState<Court[]>([]);
+  const [locationNotice, setLocationNotice] = useState<string | null>(null);
+
+  // Fields the organiser owns: the ones they edited in this session, and —
+  // when editing — the ones the persisted tournament already had. A prefill
+  // writes only to the fields it does not own, so it can replace its own
+  // earlier suggestion but never the organiser's work.
+  const touchedFields = useRef<Set<string>>(new Set());
+  const markTouched = (field: string) => {
+    touchedFields.current.add(field);
+  };
+
+  useEffect(() => {
+    if (!initial) return;
+    // A saved tournament's own values are the organiser's, even before they
+    // touch the form again.
+    const locked = new Set<string>();
+    if (initial.location) locked.add("location_id");
+    if (initial.location_name) locked.add("location_name");
+    if (initial.city) locked.add("city");
+    if (initial.state) locked.add("state");
+    if (initial.country) locked.add("country");
+    // A persisted tournament always carries a timezone; leave it alone.
+    locked.add("timezone");
+    touchedFields.current = locked;
+  }, [initial]);
 
   useEffect(() => {
     let active = true;
@@ -180,14 +222,91 @@ export default function TournamentForm({
         // tournament's organisation (if any) and the error surfaces on save.
         if (active) setOrganisations([]);
       });
+    if (typeof api.locations === "function") api.locations().then((response) => {
+      if (active) {
+        setLocations(
+          initial?.location && !response.data.some((row) => row.id === initial.location?.id)
+            ? [initial.location, ...response.data]
+            : response.data,
+        );
+      }
+    }).catch(() => {
+      if (active) setLocations([]);
+    });
+    if (formData.location_id && typeof api.locationCourts === "function") {
+      api.locationCourts(Number(formData.location_id)).then((rows) => {
+        if (active) setCourts(rows);
+      }).catch(() => {
+        if (active) setCourts([]);
+      });
+    }
     return () => {
       active = false;
     };
-  }, [isAdminUser]);
+  }, [initial, isAdminUser]);
 
   function set<K extends keyof FormState>(key: K, value: FormState[K]) {
     setFormData((prev) => ({ ...prev, [key]: value }));
   }
+
+  /**
+   * Fill the form from an organisation's default venue.
+   *
+   * The venue and its address parts are a *suggestion*: the organiser may have
+   * already typed their own city, and a prefill that overwrites what somebody
+   * wrote is worse than no prefill at all. So a field is filled only while the
+   * organiser does not own it: either because they edited it in this session,
+   * or because the saved tournament already carried it. Changing the
+   * organisation therefore replaces the previous suggestion, not the
+   * organiser's work.
+   */
+  const applyDefaultLocation = useCallback(
+    (
+      location: Location | null | undefined,
+      organisationId?: string,
+    ) => {
+      setFormData((current) => {
+        const next: FormState = { ...current };
+        if (organisationId !== undefined) next.organisation_id = organisationId;
+        if (!location) return next;
+        const fill = <K extends keyof FormState>(key: K, value: FormState[K]) => {
+          if (touchedFields.current.has(key)) return;
+          next[key] = value;
+        };
+        fill("location_id", String(location.id));
+        fill("location_name", location.name);
+        fill("city", location.locality ?? "");
+        fill("state", location.administrative_area ?? "");
+        fill("country", location.country_code ?? "");
+        if (location.timezone) fill("timezone", location.timezone);
+        return next;
+      });
+      if (!location) return;
+
+      // The venue dropdown lists the first page of the catalogue, so the
+      // organisation's default may not be among the options — without it the
+      // select would show a selection it cannot render.
+      setLocations((rows) =>
+        rows.some((row) => row.id === location.id)
+          ? rows
+          : [location, ...rows],
+      );
+      void api
+        .locationCourts(location.id)
+        .then(setCourts)
+        .catch(() => setCourts([]));
+    },
+    [],
+  );
+
+  const handleOrganisationChange = (organisationId: string) => {
+    const organisation = organisations?.find(
+      (row) => String(row.id) === organisationId,
+    );
+    // The organisation and its default venue are written in one update: two
+    // separate ones would race, and the second would read a stale form state.
+    applyDefaultLocation(organisation?.default_location, organisationId);
+  };
 
   function handleAllDayChange(allDay: boolean) {
     setFormData((prev) => {
@@ -363,6 +482,9 @@ export default function TournamentForm({
         website_url: formData.website_url.trim() || null,
         description: formData.description.trim() || null,
         location_name: formData.location_name.trim() || null,
+        location_id: formData.location_id ? Number(formData.location_id) : null,
+        court_id: formData.court_id ? Number(formData.court_id) : null,
+        location_detail: formData.location_detail.trim() || null,
         city: formData.city.trim() || null,
         state: formData.state.trim() || null,
         country: formData.country.trim() || null,
@@ -437,7 +559,7 @@ export default function TournamentForm({
         <select
           id="tournament-organisation"
           value={formData.organisation_id}
-          onChange={(e) => set("organisation_id", e.target.value)}
+          onChange={(e) => handleOrganisationChange(e.target.value)}
           required
         >
           <option value="">Select an organisation</option>
@@ -478,14 +600,51 @@ export default function TournamentForm({
       </div>
 
       <div className="admin-field">
-        <label htmlFor="tournament-location-name">Venue</label>
-        <input
-          id="tournament-location-name"
-          type="text"
-          value={formData.location_name}
-          onChange={(e) => set("location_name", e.target.value)}
-          placeholder="e.g. Copacabana Beach Court 3"
-        />
+        <label htmlFor="tournament-location">Verified venue</label>
+        <select id="tournament-location" value={formData.location_id} onChange={(e) => {
+          const selected = locations.find((row) => row.id === Number(e.target.value));
+          set("location_id", e.target.value);
+          set("court_id", "");
+          // A venue the organiser picked is theirs; no prefill may replace it.
+          markTouched("location_id");
+          if (selected) { set("location_name", selected.name); markTouched("location_name"); }
+          if (e.target.value) void api.locationCourts(Number(e.target.value)).then(setCourts).catch(() => setCourts([]));
+          else setCourts([]);
+        }}>
+          <option value="">No canonical location</option>
+          {locations.map((row) => <option key={row.id} value={row.id}>{row.name}</option>)}
+        </select>
+      </div>
+      <LocationCreateForm
+        idPrefix="tournament-proposal"
+        onCreated={(location) => {
+          setLocations((current) => [location, ...current.filter((row) => row.id !== location.id)]);
+          // A venue the organiser proposed is theirs; no prefill may replace it.
+          markTouched("location_id");
+          markTouched("location_name");
+          setFormData((current) => ({
+            ...current,
+            location_id: String(location.id),
+            court_id: "",
+            location_name: location.name,
+          }));
+          setCourts([]);
+          setLocationNotice(
+            location.geocoding_status === "pending"
+              ? "Venue proposal selected. Coordinate lookup is pending."
+              : "Venue proposal selected and awaiting verification.",
+          );
+        }}
+      />
+      {locationNotice && <p className="field-hint" role="status">{locationNotice}</p>}
+      {courts.length > 0 && <div className="admin-field"><label htmlFor="tournament-court">Court</label><select id="tournament-court" value={formData.court_id} onChange={(e) => set("court_id", e.target.value)}><option value="">No specific court</option>{courts.map((court) => <option key={court.id} value={court.id}>{court.name}</option>)}</select></div>}
+      <div className="admin-field">
+        <label htmlFor="tournament-location-name">Venue label</label>
+        <input id="tournament-location-name" type="text" value={formData.location_name} onChange={(e) => { markTouched("location_name"); set("location_name", e.target.value); }} placeholder="e.g. Copacabana Beach" />
+      </div>
+      <div className="admin-field">
+        <label htmlFor="tournament-location-detail">Meeting point / access details</label>
+        <input id="tournament-location-detail" type="text" value={formData.location_detail} onChange={(e) => set("location_detail", e.target.value)} placeholder="e.g. Court 3, north entrance" />
       </div>
 
       <div className="admin-field-row">
@@ -495,7 +654,7 @@ export default function TournamentForm({
             id="tournament-city"
             type="text"
             value={formData.city}
-            onChange={(e) => set("city", e.target.value)}
+            onChange={(e) => { markTouched("city"); set("city", e.target.value); }}
           />
         </div>
         <div className="admin-field">
@@ -504,7 +663,7 @@ export default function TournamentForm({
             id="tournament-state"
             type="text"
             value={formData.state}
-            onChange={(e) => set("state", e.target.value)}
+            onChange={(e) => { markTouched("state"); set("state", e.target.value); }}
           />
         </div>
         <div className="admin-field">
@@ -513,7 +672,7 @@ export default function TournamentForm({
             id="tournament-country"
             type="text"
             value={formData.country}
-            onChange={(e) => set("country", e.target.value)}
+            onChange={(e) => { markTouched("country"); set("country", e.target.value); }}
           />
         </div>
       </div>
@@ -558,7 +717,7 @@ export default function TournamentForm({
           <select
             id="tournament-timezone"
             value={formData.timezone}
-            onChange={(e) => set("timezone", e.target.value)}
+            onChange={(e) => { markTouched("timezone"); set("timezone", e.target.value); }}
           >
             {timezoneChoices.map((tz) => (
               <option key={tz} value={tz}>

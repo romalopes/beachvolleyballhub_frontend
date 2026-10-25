@@ -170,6 +170,34 @@ describe("tournaments client", () => {
 });
 
 describe("postJSON (auth + mutations)", () => {
+  it("creates a location proposal using the nested Rails payload", async () => {
+    const location = { id: 42, name: "Coogee Beach" };
+    const fetchMock = mockFetchOnce({
+      ok: true,
+      status: 201,
+      body: { location },
+    });
+
+    await expect(api.createLocation({
+      name: "Coogee Beach",
+      location_type: "beach",
+      locality: "Sydney",
+      country_code: "AU",
+    })).resolves.toEqual(location);
+
+    const [url, init] = fetchMock.mock.calls[0] as [string, RequestInit];
+    expect(url).toBe("/api/v1/locations");
+    expect(init.method).toBe("POST");
+    expect(JSON.parse(String(init.body))).toEqual({
+      location: {
+        name: "Coogee Beach",
+        location_type: "beach",
+        locality: "Sydney",
+        country_code: "AU",
+      },
+    });
+  });
+
   it("login stores the returned token and returns the user", async () => {
     const user = {
       id: 1,

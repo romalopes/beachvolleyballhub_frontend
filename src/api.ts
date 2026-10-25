@@ -413,6 +413,66 @@ export interface TrainingSessionDrillRow {
  */
 export type TrainingSessionVisibility = "shared" | "private";
 
+export interface Court {
+  id: number;
+  location_id: number;
+  name: string;
+  latitude: string | number | null;
+  longitude: string | number | null;
+  access_instructions: string | null;
+  status: "active" | "archived";
+}
+
+export interface Location {
+  id: number;
+  name: string;
+  slug?: string | null;
+  location_type: "beach" | "sports_venue" | "park" | "indoor" | "club" | "other";
+  formatted_address: string | null;
+  locality: string | null;
+  administrative_area: string | null;
+  country_code: string | null;
+  timezone: string | null;
+  latitude: string | number | null;
+  longitude: string | number | null;
+  status: "active" | "archived" | "merged";
+  verification_status: "proposed" | "verified" | "rejected";
+  geocoding_status: "not_requested" | "pending" | "resolved" | "failed" | "manual";
+  coordinate_source: string | null;
+  map_url: string | null;
+  courts?: Court[];
+}
+
+export type LocationType = Location["location_type"];
+
+/**
+ * A verified location attached to an organisation.
+ *
+ * The attachment is a row of its own (`OrganisationLocation`) so one venue can
+ * serve several organisations, and so an organisation's note about a venue is
+ * kept apart from the venue itself. `association_id` identifies that row —
+ * it is what a detach addresses — and is deliberately not the location id.
+ */
+export interface OrganisationLocation extends Location {
+  /** The attachment's id, not the location's. */
+  association_id: number;
+  notes: string | null;
+  /** Whether this is the organisation's default location. */
+  default: boolean;
+}
+
+export interface LocationInput {
+  name: string;
+  location_type: LocationType;
+  formatted_address?: string | null;
+  locality?: string | null;
+  administrative_area?: string | null;
+  country_code?: string | null;
+  timezone?: string | null;
+  latitude?: number | null;
+  longitude?: number | null;
+}
+
 /**
  * Where a participant stands. The backend keeps the state machine
  * (`invited → confirmed → attended|absent`, with `declined` as the opt-out), so
@@ -636,6 +696,14 @@ export interface Group {
   requires_approval: boolean;
   /** Same value as `requires_approval`, named as the question it answers. */
   approval_required: boolean;
+  default_location?: Location | null;
+  /**
+   * The venue a session for this group starts from: the group's own default
+   * if it has one, otherwise the parent organisation's. Null when neither is
+   * set — the server resolves the fallback, so the client never has to
+   * reimplement "group default, else organisation default".
+   */
+  effective_default_location?: Location | null;
   /** Whether the caller may decide a pending join request (owner/curator/admin). */
   can_approve_members: boolean;
   /** Roster size, so a picker can label a squad without loading its members. */
@@ -705,6 +773,7 @@ export interface GroupInput {
   organisation_id?: number | null;
   /** Join policy. Omit to leave unchanged on an edit. */
   requires_approval?: boolean;
+  default_location_id?: number | null;
 }
 
 export interface AssessmentSessionRankingRow {
@@ -888,6 +957,12 @@ export interface Organisation {
   requires_approval: boolean;
   /** Same value as `requires_approval`, named as the question it answers. */
   approval_required: boolean;
+  /**
+   * The organisation's default venue — the one its events and training
+   * sessions start from. Null until one of the organisation's attached
+   * locations is marked as the default.
+   */
+  default_location?: Location | null;
   created_by_person: { id: number; name: string } | null;
   created_at: string;
   updated_at: string;
@@ -900,6 +975,12 @@ export interface OrganisationInput {
   acronym?: string | null;
   organisation_type?: OrganisationType;
   parent_organisation_id?: number | null;
+  /**
+   * The organisation's default venue. On create, the server atomically attaches
+   * this active, verified location before setting it as the default. On update it
+   * must already be attached. Null clears the default.
+   */
+  default_location_id?: number | null;
   /** Join policy. Omit to leave unchanged on an edit. */
   requires_approval?: boolean;
 }
@@ -1138,6 +1219,10 @@ export interface TrainingSession {
   starts_at: string;
   ends_at: string;
   location: string | null;
+  location_id?: number | null;
+  court_id?: number | null;
+  canonical_location?: Location | null;
+  court?: Court | null;
   location_detail?: string | null;
   status: TrainingSessionStatus;
   visibility: TrainingSessionVisibility;
@@ -1209,6 +1294,8 @@ export interface TrainingSessionInput {
   starts_at: string;
   ends_at: string;
   location?: string | null;
+  location_id?: number | null;
+  court_id?: number | null;
   location_detail?: string | null;
   capacity?: number | null;
   level?: string | null;
@@ -2113,6 +2200,9 @@ export interface Tournament {
   city: string | null;
   state: string | null;
   country: string | null;
+  location?: Location | null;
+  court?: Court | null;
+  location_detail?: string | null;
   timezone: string;
   all_day: boolean;
   starts_at: string; // ISO string
@@ -2125,6 +2215,28 @@ export interface Tournament {
   /** True when the current account follows this tournament (the watching-list bookmark). */
   my_following?: boolean;
   watch_links: WatchLink[];
+}
+
+export interface TournamentInput {
+  name: string;
+  organisation_id: number;
+  scope: TournamentScope;
+  division_scheme: DivisionScheme;
+  publication_state: PublicationState;
+  website_url?: string | null;
+  description?: string | null;
+  location_name?: string | null;
+  city?: string | null;
+  state?: string | null;
+  country?: string | null;
+  location_id?: number | null;
+  court_id?: number | null;
+  location_detail?: string | null;
+  timezone: string;
+  all_day: boolean;
+  starts_at: string;
+  ends_at: string;
+  created_by_account_id?: number;
 }
 // ===== End Tournament API Types =====
 
@@ -2308,6 +2420,55 @@ export const api = {
   },
   trainingSession: (id: number) =>
     fetchAPI<TrainingSession>(`/training_sessions/${id}`),
+  locations: (params?: {
+    q?: string;
+    page?: number;
+    per_page?: number;
+    /**
+     * Restrict to a verification state. "verified" is the one that matters
+     * for attaching a venue to an organisation — the server refuses anything
+     * that is not active and verified.
+     */
+    verification_status?: string;
+    status?: string;
+  }) => {
+    const qs = new URLSearchParams();
+    if (params?.q) qs.set("q", params.q);
+    if (params?.page) qs.set("page", String(params.page));
+    if (params?.per_page) qs.set("per_page", String(params.per_page));
+    if (params?.verification_status)
+      qs.set("verification_status", params.verification_status);
+    if (params?.status) qs.set("status", params.status);
+    const query = qs.toString();
+    return fetchAPI<PaginatedResponse<Location>>(`/locations${query ? `?${query}` : ""}`);
+  },
+  location: (idOrSlug: number | string) =>
+    fetchAPI<{ location: Location }>(
+      `/locations/${encodeURIComponent(String(idOrSlug))}`,
+    ).then((response) => response.location),
+  createLocation: (data: LocationInput) =>
+    postJSON<{ location: Location }>("/locations", { location: data }).then(
+      (response) => response.location,
+    ),
+  verifyLocation: (id: number) =>
+    postJSON<{ location: Location }>(
+      `/locations/${encodeURIComponent(String(id))}/verify`,
+      {},
+    ).then((response) => response.location),
+  updateLocation: (id: number, data: Partial<LocationInput>) =>
+    postJSON<{ location: Location }>(
+      `/locations/${encodeURIComponent(String(id))}`,
+      { location: data },
+      "PATCH",
+    ).then((response) => response.location),
+  destroyLocation: (id: number) =>
+    postJSON<void>(
+      `/locations/${encodeURIComponent(String(id))}`,
+      {},
+      "DELETE",
+    ),
+  locationCourts: (locationId: number) =>
+    fetchAPI<{ courts: Court[] }>(`/locations/${locationId}/courts`).then((response) => response.courts),
   createTrainingSession: (data: TrainingSessionInput) =>
     postJSON<TrainingSession>("/training_sessions", { training_session: data }),
   updateTrainingSession: (id: number, data: Partial<TrainingSessionInput>) =>
@@ -2968,6 +3129,50 @@ export const api = {
   deleteOrganisation: (id: number) =>
     postJSON<{ message: string; id: number }>(
       `/organisations/${id}`,
+      {},
+      "DELETE",
+    ),
+
+  // ---------- Organisation locations -----------------------------------------
+  // The venues an organisation uses. Attaching a location is what makes it
+  // eligible to be that organisation's default, so the two are separate calls:
+  // attach first, then mark the default.
+
+  /**
+   * The locations attached to an organisation, each carrying the attachment's
+   * own `association_id` and whether it is the default.
+   */
+  organisationLocations: (id: number) =>
+    fetchAPI<{ locations: OrganisationLocation[] }>(
+      `/organisations/${id}/locations`,
+    ),
+  /**
+   * Attach a location to an organisation. The server refuses anything that is
+   * not active and verified, and re-attaching an existing location updates its
+   * note rather than duplicating the row.
+   */
+  createOrganisationLocation: (
+    id: number,
+    locationId: number,
+    notes?: string | null,
+  ) =>
+    postJSON<{ organisation_location: OrganisationLocation }>(
+      `/organisations/${id}/locations`,
+      {
+        organisation_location: {
+          location_id: locationId,
+          ...(notes ? { notes } : {}),
+        },
+      },
+    ),
+  /**
+   * Detach a location. The address is the *attachment's* id, not the
+   * location's. The server refuses to detach the current default — clear the
+   * default first.
+   */
+  destroyOrganisationLocation: (id: number, associationId: number) =>
+    postJSON<void>(
+      `/organisations/${id}/locations/${associationId}`,
       {},
       "DELETE",
     ),
@@ -3914,15 +4119,7 @@ export const api = {
   tournamentOptions: () => fetchAPI<TournamentOptions>("/tournaments/options"),
   tournament: (id: number | string) => fetchAPI<Tournament>(`/tournaments/${encodeURIComponent(String(id))}`),
   createTournament: (
-    data: Omit<
-      Tournament,
-      | "id"
-      | "organisation"
-      | "divisions"
-      | "participations"
-      | "watch_links"
-      | "created_by_account_id"
-    > & { organisation_id: number; created_by_account_id?: number },
+    data: TournamentInput,
   ) =>
     postJSON<Tournament>("/tournaments", {
       tournament: data,
@@ -3932,17 +4129,7 @@ export const api = {
     }),
   updateTournament: (
     id: number | string,
-    data: Partial<
-      Omit<
-        Tournament,
-        | "id"
-        | "organisation"
-        | "divisions"
-        | "participations"
-        | "watch_links"
-        | "created_by_account_id"
-      >
-    > & { organisation_id?: number },
+    data: Partial<TournamentInput>,
   ) =>
     postJSON<Tournament>(
       `/tournaments/${encodeURIComponent(String(id))}`,
@@ -4150,4 +4337,13 @@ export const api = {
     ),
 
   // ===== End Analysis API Methods =====
+
+  verifyLocationById: (id: number) => {
+    return postJSON<{ id: number }>(`/api/v1/locations/${id}/verify`, {}, "PATCH");
+  },
+
+  rejectLocationById: (id: number) => {
+    return postJSON<void>(`/api/v1/locations/${id}/reject`, {}, "PATCH");
+  },
+
 };

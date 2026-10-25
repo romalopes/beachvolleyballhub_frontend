@@ -177,7 +177,7 @@ export default function TrainingDetail() {
               {session.duration_minutes} min
             </Tag>
           )}
-          {session.location && <Tag>{session.location}</Tag>}
+          {(session.canonical_location || session.location) && <Tag>{session.canonical_location?.name ?? session.location}</Tag>}
         </div>
       </div>
 
@@ -223,14 +223,20 @@ export default function TrainingDetail() {
             style={{ marginRight: "0.5rem", verticalAlign: "middle" }}
           />
           {formatTrainingDateRange(session.starts_at, session.ends_at)}
-          {session.location && (
+          {(session.canonical_location || session.location) && (
             <>
               <br />
               <MapPin
                 size={16}
                 style={{ marginRight: "0.5rem", verticalAlign: "middle" }}
               />
-              {session.location}
+              {session.canonical_location?.map_url ? (
+                <a href={session.canonical_location.map_url} target="_blank" rel="noopener noreferrer">
+                  {session.canonical_location.name}
+                </a>
+              ) : (session.canonical_location?.name ?? session.location)}
+              {session.court && ` — ${session.court.name}`}
+              {session.location_detail && ` (${session.location_detail})`}
             </>
           )}
         </p>

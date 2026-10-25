@@ -30,5 +30,24 @@ export default defineConfig({
     // http://localhost:3001/api/v1 (absolute, for direct dev access) must not
     // leak into the suite — force the empty default here.
     env: { VITE_API_BASE_URL: "" },
+    coverage: {
+      provider: "v8",
+      include: ["src/**/*.{ts,tsx}"],
+      exclude: [
+        "src/**/*.test.{ts,tsx}",
+        "src/test/**",
+        "src/main.tsx",
+        "src/**/*.d.ts",
+        "src/**/types.ts",
+        "src/components/drill/definition_backup.ts",
+      ],
+      reporter: ["text", "html", "json", "clover"],
+      thresholds: {
+        statements: 65,
+        branches: 58,
+        functions: 60,
+        lines: 68,
+      },
+    },
   },
 });

@@ -1,4 +1,4 @@
-import { cleanup, render, screen, within } from "@testing-library/react";
+import { cleanup, render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { MemoryRouter, Route, Routes } from "react-router-dom";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
@@ -25,6 +25,10 @@ vi.mock("../api", async (importOriginal) => {
       drills: vi.fn(),
       players: vi.fn(),
       groups: vi.fn(),
+      group: vi.fn(),
+      locations: vi.fn(),
+      locationCourts: vi.fn(),
+      createLocation: vi.fn(),
       createTrainingSession: vi.fn(),
       updateTrainingSession: vi.fn(),
       trainingSession: vi.fn(),
@@ -144,6 +148,8 @@ beforeEach(() => {
   mockedApi.drills.mockResolvedValue(drills);
   mockedApi.players.mockResolvedValue(paginated([]));
   mockedApi.groups.mockResolvedValue(paginated([]));
+  mockedApi.locations.mockResolvedValue(paginated([]));
+  mockedApi.locationCourts.mockResolvedValue([]);
   mockedApi.createTrainingSession.mockResolvedValue({ id: 99 } as never);
 });
 
@@ -175,6 +181,116 @@ const addSkillFocus = async (skillId = "5") => {
 };
 
 describe("TrainingFormPage — new training", () => {
+  it("selects a newly proposed venue and reports pending geocoding", async () => {
+    mockedApi.createLocation.mockResolvedValue({
+      id: 42,
+      name: "Coogee Beach",
+      location_type: "beach",
+      formatted_address: null,
+      locality: "Sydney",
+      administrative_area: null,
+      country_code: "AU",
+      timezone: "Australia/Sydney",
+      latitude: null,
+      longitude: null,
+      status: "active",
+      verification_status: "proposed",
+      geocoding_status: "pending",
+      coordinate_source: null,
+      map_url: null,
+    });
+    renderForm();
+
+    await userEvent.click(await screen.findByRole("button", { name: "Propose a new venue" }));
+    const proposal = within(screen.getByRole("region", { name: "Propose a new venue" }));
+    await userEvent.type(proposal.getByLabelText("Name *"), "Coogee Beach");
+    await userEvent.click(proposal.getByRole("button", { name: "Create venue proposal" }));
+
+    const verifiedVenue = screen.getByText("Verified venue").closest("label")?.querySelector("select");
+    await waitFor(() => expect(verifiedVenue).toHaveValue("42"));
+    expect(screen.getByPlaceholderText("e.g. north entrance")).toHaveValue("Coogee Beach");
+    expect(screen.getByRole("status")).toHaveTextContent("Coordinate lookup is pending");
+  });
+
+  describe("default venue prefill", () => {
+    const defaultVenue = {
+      id: 7,
+      name: "Coogee Beach",
+      location_type: "beach" as const,
+      formatted_address: "Coogee Beach, Sydney NSW",
+      locality: "Sydney",
+      administrative_area: "NSW",
+      country_code: "AU",
+      timezone: "Australia/Sydney",
+      latitude: -33.9167,
+      longitude: 151.25,
+      status: "active" as const,
+      verification_status: "verified" as const,
+      geocoding_status: "resolved" as const,
+      coordinate_source: "geoapify",
+      map_url: null,
+    };
+
+    const venueSelect = () =>
+      screen.getByText("Verified venue").closest("label")?.querySelector("select");
+
+    const locationInput = () => screen.getByPlaceholderText("e.g. north entrance");
+
+    const withGroup = (overrides = {}) => ({
+      id: 30,
+      name: "U19 squad",
+      slug: "u19-squad",
+      description: null,
+      status: "active" as const,
+      status_label: "Active",
+      visibility: "shared" as const,
+      requires_approval: false,
+      approval_required: false,
+      can_approve_members: false,
+      player_count: 2,
+      organisation: { id: 1, name: "Northern Club" },
+      owner: null,
+      effective_default_location: defaultVenue,
+      created_by: null,
+      created_at: "2026-01-01T00:00:00Z",
+      updated_at: "2026-01-01T00:00:00Z",
+      members: [],
+      ...overrides,
+    });
+
+    it("suggests the group's default venue when the group is picked", async () => {
+      mockedApi.groups.mockResolvedValue(paginated([withGroup()]));
+      mockedApi.group.mockResolvedValue({ group: withGroup() });
+      renderForm();
+
+      await userEvent.selectOptions(
+        await screen.findByLabelText(/group \(optional\)/i),
+        "30",
+      );
+
+      await waitFor(() => expect(venueSelect()).toHaveValue("7"));
+      expect(locationInput()).toHaveValue("Coogee Beach");
+    });
+
+    it("never overwrites a venue the coach typed", async () => {
+      mockedApi.groups.mockResolvedValue(paginated([withGroup()]));
+      mockedApi.group.mockResolvedValue({ group: withGroup() });
+      renderForm();
+
+      await userEvent.type(
+        await screen.findByPlaceholderText("e.g. north entrance"),
+        "North entrance",
+      );
+      await userEvent.selectOptions(
+        screen.getByLabelText(/group \(optional\)/i),
+        "30",
+      );
+
+      await waitFor(() => expect(venueSelect()).toHaveValue("7"));
+      expect(locationInput()).toHaveValue("North entrance");
+    });
+  });
+
   it("renders the basic information fields", async () => {
     renderForm();
     expect(await screen.findByLabelText(/title/i)).toBeInTheDocument();

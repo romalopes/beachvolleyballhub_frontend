@@ -85,7 +85,7 @@ export default function TournamentDetail() {
     tournament.publication_state === "cancelled" ||
     new Date(tournament.ends_at) <= new Date();
   const locationParts = [
-    tournament.location_name,
+    tournament.location?.name ?? tournament.location_name,
     tournament.city,
     tournament.state,
     tournament.country,
@@ -174,6 +174,14 @@ export default function TournamentDetail() {
                   {locationParts.length
                     ? locationParts.join(", ")
                     : "Location to be confirmed"}
+                  {tournament.court && ` — ${tournament.court.name}`}
+                  {tournament.location_detail && ` (${tournament.location_detail})`}
+                  {tournament.location?.map_url && (
+                    <>
+                      {" "}
+                      <a href={tournament.location.map_url} target="_blank" rel="noopener noreferrer">Directions</a>
+                    </>
+                  )}
                 </dd>
               </div>
               {tournament.website_url && (

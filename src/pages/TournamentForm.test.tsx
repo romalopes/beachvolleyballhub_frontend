@@ -19,6 +19,9 @@ vi.mock("../api", async importOriginal => {
       ...actual.api,
       tournamentOptions: vi.fn(),
       organisations: vi.fn(),
+      locations: vi.fn(),
+      locationCourts: vi.fn(),
+      createLocation: vi.fn(),
       createDivision: vi.fn(),
       updateDivision: vi.fn(),
       deleteDivision: vi.fn(),
@@ -127,6 +130,11 @@ beforeEach(() => {
     data: [organisation],
     meta: { page: 1, per_page: 25, total: 1, total_pages: 1 },
   } as never);
+  mockedApi.locations.mockResolvedValue({
+    data: [],
+    meta: { page: 1, per_page: 25, total: 0, total_pages: 0 },
+  });
+  mockedApi.locationCourts.mockResolvedValue([]);
 });
 
 describe("TournamentForm (edit mode)", () => {
@@ -235,5 +243,168 @@ describe("TournamentForm (create)", () => {
         /organisations where you are the owner or an administrator/,
       ),
     ).toBeInTheDocument();
+  });
+
+  it("selects a newly proposed venue and reports pending geocoding", async () => {
+    mockedApi.organisations.mockResolvedValue(paginated([managed]));
+    mockedApi.createLocation.mockResolvedValue({
+      id: 42,
+      name: "Coogee Beach",
+      location_type: "beach",
+      formatted_address: null,
+      locality: "Sydney",
+      administrative_area: null,
+      country_code: "AU",
+      timezone: "Australia/Sydney",
+      latitude: null,
+      longitude: null,
+      status: "active",
+      verification_status: "proposed",
+      geocoding_status: "pending",
+      coordinate_source: null,
+      map_url: null,
+    });
+    renderCreateForm(["admin"]);
+
+    await userEvent.click(await screen.findByRole("button", { name: "Propose a new venue" }));
+    const proposal = within(screen.getByRole("region", { name: "Propose a new venue" }));
+    await userEvent.type(proposal.getByLabelText("Name *"), "Coogee Beach");
+    await userEvent.click(proposal.getByRole("button", { name: "Create venue proposal" }));
+
+    await waitFor(() => expect(screen.getByLabelText("Verified venue")).toHaveValue("42"));
+    expect(screen.getByLabelText("Venue label")).toHaveValue("Coogee Beach");
+    expect(screen.getByRole("status")).toHaveTextContent("Coordinate lookup is pending");
+  });
+
+  describe("default venue prefill", () => {
+    const defaultVenue = {
+      id: 7,
+      name: "Coogee Beach",
+      location_type: "beach" as const,
+      formatted_address: "Coogee Beach, Sydney NSW",
+      locality: "Sydney",
+      administrative_area: "NSW",
+      country_code: "AU",
+      timezone: "Australia/Sydney",
+      latitude: -33.9167,
+      longitude: 151.25,
+      status: "active" as const,
+      verification_status: "verified" as const,
+      geocoding_status: "resolved" as const,
+      coordinate_source: "geoapify",
+      map_url: null,
+    };
+
+    const withDefault = { ...managed, default_location: defaultVenue };
+
+    it("fills the venue and address from the organisation's default location", async () => {
+      mockedApi.organisations.mockResolvedValue(paginated([withDefault]));
+      renderCreateForm(["admin"]);
+
+      await userEvent.selectOptions(
+        await screen.findByLabelText("Organisation *"),
+        "2",
+      );
+
+      await waitFor(() =>
+        expect(screen.getByLabelText("Verified venue")).toHaveValue("7"),
+      );
+      expect(screen.getByLabelText("Venue label")).toHaveValue("Coogee Beach");
+      expect(screen.getByLabelText("City")).toHaveValue("Sydney");
+      expect(screen.getByLabelText("State / Region")).toHaveValue("NSW");
+      expect(screen.getByLabelText("Country")).toHaveValue("AU");
+      expect(screen.getByLabelText("Timezone")).toHaveValue("Australia/Sydney");
+    });
+
+    it("adds a default venue outside the first page to the venue picker", async () => {
+      mockedApi.organisations.mockResolvedValue(paginated([withDefault]));
+      mockedApi.locations.mockResolvedValue({
+        data: [],
+        meta: { page: 1, per_page: 25, total: 0, total_pages: 0 },
+      });
+      renderCreateForm(["admin"]);
+
+      await userEvent.selectOptions(
+        await screen.findByLabelText("Organisation *"),
+        "2",
+      );
+
+      const picker = await screen.findByLabelText("Verified venue");
+      await waitFor(() => expect(picker).toHaveValue("7"));
+      expect(
+        within(picker).getByRole("option", { name: "Coogee Beach" }),
+      ).toBeInTheDocument();
+    });
+
+    it("never overwrites a city the organiser typed", async () => {
+      mockedApi.organisations.mockResolvedValue(paginated([withDefault]));
+      renderCreateForm(["admin"]);
+
+      await userEvent.type(await screen.findByLabelText("City"), "Manly");
+      await userEvent.selectOptions(
+        await screen.findByLabelText("Organisation *"),
+        "2",
+      );
+
+      await waitFor(() =>
+        expect(screen.getByLabelText("Verified venue")).toHaveValue("7"),
+      );
+      expect(screen.getByLabelText("City")).toHaveValue("Manly");
+    });
+
+    it("never overwrites a venue the organiser chose", async () => {
+      mockedApi.organisations.mockResolvedValue(paginated([withDefault]));
+      mockedApi.locations.mockResolvedValue({
+        data: [
+          {
+            ...defaultVenue,
+            id: 9,
+            name: "Bondi Beach",
+            locality: "Sydney",
+          },
+        ],
+        meta: { page: 1, per_page: 25, total: 1, total_pages: 1 },
+      });
+      renderCreateForm(["admin"]);
+
+      await userEvent.selectOptions(
+        await screen.findByLabelText("Verified venue"),
+        "9",
+      );
+      await userEvent.selectOptions(
+        await screen.findByLabelText("Organisation *"),
+        "2",
+      );
+
+      await waitFor(() =>
+        expect(screen.getByLabelText("City")).toHaveValue("Sydney"),
+      );
+      expect(screen.getByLabelText("Verified venue")).toHaveValue("9");
+    });
+
+    it("replaces the previous suggestion when the organisation changes", async () => {
+      const otherDefault = {
+        ...defaultVenue,
+        id: 8,
+        name: "Bondi Beach",
+        locality: "Sydney",
+        administrative_area: "NSW",
+      };
+      mockedApi.organisations.mockResolvedValue(
+        paginated([withDefault, { ...plainMembership, can_edit: true, default_location: otherDefault }]),
+      );
+      renderCreateForm(["admin"]);
+
+      const select = await screen.findByLabelText("Organisation *");
+      await userEvent.selectOptions(select, "2");
+      await waitFor(() =>
+        expect(screen.getByLabelText("Verified venue")).toHaveValue("7"),
+      );
+
+      await userEvent.selectOptions(select, "3");
+      await waitFor(() =>
+        expect(screen.getByLabelText("Verified venue")).toHaveValue("8"),
+      );
+    });
   });
 });

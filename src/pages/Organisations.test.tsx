@@ -2,7 +2,7 @@ import { render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { MemoryRouter, Route, Routes } from "react-router-dom";
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { api, type Organisation } from "../api";
+import { api, type Location, type Organisation } from "../api";
 import { AuthContext, type AuthContextValue } from "../auth/AuthContext";
 import { paginated } from "../test/paginated";
 import OrganisationDetail from "./OrganisationDetail";
@@ -24,6 +24,12 @@ vi.mock("../api", async (importOriginal) => {
       uploadOrganisationLogo: vi.fn(),
       organisationMembers: vi.fn(),
       organisationMemberCandidates: vi.fn(),
+      organisationLocations: vi.fn(),
+      createOrganisationLocation: vi.fn(),
+      destroyOrganisationLocation: vi.fn(),
+      locations: vi.fn(),
+      createLocation: vi.fn(),
+      verifyLocation: vi.fn(),
       addOrganisationMember: vi.fn(),
       updateOrganisationMember: vi.fn(),
       updateOrganisationMembership: vi.fn(),
@@ -98,6 +104,25 @@ const authValue = (overrides: Partial<AuthContextValue> = {}): AuthContextValue 
 
 const adminUser = { id: 1, email: "admin@example.com", roles: ["admin"] } as unknown as AuthContextValue["user"];
 
+const location = (overrides: Partial<Location> = {}): Location => ({
+  id: 5,
+  name: "Coogee Beach",
+  location_type: "beach",
+  formatted_address: null,
+  locality: "Sydney",
+  administrative_area: "NSW",
+  country_code: "AU",
+  timezone: "Australia/Sydney",
+  latitude: null,
+  longitude: null,
+  status: "active",
+  verification_status: "verified",
+  geocoding_status: "not_requested",
+  coordinate_source: null,
+  map_url: null,
+  ...overrides,
+});
+
 const renderWithAuth = (
   ui: React.ReactElement,
   auth: AuthContextValue = authValue(),
@@ -119,6 +144,10 @@ describe("Organisations tree", () => {
     vi.clearAllMocks();
     localStorage.clear();
     mockedApi.organisations.mockResolvedValue(paginated([organisation()]));
+    // The organisation detail page lists the venues attached to it. An empty
+    // list keeps the assertions below about the roster unambiguous.
+    mockedApi.organisationLocations.mockResolvedValue({ locations: [] });
+    mockedApi.locations.mockResolvedValue(paginated([]));
   });
 
   it("renders organisations as links to their detail pages", async () => {
@@ -183,6 +212,55 @@ describe("Organisations tree", () => {
     expect(mockedApi.createOrganisation).toHaveBeenCalledWith(expect.objectContaining({
       name: "Open Club",
       requires_approval: false,
+    }));
+  });
+
+  it("searches for and selects a default location while creating an organisation", async () => {
+    mockedApi.locations.mockResolvedValue(paginated([location()]));
+    mockedApi.createOrganisation.mockResolvedValue(organisation({ id: 2, name: "Coogee Club" }));
+    renderWithAuth(<Organisations />, authValue({ user: adminUser }));
+    await screen.findByRole("link", { name: "FIVB" });
+
+    await userEvent.click(screen.getByRole("button", { name: /new organisation/i }));
+    await userEvent.type(screen.getByLabelText(/^name$/i), "Coogee Club");
+    await userEvent.type(screen.getByLabelText("Search locations"), "Coogee");
+    await userEvent.click(await screen.findByRole("button", { name: "Select" }));
+    await userEvent.click(screen.getByRole("button", { name: /^create$/i }));
+
+    expect(mockedApi.locations).toHaveBeenCalledWith(expect.objectContaining({
+      q: "Coogee",
+      verification_status: "verified",
+      status: "active",
+    }));
+    expect(mockedApi.createOrganisation).toHaveBeenCalledWith(expect.objectContaining({
+      name: "Coogee Club",
+      default_location_id: 5,
+    }));
+  });
+
+  it("creates, verifies, and selects a new default location", async () => {
+    const proposal = location({ id: 9, name: "Newport Beach", verification_status: "proposed" });
+    const verified = location({ id: 9, name: "Newport Beach" });
+    mockedApi.createLocation.mockResolvedValue(proposal);
+    mockedApi.verifyLocation.mockResolvedValue(verified);
+    mockedApi.createOrganisation.mockResolvedValue(organisation({ id: 2, name: "Newport Club" }));
+    renderWithAuth(<Organisations />, authValue({ user: adminUser }));
+    await screen.findByRole("link", { name: "FIVB" });
+
+    await userEvent.click(screen.getByRole("button", { name: /new organisation/i }));
+    await userEvent.type(screen.getByLabelText(/^name$/i), "Newport Club");
+    await userEvent.click(screen.getByRole("button", { name: "Propose a new venue" }));
+    await userEvent.type(screen.getByLabelText("Name *"), "Newport Beach");
+    await userEvent.click(screen.getByRole("button", { name: "Create venue proposal" }));
+    expect(await screen.findByText(
+      "Newport Beach created and selected as the default location.",
+    )).toBeInTheDocument();
+    await userEvent.click(screen.getByRole("button", { name: /^create$/i }));
+
+    expect(mockedApi.verifyLocation).toHaveBeenCalledWith(9);
+    expect(mockedApi.createOrganisation).toHaveBeenCalledWith(expect.objectContaining({
+      name: "Newport Club",
+      default_location_id: 9,
     }));
   });
 });

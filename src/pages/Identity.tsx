@@ -1,10 +1,16 @@
 import { useEffect, useState } from "react";
-import { Link, useLocation, useNavigate, useSearchParams } from "react-router-dom";
+import {
+  Link,
+  useLocation,
+  useNavigate,
+  useSearchParams,
+} from "react-router-dom";
 import { BadgeCheck, Fingerprint, Link2 } from "lucide-react";
 import {
   api,
   type Account,
   type ClaimInvitation,
+  type Location,
   type PlayerClaim,
   type PlayerProfileCandidate,
   type PaginationMeta,
@@ -48,6 +54,8 @@ export default function IdentityPage() {
   const loading = Boolean(user) && loadedUserId !== user?.id;
   const [error, setError] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
+  const [proposedLocations, setProposedLocations] = useState<Location[]>([]);
+  const [locationBusy, setLocationBusy] = useState(false);
   const [busy, setBusy] = useState(false);
   const [showCreatePlayerModal, setShowCreatePlayerModal] = useState(false);
   const [createPlayerLoading, setCreatePlayerLoading] = useState(false);
@@ -80,11 +88,15 @@ export default function IdentityPage() {
     id: number | null | undefined,
     name?: string | null,
   ) => {
-    const profileType = type === "CoachProfile" ? "Coach profile" : "Player profile";
+    const profileType =
+      type === "CoachProfile" ? "Coach profile" : "Player profile";
     return `${name || profileType} #${id ?? "—"}`;
   };
 
-  const profileHref = (type: string | null | undefined, id: number | null | undefined) => {
+  const profileHref = (
+    type: string | null | undefined,
+    id: number | null | undefined,
+  ) => {
     if (!id) return null;
     if (type === "PlayerProfile") return `/players/${id}`;
     if (type === "CoachProfile") return `/coaches/${id}`;
@@ -240,6 +252,22 @@ export default function IdentityPage() {
       cancelled = true;
     };
   }, [accountId, loadedUserId]);
+
+  useEffect(() => {
+    if (!canManageProfiles) return;
+    let cancelled = false;
+    api
+      .locations({ verification_status: "proposed" })
+      .then((response) => {
+        if (!cancelled) setProposedLocations(response.data);
+      })
+      .catch(() => {
+        // silently fail - user may have revoked permission
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [canManageProfiles]);
 
   useEffect(() => {
     if (!accountId) return;
@@ -774,19 +802,27 @@ export default function IdentityPage() {
               {claims.map((claim) => {
                 const id = claim.claimable_id ?? claim.player_profile_id;
                 const href = profileHref(claim.claimable_type, id);
-                const identity = profileIdentity(claim.claimable_type, id, claim.claimable_name);
-                return <li key={claim.id}>
-                  Claim #{claim.id} · {href ? <Link to={href}>{identity}</Link> : identity} · {claim.status}
-                  {claim.status === "pending" && (
-                    <button
-                      className="admin-btn"
-                      disabled={busy}
-                      onClick={() => void actOnClaim(claim)}
-                    >
-                      Cancel request
-                    </button>
-                  )}
-                </li>;
+                const identity = profileIdentity(
+                  claim.claimable_type,
+                  id,
+                  claim.claimable_name,
+                );
+                return (
+                  <li key={claim.id}>
+                    Claim #{claim.id} ·{" "}
+                    {href ? <Link to={href}>{identity}</Link> : identity} ·{" "}
+                    {claim.status}
+                    {claim.status === "pending" && (
+                      <button
+                        className="admin-btn"
+                        disabled={busy}
+                        onClick={() => void actOnClaim(claim)}
+                      >
+                        Cancel request
+                      </button>
+                    )}
+                  </li>
+                );
               })}
             </ul>
           ) : (
@@ -799,8 +835,15 @@ export default function IdentityPage() {
           {receivedInvitations.length ? (
             <ul>
               {receivedInvitations.map((invitation) => {
-                const name = profileIdentity(invitation.claimable_type, invitation.claimable_id, invitation.claimable_name);
-                const href = profileHref(invitation.claimable_type, invitation.claimable_id);
+                const name = profileIdentity(
+                  invitation.claimable_type,
+                  invitation.claimable_id,
+                  invitation.claimable_name,
+                );
+                const href = profileHref(
+                  invitation.claimable_type,
+                  invitation.claimable_id,
+                );
                 return (
                   <li key={invitation.id}>
                     {href ? (
@@ -843,6 +886,62 @@ export default function IdentityPage() {
             <p>No invitations have been sent to your verified account email.</p>
           )}
         </section>
+        {canManageProfiles && (
+          <section className="detail-section">
+            <h3>Locations pending verification</h3>
+            <ul>
+              {proposedLocations.length === 0 ? (
+                <li>No pending locations</li>
+              ) : (
+                proposedLocations.map((loc) => {
+                  const name = loc.name || "Unknown location";
+                  return (
+                    <li
+                      key={loc.id}>
+                      <Link to={`/settings/locations/${loc.slug ?? loc.id}`} className="detail-link">
+                        <span style={{ fontWeight: "500" }}>{name}</span>
+                      </Link>
+                      {loc.locality && (
+                        <div style={{ marginTop: "0.1rem", fontSize: "0.875rem", color: "#666", marginLeft: "0.25rem" }}>
+                          {loc.locality}
+                        </div>
+                      )}
+                      <div style={{ marginTop: "0.25rem", fontSize: "0.75rem", color: "#888" }}>
+                        ID: {loc.id}
+                      </div>
+                      <button
+                        className="admin-btn"
+                        onClick={async () => {
+                          setLocationBusy(true);
+                          await api.verifyLocationById(loc.id);
+                          setLocationBusy(false);
+                        }}
+                      >
+                        Verify
+                      </button>
+                      <button
+                        className="admin-btn"
+                        style={{ marginLeft: "0.5rem" }}
+                        onClick={async () => {
+                          setLocationBusy(true);
+                          await api.rejectLocationById(loc.id);
+                          setLocationBusy(false);
+                        }}
+                      >
+                        Reject
+                      </button>
+                    </li>
+                  );
+                })
+              )}
+            </ul>
+            {locationBusy && (
+              <p className="field-hint" style={{ marginTop: "0.5rem" }}>
+                Working…
+              </p>
+            )}
+          </section>
+        )}
 
         <section className="detail-section">
           <h2>Claim and invitation history</h2>
@@ -856,22 +955,41 @@ export default function IdentityPage() {
                 .map((claim) => {
                   const id = claim.claimable_id ?? claim.player_profile_id;
                   const href = profileHref(claim.claimable_type, id);
-                  const identity = profileIdentity(claim.claimable_type, id, claim.claimable_name);
-                  return <li key={`claim-${claim.id}`}>
-                    Claim #{claim.id} · {href ? <Link to={href}>{identity}</Link> : identity} · {claim.status}
-                    {claim.reviewed_at
-                      ? ` · ${new Date(claim.reviewed_at).toLocaleDateString()}`
-                      : ""}
-                  </li>;
+                  const identity = profileIdentity(
+                    claim.claimable_type,
+                    id,
+                    claim.claimable_name,
+                  );
+                  return (
+                    <li key={`claim-${claim.id}`}>
+                      Claim #{claim.id} ·{" "}
+                      {href ? <Link to={href}>{identity}</Link> : identity} ·{" "}
+                      {claim.status}
+                      {claim.reviewed_at
+                        ? ` · ${new Date(claim.reviewed_at).toLocaleDateString()}`
+                        : ""}
+                    </li>
+                  );
                 })}
               {receivedInvitations
                 .filter((invitation) => invitation.status !== "active")
                 .map((invitation) => {
-                  const href = profileHref(invitation.claimable_type, invitation.claimable_id);
-                  const identity = profileIdentity(invitation.claimable_type, invitation.claimable_id, invitation.claimable_name);
-                  return <li key={`invitation-${invitation.id}`}>
-                    Invitation #{invitation.id} · {href ? <Link to={href}>{identity}</Link> : identity} · {invitation.status}
-                  </li>;
+                  const href = profileHref(
+                    invitation.claimable_type,
+                    invitation.claimable_id,
+                  );
+                  const identity = profileIdentity(
+                    invitation.claimable_type,
+                    invitation.claimable_id,
+                    invitation.claimable_name,
+                  );
+                  return (
+                    <li key={`invitation-${invitation.id}`}>
+                      Invitation #{invitation.id} ·{" "}
+                      {href ? <Link to={href}>{identity}</Link> : identity} ·{" "}
+                      {invitation.status}
+                    </li>
+                  );
                 })}
             </ul>
           ) : (

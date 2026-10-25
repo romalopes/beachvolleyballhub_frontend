@@ -1,5 +1,5 @@
 import { Link } from "react-router-dom";
-import { Activity, Database, ShieldCheck, Tags, Target, Dumbbell, FileText, Shield, PlayCircle, Settings } from "lucide-react";
+import { Activity, Database, ShieldCheck, Tags, Target, Dumbbell, FileText, Shield, PlayCircle, Settings, MapPin } from "lucide-react";
 import { useAuth } from "../../auth/AuthContext";
 import SettingsLayout from "../../components/settings/SettingsLayout";
 
@@ -57,6 +57,12 @@ const RESOURCES = [
     label: "Admin",
     desc: "Manage user accounts and roles.",
     icon: Shield,
+  },
+  {
+    to: "/settings/locations",
+    label: "Locations",
+    desc: "Propose a new venue/location.",
+    icon: MapPin,
   },
 ];
 

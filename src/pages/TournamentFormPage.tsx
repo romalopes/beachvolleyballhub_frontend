@@ -44,29 +44,46 @@ export default function TournamentFormPage() {
     ? "Create a new tournament."
     : "Update this tournament.";
 
-  if (loading) return <div className="loading">Loading…</div>;
+  if (loading) {
+    // Render inside the layout so a slow edit-fetch never shows a bare,
+    // apparently-broken page.
+    return (
+      <SettingsLayout title={title} description={description} backTo={backTo}>
+        <div className="loading">Loading…</div>
+      </SettingsLayout>
+    );
+  }
 
   return (
     <SettingsLayout
       title={title}
       description={description}
       backTo={backTo}
-    actions={
-      <a className="admin-btn" href="/tournaments">
-        Back to tournaments
-      </a>
-    }
-  >
+      actions={
+        <a className="admin-btn" href="/tournaments">
+          Back to tournaments
+        </a>
+      }
+    >
       {error && <div className="auth-flash auth-flash-error">{error}</div>}
       {/* If the edit fetch failed there is nothing to seed the form with, so
-          show the error instead of falling back to a blank create form. */}
-      {error && !initial ? null : (
+          show the error with a way back instead of a blank page or a blank
+          create form. */}
+      {error && !initial ? (
+        <div className="admin-form-actions">
+          <a className="admin-btn" href="/tournaments">
+            Back to tournaments
+          </a>
+        </div>
+      ) : (
         <TournamentForm
           key={isNew ? "new" : (initial?.id ?? id)}
           initial={isNew ? null : initial}
           onCancel={() => navigate(backTo)}
           onSuccess={(saved) =>
-            navigate(`/tournaments/${saved.id}/edit`)
+            // Land on the detail page so the freshly-saved tournament (and its
+            // info) is immediately visible — same convention as DrillFormPage.
+            navigate(`/tournaments/${saved.id}`)
           }
         />
       )}

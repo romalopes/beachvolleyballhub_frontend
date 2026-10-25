@@ -6,6 +6,8 @@ import {
   type Category,
   type Drill,
   type Group as GroupRecord,
+  type Location,
+  type Court,
   type Player,
   type Skill,
   type TrainingSession,
@@ -18,6 +20,7 @@ import { useAuth } from "../auth/AuthContext";
 import type { DrillDefinition } from "../components/drill/definition";
 import EmptyState from "../components/EmptyState";
 import PageHeader from "../components/PageHeader";
+import LocationCreateForm from "../components/locations/LocationCreateForm";
 import TrainingDrillList from "../components/training/TrainingDrillList";
 import TrainingFocusList from "../components/training/TrainingFocusList";
 import DrillSelector, {
@@ -96,6 +99,11 @@ export default function TrainingFormPage() {
     DEFAULT_TRAINING_DURATION_MINUTES,
   );
   const [location, setLocation] = useState("");
+  const [locations, setLocations] = useState<Location[]>([]);
+  const [locationId, setLocationId] = useState<number | null>(null);
+  const [courts, setCourts] = useState<Court[]>([]);
+  const [courtId, setCourtId] = useState<number | null>(null);
+  const [locationNotice, setLocationNotice] = useState<string | null>(null);
   const [status, setStatus] = useState<TrainingSessionStatus>("draft");
   const [visibility, setVisibility] =
     useState<TrainingSessionVisibility>("shared");
@@ -119,6 +127,43 @@ export default function TrainingFormPage() {
   >({});
   const definitionsInFlightRef = useRef<Set<number>>(new Set());
 
+  // Fields the coach owns: the ones they edited in this session, and — when
+  // editing — the ones the saved session already had. A suggestion writes only
+  // to the fields it does not own, so it can replace its own earlier
+  // suggestion but never the coach's work.
+  const touchedLocationFields = useRef<Set<string>>(new Set());
+  const markLocationTouched = (field: string) => {
+    touchedLocationFields.current.add(field);
+  };
+
+  /**
+   * Suggest a venue for the session.
+   *
+   * The location is a suggestion, not a decision: a coach who has already
+   * typed a meeting point keeps it. So each field is filled only while the
+   * coach does not own it.
+   */
+  const applyDefaultLocation = (location: Location | null | undefined) => {
+    if (!location) return;
+    if (!touchedLocationFields.current.has("location")) {
+      setLocation(location.name);
+    }
+    if (!touchedLocationFields.current.has("locationId")) {
+      setLocationId(location.id);
+    }
+    // The venue dropdown lists the first page of the catalogue, so the group's
+    // default may not be among the options — without it the select would show
+    // a selection it cannot render.
+    setLocations((rows) =>
+      rows.some((row) => row.id === location.id) ? rows : [location, ...rows],
+    );
+    setCourtId(null);
+    void api
+      .locationCourts(location.id)
+      .then(setCourts)
+      .catch(() => setCourts([]));
+  };
+
   const [loadingSession, setLoadingSession] = useState(!isNew);
   const [loadError, setLoadError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
@@ -136,14 +181,18 @@ export default function TrainingFormPage() {
       // A group is optional and only seeds the roster, so a failure here must
       // not stop the form from opening: it falls back to no group.
       api.groups({ include_private: true }).catch(() => null),
+      typeof api.locations === "function"
+        ? api.locations().catch(() => ({ data: [], meta: { page: 1, per_page: 0, total: 0, total_pages: 0 } }))
+        : Promise.resolve({ data: [], meta: { page: 1, per_page: 0, total: 0, total_pages: 0 } }),
     ])
-      .then(([cats, sks, drs, pageOfPlayers, groupsRes]) => {
+      .then(([cats, sks, drs, pageOfPlayers, groupsRes, locationsRes]) => {
         if (cancelled) return;
         setCategories(cats);
         setSkills(sks);
         setDrills(drs);
         setPlayers(pageOfPlayers.data);
         setGroups(groupsRes?.data || []);
+        setLocations(locationsRes.data);
       })
       .catch((err: unknown) => {
         if (cancelled) return;
@@ -167,6 +216,12 @@ export default function TrainingFormPage() {
     try {
       const response = await api.group(groupId);
       const groupDetail = response?.group;
+
+      // A group's effective default location is the group's own venue, or the
+      // parent organisation's. Picking a squad suggests where they train —
+      // but only into fields the coach has not already filled in.
+      applyDefaultLocation(groupDetail?.effective_default_location);
+
       if (!groupDetail?.members) return;
 
       // Filter to active members only
@@ -238,6 +293,20 @@ export default function TrainingFormPage() {
             : DEFAULT_TRAINING_DURATION_MINUTES,
         );
         setLocation(session.location ?? "");
+        setLocationId(session.location_id ?? null);
+        // The saved session's venue is the coach's own: no later suggestion
+        // may replace it.
+        if (session.location) markLocationTouched("location");
+        if (session.location_id) markLocationTouched("locationId");
+        if (session.canonical_location) {
+          setLocations((current) => current.some((row) => row.id === session.canonical_location?.id)
+            ? current
+            : [session.canonical_location as Location, ...current]);
+        }
+        setCourtId(session.court_id ?? null);
+        if (session.location_id) {
+          void api.locationCourts(session.location_id).then(setCourts).catch(() => setCourts([]));
+        }
         setStatus(session.status);
         setVisibility(session.visibility ?? "shared");
         const orderedFocuses = [...(session.training_focuses ?? [])].sort(
@@ -367,6 +436,8 @@ export default function TrainingFormPage() {
           ? addMinutes(`${date}T${startTime}`, durationMinutes)
           : new Date().toISOString(),
       location: location.trim() || null,
+      location_id: locationId,
+      court_id: courtId,
       status,
       visibility,
       created_by_id: null,
@@ -485,6 +556,8 @@ export default function TrainingFormPage() {
       starts_at: startsAt,
       ends_at: endsAt,
       location: location.trim() || null,
+      location_id: locationId,
+      court_id: courtId,
       status,
       visibility,
       training_focuses_attributes: [
@@ -604,13 +677,64 @@ export default function TrainingFormPage() {
             </label>
           </div>
           <label>
+            Verified venue
+            <select
+              value={locationId ?? ""}
+              onChange={(event) => {
+                const nextId = event.target.value ? Number(event.target.value) : null;
+                setLocationId(nextId);
+                setCourtId(null);
+                // A venue the coach picked is theirs; no suggestion may replace it.
+                markLocationTouched("locationId");
+                const selected = locations.find((row) => row.id === nextId);
+                if (selected) { setLocation(selected.name); markLocationTouched("location"); }
+                if (nextId) {
+                  void api.locationCourts(nextId).then(setCourts).catch(() => setCourts([]));
+                } else {
+                  setCourts([]);
+                }
+              }}
+            >
+              <option value="">No canonical location</option>
+              {locations.map((row) => (
+                <option key={row.id} value={row.id}>{row.name}</option>
+              ))}
+            </select>
+          </label>
+          <LocationCreateForm
+            idPrefix="training-proposal"
+            onCreated={(createdLocation) => {
+              setLocations((current) => [
+                createdLocation,
+                ...current.filter((row) => row.id !== createdLocation.id),
+              ]);
+              // A venue the coach proposed is theirs; no suggestion may replace it.
+              markLocationTouched("locationId");
+              markLocationTouched("location");
+              setLocationId(createdLocation.id);
+              setLocation(createdLocation.name);
+              setCourtId(null);
+              setCourts([]);
+              setLocationNotice(
+                createdLocation.geocoding_status === "pending"
+                  ? "Venue proposal selected. Coordinate lookup is pending."
+                  : "Venue proposal selected and awaiting verification.",
+              );
+            }}
+          />
+          {locationNotice && <p className="field-hint" role="status">{locationNotice}</p>}
+          {courts.length > 0 && (
+            <label>
+              Court
+              <select value={courtId ?? ""} onChange={(event) => setCourtId(event.target.value ? Number(event.target.value) : null)}>
+                <option value="">No specific court</option>
+                {courts.map((court) => <option key={court.id} value={court.id}>{court.name}</option>)}
+              </select>
+            </label>
+          )}
+          <label>
             Location
-            <input
-              type="text"
-              value={location}
-              onChange={(event) => setLocation(event.target.value)}
-              placeholder="e.g. Coogee Beach"
-            />
+            <input type="text" value={location} onChange={(event) => { markLocationTouched("location"); setLocation(event.target.value); }} placeholder="e.g. north entrance" />
           </label>
           <label>
             Status

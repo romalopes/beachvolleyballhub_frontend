@@ -14,6 +14,7 @@ import {
   type GroupVisibility,
 } from "../api";
 import { useAuth } from "../auth/AuthContext";
+import OrganisationLocations from "../components/locations/OrganisationLocations";
 
 const ORGANISATION_TYPES: Array<{ value: OrganisationType; label: string }> = [
   { value: "international_federation", label: "International federation" },
@@ -269,6 +270,11 @@ export default function OrganisationDetail() {
           )}
         </section>
       )}
+
+      <OrganisationLocations
+        organisation={organisation}
+        onOrganisationUpdated={saveOrganisation}
+      />
 
       <OrganisationRoster organisation={organisation} />
     </div>

@@ -6,6 +6,7 @@ import {
   Building2,
   ChevronRight,
   ChevronDown,
+  MapPin,
   Network,
   Plus,
   Search,
@@ -14,11 +15,13 @@ import {
 } from "lucide-react";
 import {
   api,
+  type Location,
   type Organisation,
   type OrganisationType,
 } from "../api";
 import { useAuth } from "../auth/AuthContext";
 import EmptyState from "../components/EmptyState";
+import LocationCreateForm from "../components/locations/LocationCreateForm";
 import OrganisationTreeNode, { type OrganisationTreeNodeProps } from "../components/OrganisationTreeNode";
 
 const ORGANISATION_TYPES: Array<{ value: OrganisationType; label: string }> = [
@@ -443,9 +446,34 @@ function NewOrganisationForm({
   const [description, setDescription] = useState("");
   const [parentId, setParentId] = useState<number | null>(null);
   const [requiresApproval, setRequiresApproval] = useState(false);
+  const [locationQuery, setLocationQuery] = useState("");
+  const [locationCandidates, setLocationCandidates] = useState<Location[]>([]);
+  const [selectedLocation, setSelectedLocation] = useState<Location | null>(null);
+  const [locationNotice, setLocationNotice] = useState<string | null>(null);
   const [logo, setLogo] = useState<File | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
+
+  const locationQueryActive = locationQuery.trim().length >= 2;
+  useEffect(() => {
+    if (!locationQueryActive) return;
+
+    let cancelled = false;
+    api.locations({
+      q: locationQuery.trim(),
+      verification_status: "verified",
+      status: "active",
+      per_page: 20,
+    }).then((result) => {
+      if (!cancelled) setLocationCandidates(result.data);
+    }).catch(() => {
+      if (!cancelled) setLocationCandidates([]);
+    });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [locationQuery, locationQueryActive]);
 
   const handleSubmit = async (event: FormEvent) => {
     event.preventDefault();
@@ -458,6 +486,7 @@ function NewOrganisationForm({
         description: description || null,
         parent_organisation_id: parentId,
         requires_approval: requiresApproval,
+        default_location_id: selectedLocation?.id ?? null,
       });
       let logoError: string | null = null;
       if (logo) {
@@ -554,6 +583,88 @@ function NewOrganisationForm({
           </span>
         </label>
       </div>
+      <section className="organisations-new-location" aria-labelledby="new-location-heading">
+        <h4 id="new-location-heading">Default location (optional)</h4>
+        <p className="field-hint">
+          Search for an active verified venue, or create a new one. The selected venue
+          will be attached to the organisation and used as its default.
+        </p>
+        {selectedLocation && (
+          <div className="organisations-new-location-selected" role="status">
+            <span>
+              <MapPin size={14} aria-hidden="true" />
+              {selectedLocation.name}
+              {selectedLocation.locality ? ` — ${selectedLocation.locality}` : ""}
+            </span>
+            <button
+              type="button"
+              className="admin-btn"
+              onClick={() => {
+                setSelectedLocation(null);
+                setLocationNotice(null);
+              }}
+              disabled={busy}
+            >
+              Clear
+            </button>
+          </div>
+        )}
+        <div className="form-row">
+          <label htmlFor="new-location-search">Search locations</label>
+          <input
+            id="new-location-search"
+            type="search"
+            placeholder="Search verified locations"
+            value={locationQuery}
+            onChange={(event) => {
+              const nextQuery = event.target.value;
+              setLocationQuery(nextQuery);
+              if (nextQuery.trim().length < 2) setLocationCandidates([]);
+            }}
+            disabled={busy}
+          />
+        </div>
+        {locationQueryActive && (
+          locationCandidates.length === 0 ? (
+            <p className="field-hint">No verified location matches that search.</p>
+          ) : (
+            <ul className="organisations-add-results">
+              {locationCandidates.map((location) => (
+                <li key={location.id}>
+                  <span>
+                    {location.name}
+                    {location.locality ? ` — ${location.locality}` : ""}
+                  </span>
+                  <button
+                    type="button"
+                    className="admin-btn"
+                    disabled={busy}
+                    onClick={() => {
+                      setSelectedLocation(location);
+                      setLocationNotice(`${location.name} selected as the default location.`);
+                    }}
+                  >
+                    {selectedLocation?.id === location.id ? "Selected" : "Select"}
+                  </button>
+                </li>
+              ))}
+            </ul>
+          )
+        )}
+        <LocationCreateForm
+          idPrefix="new-organisation"
+          onCreated={async (location) => {
+            const verified = await api.verifyLocation(location.id);
+            setLocationCandidates((current) => [
+              verified,
+              ...current.filter((candidate) => candidate.id !== verified.id),
+            ]);
+            setSelectedLocation(verified);
+            setLocationNotice(`${verified.name} created and selected as the default location.`);
+          }}
+        />
+        {locationNotice && <p className="field-hint" role="status">{locationNotice}</p>}
+      </section>
       <div className="form-row">
         <label htmlFor="new-logo">Logo (optional)</label>
         <input

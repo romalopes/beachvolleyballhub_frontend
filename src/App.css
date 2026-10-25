@@ -1607,13 +1607,19 @@
 
 .admin-user-card {
   display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 1.25rem;
+  flex-direction: column;
   padding: 1rem 1.25rem;
   border: 1px solid var(--border);
   border-radius: var(--radius-md);
   background: var(--bg-secondary);
+}
+
+.admin-user-main-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1.25rem;
+  width: 100%;
 }
 
 .admin-user-info {
@@ -1645,6 +1651,15 @@
   display: flex;
   flex-wrap: wrap;
   gap: 0.375rem;
+}
+
+.admin-user-danger-row {
+  display: flex;
+  justify-content: flex-end;
+  width: 100%;
+  margin-top: 1rem;
+  padding-top: 1rem;
+  border-top: 1px solid var(--border);
 }
 
 .admin-btn {
@@ -6833,8 +6848,35 @@
 
 .organisations-new-form h3,
 .organisations-new-form .form-error,
-.organisations-new-form .form-actions {
+.organisations-new-form .form-actions,
+.organisations-new-form .organisations-new-location {
   grid-column: 1 / -1;
+}
+
+.organisations-new-location {
+  display: grid;
+  gap: 0.75rem;
+}
+
+.organisations-new-location > h4,
+.organisations-new-location > .field-hint {
+  margin: 0;
+}
+
+.organisations-new-location-selected {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  padding: 0.75rem;
+  border: 1px solid var(--border);
+  border-radius: 0.5rem;
+}
+
+.organisations-new-location-selected > span {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.375rem;
 }
 
 .organisations-new-form .form-row:has(textarea),

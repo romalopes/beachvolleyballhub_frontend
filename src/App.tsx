@@ -28,6 +28,7 @@ import TrainingSeriesPage from "./pages/TrainingSeries";
 import TrainingSeriesFormPage from "./pages/TrainingSeriesFormPage";
 import TrainingSeriesDetail from "./pages/TrainingSeriesDetail";
 import Schedule from "./pages/Schedule";
+import LocationDetail from "./pages/LocationDetail";
 import Tournaments from "./pages/Tournaments";
 import TournamentDetail from "./pages/TournamentDetail";
 import MyTournaments from "./pages/MyTournaments";
@@ -50,6 +51,9 @@ import AdminUsers from "./pages/AdminUsers";
 import AdminUserDetail from "./pages/AdminUserDetail";
 import TournamentFormPage from "./pages/TournamentFormPage";
 import SettingsDashboard from "./pages/settings/SettingsDashboard";
+import Locations from "./pages/settings/Locations";
+import LocationCreatePage from "./pages/settings/LocationCreatePage";
+import LocationEditPage from "./pages/settings/LocationEditPage";
 import SkillsSettings from "./pages/settings/Skills";
 import SkillFormPage from "./pages/settings/SkillFormPage";
 import CategoriesSettings from "./pages/settings/Categories";
@@ -518,6 +522,38 @@ export default function App() {
                   element={
                     <AdminRoute>
                       <SettingsDashboard />
+                    </AdminRoute>
+                  }
+                />
+                <Route
+                  path="/settings/locations"
+                  element={
+                    <AdminRoute>
+                      <Locations />
+                    </AdminRoute>
+                  }
+                />
+                <Route
+                  path="/settings/locations/new"
+                  element={
+                    <AdminRoute>
+                      <LocationCreatePage />
+                    </AdminRoute>
+                  }
+                />
+                <Route
+                  path="/settings/locations/:slug/edit"
+                  element={
+                    <AdminRoute>
+                      <LocationEditPage />
+                    </AdminRoute>
+                  }
+                />
+                <Route
+                  path="/settings/locations/:slug"
+                  element={
+                    <AdminRoute>
+                      <LocationDetail />
                     </AdminRoute>
                   }
                 />
