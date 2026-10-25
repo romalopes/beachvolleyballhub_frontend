@@ -3,6 +3,7 @@ import { useNavigate, useParams, Link } from "react-router-dom";
 import { api, type Location } from "../api";
 import { useAuth } from "../auth/AuthContext";
 import { ArrowLeft } from "lucide-react";
+import LocationMap from "../components/locations/LocationMap";
 
 export default function LocationDetail() {
   const { slug } = useParams<{ slug: string }>();
@@ -63,12 +64,15 @@ export default function LocationDetail() {
       {location.country_code && <p className="related-item-meta"><strong>Country code:</strong> {location.country_code}</p>}
       {location.timezone && <p className="related-item-meta"><strong>Timezone:</strong> {location.timezone}</p>}
       {location.latitude !== null && location.longitude !== null && <p className="related-item-meta"><strong>Coordinates:</strong> {location.latitude}, {location.longitude}</p>}
-      {location.map_url && (
+      {(location.map_url || (location.latitude !== null && location.longitude !== null)) && (
         <section className="detail-section">
           <h3>Map</h3>
-          <a href={location.map_url} target="_blank" rel="noopener noreferrer">
-            {location.map_url}
-          </a>
+          <LocationMap
+            name={location.name}
+            latitude={location.latitude}
+            longitude={location.longitude}
+            externalUrl={location.map_url}
+          />
         </section>
       )}
       {(user?.roles?.includes("admin") || user?.roles?.includes("curator")) && (

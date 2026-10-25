@@ -715,6 +715,49 @@
   font-size: 1.0625rem;
 }
 
+.location-map {
+  max-width: 720px;
+}
+
+.location-map-frame {
+  display: block;
+  width: 100%;
+  min-height: 320px;
+  aspect-ratio: 16 / 9;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  background: var(--bg-secondary);
+}
+
+.location-map-fallback {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  min-height: 120px;
+  padding: 1.25rem;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  background: var(--bg-secondary);
+  color: var(--text-secondary);
+}
+
+.location-map-actions {
+  margin-top: 0.75rem;
+}
+
+.location-map-actions a {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+}
+
+@media (max-width: 600px) {
+  .location-map-frame {
+    min-height: 240px;
+    aspect-ratio: 4 / 3;
+  }
+}
+
 /* Related lists */
 .related-list {
   display: flex;
