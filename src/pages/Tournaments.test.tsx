@@ -18,7 +18,7 @@ const tournament = (overrides: Partial<Tournament> = {}): Tournament => ({
   name: "Sand Series",
   organisation: { id: 3, name: "Beach Club", acronym: "BC" } as Tournament["organisation"],
   scope: "club", division_scheme: "letter", publication_state: "active",
-  website_url: null, description: null, location_name: null, city: null, state: null, country: null,
+  website_url: null, description: null, location_name: null,
   timezone: "America/New_York", all_day: false,
   starts_at: "2026-03-08T16:00:00Z", ends_at: "2026-03-08T19:00:00Z",
   created_by_account_id: 1, divisions: [], participations: [], watch_links: [], ...overrides,

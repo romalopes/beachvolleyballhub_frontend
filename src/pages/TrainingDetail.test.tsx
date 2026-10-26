@@ -119,7 +119,10 @@ beforeEach(() => {
   mockedApi.me.mockResolvedValue(coachUser);
   mockedApi.trainingSession.mockResolvedValue(fullSession);
 });
-afterEach(cleanup);
+afterEach(() => {
+  cleanup();
+  vi.unstubAllEnvs();
+});
 
 describe("TrainingDetail", () => {
   it("renders title, focuses, drills and session notes", async () => {
@@ -132,6 +135,43 @@ describe("TrainingDetail", () => {
     expect(screen.getByText("Serve Receive Progression")).toBeInTheDocument();
     expect(screen.getByText("Use stronger serves for the second round.", { exact: false })).toBeInTheDocument();
     expect(screen.getByText("Three passers rotate through serve receive.")).toBeInTheDocument();
+  });
+
+  it("shows the canonical location in a Google Maps frame", async () => {
+    vi.stubEnv("VITE_GOOGLE_MAPS_EMBED_API_KEY", "embed-key");
+    mockedApi.trainingSession.mockResolvedValue({
+      ...fullSession,
+      canonical_location: {
+        id: 8,
+        name: "Coogee Beach",
+        location_type: "beach",
+        formatted_address: "Coogee Beach, NSW 2034, Australia",
+        locality: "Coogee",
+        administrative_area: "NSW",
+        country_code: "AU",
+        timezone: "Australia/Sydney",
+        latitude: -33.9211,
+        longitude: 151.2588,
+        status: "active",
+        verification_status: "verified",
+        geocoding_status: "resolved",
+        coordinate_source: "geocoder",
+        map_url: "https://www.google.com/maps/search/?api=1&query=-33.9211,151.2588",
+      },
+    });
+
+    renderDetail();
+
+    const map = await screen.findByTitle("Map of Coogee Beach");
+    expect(map).toHaveAttribute(
+      "src",
+      expect.stringContaining("https://www.google.com/maps/embed/v1/place"),
+    );
+    expect(map).toHaveAttribute("src", expect.stringContaining("q=-33.9211%2C151.2588"));
+    expect(screen.getByRole("link", { name: /open in google maps/i })).toHaveAttribute(
+      "href",
+      "https://www.google.com/maps/search/?api=1&query=-33.9211,151.2588",
+    );
   });
 
   it("renders drill steps from the drill definition", async () => {

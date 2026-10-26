@@ -12,7 +12,7 @@ vi.mock("../api", async importOriginal => {
 });
 const mockedApi = vi.mocked(api, true);
 const auth = (user: AuthContextValue["user"] = null): AuthContextValue => ({ user, loading: false, login: vi.fn(), register: vi.fn(), resetPassword: vi.fn(), logout: vi.fn(), impersonation: { active: false, realAdmin: null }, startImpersonating: vi.fn(), stopImpersonating: vi.fn() });
-const tournament = (overrides: Partial<Tournament> = {}): Tournament => ({ id: 7, name: "Sand Series", organisation: { id: 2, name: "Beach Club", acronym: "BC" } as Tournament["organisation"], scope: "club", division_scheme: "letter", publication_state: "active", website_url: null, description: null, location_name: "Main court", city: "Miami", state: "FL", country: "US", timezone: "America/New_York", all_day: false, starts_at: "2027-07-10T16:00:00Z", ends_at: "2027-07-10T19:00:00Z", created_by_account_id: 1, divisions: [{ id: 1, letter_level: "A", division_number: null, active: true, strength_order: 4, division_code: "A" }, { id: 2, letter_level: "B", division_number: null, active: false, strength_order: 7, division_code: "B" }], participations: [], my_participation: null, watch_links: [], ...overrides });
+const tournament = (overrides: Partial<Tournament> = {}): Tournament => ({ id: 7, name: "Sand Series", organisation: { id: 2, name: "Beach Club", acronym: "BC" } as Tournament["organisation"], scope: "club", division_scheme: "letter", publication_state: "active", website_url: null, description: null, location_name: "Main court", timezone: "America/New_York", all_day: false, starts_at: "2027-07-10T16:00:00Z", ends_at: "2027-07-10T19:00:00Z", created_by_account_id: 1, divisions: [{ id: 1, letter_level: "A", division_number: null, active: true, strength_order: 4, division_code: "A" }, { id: 2, letter_level: "B", division_number: null, active: false, strength_order: 7, division_code: "B" }], participations: [], my_participation: null, watch_links: [], ...overrides });
 function LocationProbe() { return <output data-testid="location">{useLocation().pathname}</output>; }
 function renderPage(currentUser: AuthContextValue["user"] = null) { return render(<AuthContext.Provider value={auth(currentUser)}><MemoryRouter initialEntries={["/tournaments/7"]}><Routes><Route path="/tournaments/:id" element={<><TournamentDetail /><LocationProbe /></>} /><Route path="/login" element={<LocationProbe />} /></Routes></MemoryRouter></AuthContext.Provider>); }
 beforeEach(() => { vi.clearAllMocks(); mockedApi.tournament.mockResolvedValue(tournament()); });
@@ -40,5 +40,29 @@ describe("TournamentDetail", () => {
     expect(screen.queryByRole("button", { name: /update participation/i })).not.toBeInTheDocument();
     await user.click(screen.getByRole("button", { name: /remove my participation/i }));
     await waitFor(() => expect(mockedApi.leaveTournament).toHaveBeenCalledWith(7));
+  });
+
+  it("renders the canonical address and reusable map when coordinates are available", async () => {
+    mockedApi.tournament.mockResolvedValue(tournament({
+      location: {
+        id: 4, name: "Coogee Beach", slug: "coogee-beach", location_type: "beach",
+        formatted_address: "Coogee Beach, Sydney NSW, Australia", locality: "Sydney",
+        administrative_area: "NSW", country_code: "AU", timezone: "Australia/Sydney",
+        latitude: -33.9167, longitude: 151.25, status: "active",
+        verification_status: "verified", geocoding_status: "resolved",
+        coordinate_source: "geoapify", map_url: "https://www.google.com/maps/search/?api=1&query=-33.9167,151.25",
+      },
+    }));
+    renderPage();
+
+    expect(await screen.findByText("Coogee Beach, Sydney NSW, Australia")).toBeInTheDocument();
+    expect(screen.getByText("Map preview is unavailable.")).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "Open in Google Maps" })).toBeInTheDocument();
+  });
+
+  it("keeps a free-text historical venue without rendering a map", async () => {
+    renderPage();
+    expect(await screen.findByText("Main court")).toBeInTheDocument();
+    expect(screen.queryByRole("heading", { name: "Map" })).not.toBeInTheDocument();
   });
 });

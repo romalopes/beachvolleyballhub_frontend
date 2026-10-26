@@ -33,6 +33,8 @@ vi.mock("../api", async importOriginal => {
       cancelTournament: vi.fn(),
       restoreTournament: vi.fn(),
       deleteTournament: vi.fn(),
+      createTournament: vi.fn(),
+      updateTournament: vi.fn(),
     },
   };
 });
@@ -78,9 +80,6 @@ const tournament = (overrides: Partial<Tournament> = {}): Tournament => ({
   website_url: null,
   description: null,
   location_name: null,
-  city: null,
-  state: null,
-  country: null,
   timezone: "UTC",
   all_day: false,
   starts_at: "2026-07-10T16:00:00Z",
@@ -177,6 +176,19 @@ describe("TournamentForm (edit mode)", () => {
     await userEvent.click(screen.getByRole("button", { name: "Cancel tournament" }));
 
     await waitFor(() => expect(mockedApi.cancelTournament).toHaveBeenCalledWith(7));
+  });
+
+  it("updates without sending removed location attributes", async () => {
+    mockedApi.updateTournament.mockResolvedValue(tournament());
+    renderForm(tournament());
+
+    await userEvent.click(await screen.findByRole("button", { name: "Save Changes" }));
+
+    await waitFor(() => expect(mockedApi.updateTournament).toHaveBeenCalled());
+    const payload = mockedApi.updateTournament.mock.calls[0][1];
+    expect(payload).not.toHaveProperty("city");
+    expect(payload).not.toHaveProperty("state");
+    expect(payload).not.toHaveProperty("country");
   });
 });
 
@@ -297,7 +309,7 @@ describe("TournamentForm (create)", () => {
 
     const withDefault = { ...managed, default_location: defaultVenue };
 
-    it("fills the venue and address from the organisation's default location", async () => {
+    it("fills the venue label and timezone from the organisation's default location", async () => {
       mockedApi.organisations.mockResolvedValue(paginated([withDefault]));
       renderCreateForm(["admin"]);
 
@@ -310,9 +322,6 @@ describe("TournamentForm (create)", () => {
         expect(screen.getByLabelText("Verified venue")).toHaveValue("7"),
       );
       expect(screen.getByLabelText("Venue label")).toHaveValue("Coogee Beach");
-      expect(screen.getByLabelText("City")).toHaveValue("Sydney");
-      expect(screen.getByLabelText("State / Region")).toHaveValue("NSW");
-      expect(screen.getByLabelText("Country")).toHaveValue("AU");
       expect(screen.getByLabelText("Timezone")).toHaveValue("Australia/Sydney");
     });
 
@@ -336,20 +345,13 @@ describe("TournamentForm (create)", () => {
       ).toBeInTheDocument();
     });
 
-    it("never overwrites a city the organiser typed", async () => {
+    it("never exposes duplicate city, state, or country fields", async () => {
       mockedApi.organisations.mockResolvedValue(paginated([withDefault]));
       renderCreateForm(["admin"]);
-
-      await userEvent.type(await screen.findByLabelText("City"), "Manly");
-      await userEvent.selectOptions(
-        await screen.findByLabelText("Organisation *"),
-        "2",
-      );
-
-      await waitFor(() =>
-        expect(screen.getByLabelText("Verified venue")).toHaveValue("7"),
-      );
-      expect(screen.getByLabelText("City")).toHaveValue("Manly");
+      await screen.findByLabelText("Verified venue");
+      expect(screen.queryByLabelText("City")).not.toBeInTheDocument();
+      expect(screen.queryByLabelText("State / Region")).not.toBeInTheDocument();
+      expect(screen.queryByLabelText("Country")).not.toBeInTheDocument();
     });
 
     it("never overwrites a venue the organiser chose", async () => {
@@ -376,9 +378,7 @@ describe("TournamentForm (create)", () => {
         "2",
       );
 
-      await waitFor(() =>
-        expect(screen.getByLabelText("City")).toHaveValue("Sydney"),
-      );
+      await waitFor(() => expect(screen.getByLabelText("Venue label")).toHaveValue("Bondi Beach"));
       expect(screen.getByLabelText("Verified venue")).toHaveValue("9");
     });
 

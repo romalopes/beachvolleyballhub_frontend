@@ -14,6 +14,7 @@ import {
   type GroupVisibility,
 } from "../api";
 import { useAuth } from "../auth/AuthContext";
+import LocationMap from "../components/locations/LocationMap";
 import OrganisationLocations from "../components/locations/OrganisationLocations";
 
 const ORGANISATION_TYPES: Array<{ value: OrganisationType; label: string }> = [
@@ -41,7 +42,6 @@ export default function OrganisationDetail() {
   const { user } = useAuth();
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
-  const organisationId = Number(id);
   const [organisation, setOrganisation] = useState<Organisation | null>(null);
   const [organisations, setOrganisations] = useState<Organisation[]>([]);
   const [groups, setGroups] = useState<GroupRecord[]>([]);
@@ -56,12 +56,12 @@ export default function OrganisationDetail() {
   );
 
   const load = useCallback(async () => {
-    if (!Number.isFinite(organisationId)) return;
+    if (!id) return;
     try {
-      const [detail, page, groupsRes] = await Promise.all([
-        api.organisation(organisationId),
+      const detail = await api.organisation(id);
+      const [page, groupsRes] = await Promise.all([
         api.organisations(undefined, undefined, true),
-        api.groups({ organisation_id: organisationId, status: "active" }),
+        api.groups({ organisation_id: detail.id, status: "active" }),
       ]);
       setOrganisation(detail);
       setOrganisations(page.data);
@@ -70,15 +70,22 @@ export default function OrganisationDetail() {
     } catch (reason) {
       setError(reason instanceof Error ? reason.message : "Failed to load organisation.");
     }
-  }, [organisationId]);
+  }, [id]);
 
   useEffect(() => {
     Promise.resolve().then(load);
   }, [load]);
 
+  useEffect(() => {
+    if (organisation && id !== organisation.slug) {
+      navigate(`/organisations/${organisation.slug}`, { replace: true });
+    }
+  }, [id, navigate, organisation]);
+
   const saveOrganisation = (saved: Organisation) => {
     setOrganisation(saved);
     setOrganisations((current) => [saved, ...current.filter((org) => org.id !== saved.id)]);
+    if (id !== saved.slug) navigate(`/organisations/${saved.slug}`, { replace: true });
   };
 
   const uploadLogo = async (file: File) => {
@@ -209,8 +216,9 @@ export default function OrganisationDetail() {
           <dl className="identity-context">
             <dt>Type</dt><dd>{organisation.organisation_type.replaceAll("_", " ")}</dd>
             <dt>Status</dt><dd>{organisation.status_label}</dd>
+            <dt>Slug</dt><dd><code>{organisation.slug}</code></dd>
             {organisation.acronym && <><dt>Acronym</dt><dd>{organisation.acronym}</dd></>}
-            {organisation.parent_organisation && <><dt>Parent organisation</dt><dd><Link className="identity-link" to={`/organisations/${organisation.parent_organisation.id}`}>{organisation.parent_organisation.name}</Link></dd></>}
+            {organisation.parent_organisation && <><dt>Parent organisation</dt><dd><Link className="identity-link" to={`/organisations/${organisation.parent_organisation.slug}`}>{organisation.parent_organisation.name}</Link></dd></>}
             <dt>Children</dt><dd>{organisation.child_count}</dd>
           </dl>
         )}
@@ -275,6 +283,18 @@ export default function OrganisationDetail() {
         organisation={organisation}
         onOrganisationUpdated={saveOrganisation}
       />
+
+      {organisation.default_location && (
+        <section className="detail-section">
+          <h2>Map</h2>
+          <LocationMap
+            name={organisation.default_location.name}
+            latitude={organisation.default_location.latitude}
+            longitude={organisation.default_location.longitude}
+            externalUrl={organisation.default_location.map_url}
+          />
+        </section>
+      )}
 
       <OrganisationRoster organisation={organisation} />
     </div>
@@ -407,6 +427,7 @@ function OrganisationEditForm({
   onSaved: (saved: Organisation) => void;
 }) {
   const [name, setName] = useState(organisation.name);
+  const [slug, setSlug] = useState(organisation.slug);
   const [acronym, setAcronym] = useState(organisation.acronym ?? "");
   const [type, setType] = useState<OrganisationType>(organisation.organisation_type);
   const [description, setDescription] = useState(organisation.description ?? "");
@@ -422,11 +443,16 @@ function OrganisationEditForm({
       setError("Please give the organisation a name.");
       return;
     }
+    if (!slug.trim()) {
+      setError("Please give the organisation a slug.");
+      return;
+    }
     setBusy(true);
     setError(null);
     try {
       const saved = await api.updateOrganisation(organisation.id, {
         name: name.trim(),
+        slug: slug.trim(),
         acronym: acronym.trim() || null,
         organisation_type: type,
         description: description.trim() || null,
@@ -444,6 +470,7 @@ function OrganisationEditForm({
     <form className="organisations-edit-form" onSubmit={handleSubmit}>
       {error && <p className="form-error" role="alert">{error}</p>}
       <div className="form-row"><label htmlFor="org-name">Name</label><input id="org-name" value={name} onChange={(e) => setName(e.target.value)} disabled={busy} required /></div>
+      <div className="form-row"><label htmlFor="org-slug">Slug</label><input id="org-slug" value={slug} onChange={(e) => setSlug(e.target.value)} disabled={busy} required /><p className="field-hint">Used in the organisation URL.</p></div>
       <div className="form-row"><label htmlFor="org-acronym">Acronym</label><input id="org-acronym" value={acronym} onChange={(e) => setAcronym(e.target.value)} disabled={busy} /></div>
       <div className="form-row"><label htmlFor="org-type">Type</label><select id="org-type" value={type} onChange={(e) => setType(e.target.value as OrganisationType)} disabled={busy}>{ORGANISATION_TYPES.map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}</select></div>
       <div className="form-row"><label htmlFor="org-description">Description</label><textarea id="org-description" value={description} rows={3} onChange={(e) => setDescription(e.target.value)} disabled={busy} /></div>

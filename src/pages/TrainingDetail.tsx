@@ -13,6 +13,7 @@ import Tag from "../components/Tag";
 import DrillViewer from "../components/drill/DrillViewer";
 import { resolveDrillDefinition } from "../components/drill/definition";
 import DeleteConfirm from "../components/settings/DeleteConfirm";
+import LocationMap from "../components/locations/LocationMap";
 import ParticipantRoster from "../components/training/ParticipantRoster";
 import VideoList from "../components/video/VideoList";
 import {
@@ -244,6 +245,18 @@ export default function TrainingDetail() {
           Visibility: {visibilityLabel(session.visibility)}
         </p>
       </section>
+
+      {session.canonical_location && (
+        <section className="detail-section">
+          <h2>Map</h2>
+          <LocationMap
+            name={session.canonical_location.name}
+            latitude={session.canonical_location.latitude}
+            longitude={session.canonical_location.longitude}
+            externalUrl={session.canonical_location.map_url}
+          />
+        </section>
+      )}
 
       {(session.training_session_participants?.length ?? 0) > 0 ||
       canManage ? (

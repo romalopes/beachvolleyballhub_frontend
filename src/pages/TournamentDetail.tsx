@@ -6,6 +6,7 @@ import DivisionChip from "../components/DivisionChip";
 import ErrorState from "../components/ErrorState";
 import LoadingState from "../components/LoadingState";
 import TournamentBadge from "../components/TournamentBadge";
+import LocationMap from "../components/locations/LocationMap";
 
 const ROLE_LABELS: Record<ParticipationRole, string> = {
   player: "Player",
@@ -84,11 +85,13 @@ export default function TournamentDetail() {
   const readOnly =
     tournament.publication_state === "cancelled" ||
     new Date(tournament.ends_at) <= new Date();
+  const venueName = tournament.location?.name ?? tournament.location_name;
+  const formattedAddress = tournament.location?.formatted_address;
   const locationParts = [
-    tournament.location?.name ?? tournament.location_name,
-    tournament.city,
-    tournament.state,
-    tournament.country,
+    venueName && formattedAddress?.toLocaleLowerCase().includes(venueName.toLocaleLowerCase())
+      ? null
+      : venueName,
+    formattedAddress,
   ].filter(Boolean);
   const returnPath = `${location.pathname}${location.search}`;
   const isAdmin =
@@ -176,12 +179,6 @@ export default function TournamentDetail() {
                     : "Location to be confirmed"}
                   {tournament.court && ` — ${tournament.court.name}`}
                   {tournament.location_detail && ` (${tournament.location_detail})`}
-                  {tournament.location?.map_url && (
-                    <>
-                      {" "}
-                      <a href={tournament.location.map_url} target="_blank" rel="noopener noreferrer">Directions</a>
-                    </>
-                  )}
                 </dd>
               </div>
               {tournament.website_url && (
@@ -200,6 +197,20 @@ export default function TournamentDetail() {
               )}
             </dl>
           </section>
+          {tournament.location &&
+            (tournament.location.map_url ||
+              (tournament.location.latitude !== null &&
+                tournament.location.longitude !== null)) && (
+              <section className="info-section">
+                <h2>Map</h2>
+                <LocationMap
+                  name={tournament.location.name}
+                  latitude={tournament.location.latitude}
+                  longitude={tournament.location.longitude}
+                  externalUrl={tournament.location.map_url}
+                />
+              </section>
+            )}
           <section className="info-section">
             <h2>Description</h2>
             <p>{tournament.description || "No description provided."}</p>

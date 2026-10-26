@@ -85,7 +85,7 @@ export default function OrganisationTreeNode({
           )}
 
           <Link
-            to={`/organisations/${organisation.id}`}
+            to={`/organisations/${organisation.slug}`}
             className="organisation-tree-node__name"
             aria-current={isHighlighted ? "true" : undefined}
           >

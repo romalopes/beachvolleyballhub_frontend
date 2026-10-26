@@ -442,6 +442,7 @@ function NewOrganisationForm({
   onCreated: (created: Organisation, logoError: string | null) => void;
 }) {
   const [name, setName] = useState("");
+  const [slug, setSlug] = useState("");
   const [type, setType] = useState<OrganisationType>("club");
   const [description, setDescription] = useState("");
   const [parentId, setParentId] = useState<number | null>(null);
@@ -482,6 +483,7 @@ function NewOrganisationForm({
     try {
       const created = await api.createOrganisation({
         name,
+        ...(slug.trim() ? { slug: slug.trim() } : {}),
         organisation_type: type,
         description: description || null,
         parent_organisation_id: parentId,
@@ -524,6 +526,18 @@ function NewOrganisationForm({
           disabled={busy}
           autoFocus
         />
+      </div>
+      <div className="form-row">
+        <label htmlFor="new-slug">Slug (optional)</label>
+        <input
+          id="new-slug"
+          type="text"
+          value={slug}
+          onChange={(event) => setSlug(event.target.value)}
+          disabled={busy}
+          placeholder="generated-from-name"
+        />
+        <p className="field-hint">Used in the organisation URL. Leave blank to generate it from the name.</p>
       </div>
       <div className="form-row">
         <label htmlFor="new-type">Type</label>

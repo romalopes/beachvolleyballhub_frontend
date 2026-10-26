@@ -14,9 +14,6 @@ const tournament = (overrides: Partial<Tournament> = {}): Tournament => ({
   website_url: null,
   description: null,
   location_name: null,
-  city: null,
-  state: null,
-  country: null,
   timezone: "UTC",
   all_day: false,
   starts_at: "2026-03-07T15:00:00Z",
@@ -87,5 +84,32 @@ describe("TournamentCard", () => {
     renderCard(tournament(), 7);
     expect(screen.queryByText(/Created by you|Participating|Following/)).not.toBeInTheDocument();
     expect(document.querySelector("[class*='tournament-card--']")).toBeNull();
+  });
+
+  it("displays canonical location data and falls back cleanly", () => {
+    renderCard(tournament({
+      location: {
+        id: 4,
+        name: "Coogee Beach",
+        slug: "coogee-beach",
+        location_type: "beach",
+        formatted_address: "Coogee Beach, NSW, Australia",
+        locality: "Sydney",
+        administrative_area: "NSW",
+        country_code: "AU",
+        timezone: "Australia/Sydney",
+        latitude: -33.9167,
+        longitude: 151.25,
+        status: "active",
+        verification_status: "verified",
+        geocoding_status: "resolved",
+        coordinate_source: "geoapify",
+        map_url: "https://www.google.com/maps/search/?api=1&query=-33.9167,151.25",
+      },
+    }), null);
+    expect(screen.getByText(/Coogee Beach, Sydney/)).toBeInTheDocument();
+
+    renderCard(tournament({ id: 2 }), null);
+    expect(screen.getByText(/Location to be confirmed/)).toBeInTheDocument();
   });
 });

@@ -36,9 +36,6 @@ interface FormState {
   location_id: string;
   court_id: string;
   location_detail: string;
-  city: string;
-  state: string;
-  country: string;
   timezone: string;
   scope: TournamentScope;
   division_scheme: DivisionScheme;
@@ -152,9 +149,6 @@ export default function TournamentForm({
       location_id: initial?.location ? String(initial.location.id) : "",
       court_id: initial?.court ? String(initial.court.id) : "",
       location_detail: initial?.location_detail ?? "",
-      city: initial?.city ?? "",
-      state: initial?.state ?? "",
-      country: initial?.country ?? "",
       timezone,
       scope: initial?.scope ?? "club",
       division_scheme: initial?.division_scheme ?? "numbered",
@@ -191,9 +185,6 @@ export default function TournamentForm({
     const locked = new Set<string>();
     if (initial.location) locked.add("location_id");
     if (initial.location_name) locked.add("location_name");
-    if (initial.city) locked.add("city");
-    if (initial.state) locked.add("state");
-    if (initial.country) locked.add("country");
     // A persisted tournament always carries a timezone; leave it alone.
     locked.add("timezone");
     touchedFields.current = locked;
@@ -252,9 +243,7 @@ export default function TournamentForm({
   /**
    * Fill the form from an organisation's default venue.
    *
-   * The venue and its address parts are a *suggestion*: the organiser may have
-   * already typed their own city, and a prefill that overwrites what somebody
-   * wrote is worse than no prefill at all. So a field is filled only while the
+   * The venue is a *suggestion*. A field is filled only while the
    * organiser does not own it: either because they edited it in this session,
    * or because the saved tournament already carried it. Changing the
    * organisation therefore replaces the previous suggestion, not the
@@ -275,9 +264,6 @@ export default function TournamentForm({
         };
         fill("location_id", String(location.id));
         fill("location_name", location.name);
-        fill("city", location.locality ?? "");
-        fill("state", location.administrative_area ?? "");
-        fill("country", location.country_code ?? "");
         if (location.timezone) fill("timezone", location.timezone);
         return next;
       });
@@ -485,9 +471,6 @@ export default function TournamentForm({
         location_id: formData.location_id ? Number(formData.location_id) : null,
         court_id: formData.court_id ? Number(formData.court_id) : null,
         location_detail: formData.location_detail.trim() || null,
-        city: formData.city.trim() || null,
-        state: formData.state.trim() || null,
-        country: formData.country.trim() || null,
         timezone: formData.timezone,
         all_day: formData.all_day,
         starts_at: formData.starts_at,
@@ -496,18 +479,7 @@ export default function TournamentForm({
 
       let saved: Tournament;
       if (isNew) {
-        let accountId = user?.account_id ?? null;
-        if (!accountId) accountId = (await api.account()).id;
-        if (!accountId) {
-          throw new Error(
-            "Your account must exist before you can create a tournament.",
-          );
-        }
-        const createPayload = {
-          ...payload,
-          created_by_account_id: accountId,
-        };
-        saved = await api.createTournament(createPayload);
+        saved = await api.createTournament(payload);
       } else {
         saved = await api.updateTournament(initial!.id, payload);
       }
@@ -645,36 +617,6 @@ export default function TournamentForm({
       <div className="admin-field">
         <label htmlFor="tournament-location-detail">Meeting point / access details</label>
         <input id="tournament-location-detail" type="text" value={formData.location_detail} onChange={(e) => set("location_detail", e.target.value)} placeholder="e.g. Court 3, north entrance" />
-      </div>
-
-      <div className="admin-field-row">
-        <div className="admin-field">
-          <label htmlFor="tournament-city">City</label>
-          <input
-            id="tournament-city"
-            type="text"
-            value={formData.city}
-            onChange={(e) => { markTouched("city"); set("city", e.target.value); }}
-          />
-        </div>
-        <div className="admin-field">
-          <label htmlFor="tournament-state">State / Region</label>
-          <input
-            id="tournament-state"
-            type="text"
-            value={formData.state}
-            onChange={(e) => { markTouched("state"); set("state", e.target.value); }}
-          />
-        </div>
-        <div className="admin-field">
-          <label htmlFor="tournament-country">Country</label>
-          <input
-            id="tournament-country"
-            type="text"
-            value={formData.country}
-            onChange={(e) => { markTouched("country"); set("country", e.target.value); }}
-          />
-        </div>
       </div>
 
       <div className="admin-field-row">

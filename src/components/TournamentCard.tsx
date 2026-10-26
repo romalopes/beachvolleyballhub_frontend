@@ -12,6 +12,14 @@ interface TournamentCardProps {
 
 export default function TournamentCard({ tournament, onClick }: TournamentCardProps) {
   const { user } = useAuth();
+  const locationName = tournament.location?.name ?? tournament.location_name;
+  const locality = tournament.location?.locality;
+  const locationLabel = [
+    locationName,
+    locality && locationName && !locationName.toLocaleLowerCase().includes(locality.toLocaleLowerCase())
+      ? locality
+      : null,
+  ].filter(Boolean).join(", ") || "Location to be confirmed";
   // One stripe per card, strongest tie wins — see tournamentRelationship.
   const relationship: TournamentRelationship | null = tournamentRelationship(tournament, user?.account_id);
 
@@ -44,7 +52,7 @@ export default function TournamentCard({ tournament, onClick }: TournamentCardPr
           <strong>Date:</strong> {formatDateRange(tournament.starts_at, tournament.ends_at, tournament.all_day, tournament.timezone)}
         </p>
         <p className="tournament-location">
-          <strong>Location:</strong> {tournament.location_name}, {tournament.city}, {tournament.state}, {tournament.country}
+          <strong>Location:</strong> {locationLabel}
         </p>
         {tournament.website_url && (
           <p className="tournament-website">

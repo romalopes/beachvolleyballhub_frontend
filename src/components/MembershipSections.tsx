@@ -211,7 +211,7 @@ export default function MembershipSections({
           <ul className="identity-link-list">
             {organisationMemberships.map((membership) => (
               <li key={membership.id}>
-                <Link className="identity-link" to={`/organisations/${membership.organisation_id}`}>
+                <Link className="identity-link" to={`/organisations/${membership.organisation?.slug ?? membership.organisation_id}`}>
                   {membership.organisation?.name || `Organisation #${membership.organisation_id}`}
                 </Link>{" "}
                 · {membership.role} · {membership.status}
@@ -254,7 +254,7 @@ export default function MembershipSections({
                 {membership.group.organisation && (
                   <>
                     {" "}·{" "}
-                    <Link className="identity-link" to={`/organisations/${membership.group.organisation.id}`}>
+                    <Link className="identity-link" to={`/organisations/${membership.group.organisation.slug ?? membership.group.organisation.id}`}>
                       {membership.group.organisation.name}
                     </Link>
                   </>

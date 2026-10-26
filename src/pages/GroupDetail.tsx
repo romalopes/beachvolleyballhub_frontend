@@ -348,7 +348,7 @@ export default function GroupDetail() {
             <>
               <dt>Organisation</dt>
               <dd>
-                <Link className="identity-link" to={`/organisations/${group.organisation.id}`}>
+                <Link className="identity-link" to={`/organisations/${group.organisation.slug ?? group.organisation.id}`}>
                   {group.organisation.name}
                 </Link>
               </dd>

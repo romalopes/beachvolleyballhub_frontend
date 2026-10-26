@@ -156,7 +156,7 @@ describe("Organisations tree", () => {
     expect(screen.getByRole("heading", { name: "Organisations" })).toBeInTheDocument();
     expect(screen.getByText("Browse the hierarchy")).toBeInTheDocument();
     const link = await screen.findByRole("link", { name: "FIVB" });
-    expect(link).toHaveAttribute("href", "/organisations/1");
+    expect(link).toHaveAttribute("href", "/organisations/fivb");
   });
 
   it("renders and collapses nested organisations", async () => {
@@ -270,15 +270,45 @@ describe("Organisation detail", () => {
     vi.clearAllMocks();
     mockedApi.organisation.mockResolvedValue(organisation({ can_edit: true, can_delete: true, can_manage_members: true }));
     mockedApi.organisations.mockResolvedValue(paginated([organisation({ can_edit: true, can_delete: true, can_manage_members: true })]));
-    mockedApi.organisationMembers.mockResolvedValue({ organisation: { id: 1, name: "FIVB" }, data: [membership()] });
+    mockedApi.organisationMembers.mockResolvedValue({ organisation: { id: 1, name: "FIVB", slug: "fivb" }, data: [membership()] });
+    mockedApi.organisationLocations.mockResolvedValue({ locations: [] });
+    mockedApi.locations.mockResolvedValue(paginated([]));
     mockedApi.groups.mockResolvedValue(paginated([]));
   });
 
   it("loads details and roster", async () => {
-    renderWithAuth(<OrganisationDetail />, authValue(), "/organisations/1", "/organisations/:id");
+    renderWithAuth(<OrganisationDetail />, authValue(), "/organisations/fivb", "/organisations/:id");
 
     expect(await screen.findByRole("heading", { name: "FIVB" })).toBeInTheDocument();
     expect(await screen.findByText("Alex Owner")).toBeInTheDocument();
+    expect(mockedApi.organisation).toHaveBeenCalledWith("fivb");
+    expect(screen.getByText("fivb")).toBeInTheDocument();
+  });
+
+  it("renders the default location in the reusable Google Maps frame", async () => {
+    vi.stubEnv("VITE_GOOGLE_MAPS_EMBED_API_KEY", "maps-key");
+    mockedApi.organisation.mockResolvedValue(organisation({
+      default_location: location({
+        latitude: -33.919,
+        longitude: 151.257,
+        map_url: "https://www.google.com/maps/search/?api=1&query=-33.919,151.257",
+      }),
+    }));
+
+    renderWithAuth(<OrganisationDetail />, authValue(), "/organisations/fivb", "/organisations/:id");
+
+    const frame = await screen.findByTitle("Map of Coogee Beach");
+    expect(frame).toHaveAttribute(
+      "src",
+      expect.stringContaining("https://www.google.com/maps/embed/v1/place"),
+    );
+    expect(frame).toHaveAttribute("src", expect.stringContaining("key=maps-key"));
+    expect(frame).toHaveAttribute("src", expect.stringContaining("q=-33.919%2C151.257"));
+    expect(screen.getByRole("link", { name: /open in google maps/i })).toHaveAttribute(
+      "href",
+      "https://www.google.com/maps/search/?api=1&query=-33.919,151.257",
+    );
+    vi.unstubAllEnvs();
   });
 
   it("creates a group for the current organisation from the detail card", async () => {
@@ -340,17 +370,23 @@ describe("Organisation detail", () => {
   });
 
   it("edits organisation details", async () => {
-    mockedApi.updateOrganisation.mockResolvedValue(organisation({ name: "FIVB Renamed", can_edit: true }));
-    renderWithAuth(<OrganisationDetail />, authValue(), "/organisations/1", "/organisations/:id");
+    mockedApi.updateOrganisation.mockResolvedValue(organisation({ name: "FIVB Renamed", slug: "fivb-world", can_edit: true }));
+    renderWithAuth(<OrganisationDetail />, authValue(), "/organisations/fivb", "/organisations/:id");
     await screen.findByRole("heading", { name: "FIVB" });
 
     await userEvent.click(screen.getByRole("button", { name: "Edit" }));
     const name = screen.getByLabelText(/^name$/i);
     await userEvent.clear(name);
     await userEvent.type(name, "FIVB Renamed");
+    const slug = screen.getByLabelText(/^slug$/i);
+    await userEvent.clear(slug);
+    await userEvent.type(slug, "fivb-world");
     await userEvent.click(screen.getByRole("button", { name: /save changes/i }));
 
-    expect(mockedApi.updateOrganisation).toHaveBeenCalledWith(1, expect.objectContaining({ name: "FIVB Renamed" }));
+    expect(mockedApi.updateOrganisation).toHaveBeenCalledWith(1, expect.objectContaining({
+      name: "FIVB Renamed",
+      slug: "fivb-world",
+    }));
     expect(await screen.findByRole("status")).toHaveTextContent("FIVB Renamed updated.");
   });
 

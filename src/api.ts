@@ -713,7 +713,7 @@ export interface Group {
    * Organisation". `null` for a group placed before it was recorded, and until an
    * administrator places it.
    */
-  organisation: { id: number; name: string } | null;
+  organisation: { id: number; name: string; slug?: string } | null;
   /** Who runs it, from the membership rather than from `created_by`. */
   owner: {
     id: number;
@@ -852,7 +852,7 @@ export interface OrganisationMembership {
   left_at: string | null;
   /** Whether this person may run the organisation's roster. */
   manages: boolean;
-  organisation?: { id: number; name: string };
+  organisation?: { id: number; name: string; slug?: string };
   created_at: string;
   updated_at: string;
 }
@@ -864,7 +864,7 @@ export type OrganisationMembershipRole =
   | "member";
 
 export interface OrganisationMembershipList {
-  organisation: { id: number; name: string };
+  organisation: { id: number; name: string; slug?: string };
   data: OrganisationMembership[];
 }
 
@@ -918,7 +918,7 @@ export interface Organisation {
   status: "active" | "archived";
   status_label: string;
   parent_organisation_id: number | null;
-  parent_organisation: { id: number; name: string } | null;
+  parent_organisation: { id: number; name: string; slug: string } | null;
   /** Immediate children only; the full subtree is deliberately not inlined. */
   child_count: number;
   /** Tiers above this organisation, 0 for a root. */
@@ -970,6 +970,8 @@ export interface Organisation {
 
 export interface OrganisationInput {
   name: string;
+  /** URL identifier. The server normalizes it to a URL-safe unique value. */
+  slug?: string;
   description?: string | null;
   /** Omit to leave unchanged on an edit; null or "" clears it. */
   acronym?: string | null;
@@ -1584,7 +1586,7 @@ export interface UserGroupMembership {
     id: number;
     name: string;
     status: GroupStatus;
-    organisation: { id: number; name: string } | null;
+    organisation: { id: number; name: string; slug?: string } | null;
   };
 }
 
@@ -2197,9 +2199,6 @@ export interface Tournament {
   website_url: string | null;
   description: string | null;
   location_name: string | null;
-  city: string | null;
-  state: string | null;
-  country: string | null;
   location?: Location | null;
   court?: Court | null;
   location_detail?: string | null;
@@ -2226,9 +2225,6 @@ export interface TournamentInput {
   website_url?: string | null;
   description?: string | null;
   location_name?: string | null;
-  city?: string | null;
-  state?: string | null;
-  country?: string | null;
   location_id?: number | null;
   court_id?: number | null;
   location_detail?: string | null;
@@ -2236,7 +2232,6 @@ export interface TournamentInput {
   all_day: boolean;
   starts_at: string;
   ends_at: string;
-  created_by_account_id?: number;
 }
 // ===== End Tournament API Types =====
 
@@ -3106,7 +3101,8 @@ export const api = {
       `/organisations${query ? `?${query}` : ""}`,
     );
   },
-  organisation: (id: number) => fetchAPI<Organisation>(`/organisations/${id}`),
+  organisation: (identifier: number | string) =>
+    fetchAPI<Organisation>(`/organisations/${identifier}`),
   createOrganisation: (data: OrganisationInput) =>
     postJSON<Organisation>("/organisations", { organisation: data }),
   updateOrganisation: (id: number, data: Partial<OrganisationInput>) =>
