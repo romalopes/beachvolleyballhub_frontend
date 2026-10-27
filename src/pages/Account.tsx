@@ -4,6 +4,7 @@ import { KeyRound, MapPin, User } from "lucide-react";
 import { api, type Account } from "../api";
 import { useAuth } from "../auth/AuthContext";
 import LibraryHero from "../components/LibraryHero";
+import LocationMap from "../components/locations/LocationMap";
 
 const emptyAccount: Account = {
   id: null, first_name: null, last_name: null, email: null, phone: null, date_of_birth: null,
@@ -88,6 +89,21 @@ export default function AccountPage() {
       setSaving(false);
     }
   };
+
+  const addressQuery = [
+    account.address.street_address,
+    account.address.city,
+    account.address.state,
+    account.address.postal_code,
+    account.address.country,
+  ]
+    .map((part) => part?.trim())
+    .filter(Boolean)
+    .join(", ");
+  const locationTitle = accountId ? "Account location" : "Your location";
+  const locationName = account.full_name?.trim()
+    || [account.first_name, account.last_name].filter(Boolean).join(" ").trim()
+    || locationTitle;
 
   const handlePasswordSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -177,6 +193,29 @@ export default function AccountPage() {
           <div className="auth-field">
             <label htmlFor="country">Country</label>
             <input id="country" type="text" maxLength={100} value={account.address.country ?? ""} onChange={(e) => updateAddress("country", e.target.value)} />
+          </div>
+
+          <div className="account-location-preview">
+            <h3>{locationTitle}</h3>
+            {addressQuery ? (
+              <>
+                <p className="account-location-address">
+                  <MapPin size={18} aria-hidden="true" />
+                  <span>{addressQuery}</span>
+                </p>
+                <LocationMap
+                  name={locationName}
+                  latitude={null}
+                  longitude={null}
+                  externalUrl={null}
+                  query={addressQuery}
+                />
+              </>
+            ) : (
+              <p className="account-location-empty">
+                Add your address above to show your location on Google Maps.
+              </p>
+            )}
           </div>
         </section>
 
