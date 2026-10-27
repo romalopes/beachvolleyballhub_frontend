@@ -136,4 +136,20 @@ describe("WeatherWidget", () => {
 
     expect(screen.getByRole("status")).toHaveTextContent("Finding that location…");
   });
+
+  it("does not crash when a runtime response is missing forecast data", () => {
+    const incompleteWeather = [] as unknown as WeatherResponse;
+
+    render(
+      <WeatherWidget
+        weather={incompleteWeather}
+        loading={false}
+        error={null}
+        locationName="Coogee Beach, Sydney"
+      />,
+    );
+
+    expect(screen.getByRole("heading", { name: "Beach volleyball weather" })).toBeInTheDocument();
+    expect(screen.queryByRole("article")).not.toBeInTheDocument();
+  });
 });

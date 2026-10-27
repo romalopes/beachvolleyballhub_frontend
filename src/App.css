@@ -499,8 +499,27 @@
 }
 
 .home-location-content {
-  max-width: 720px;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  align-items: start;
+  gap: 2rem;
+  max-width: 1200px;
   margin: 0 auto;
+}
+
+.home-location-panel,
+.home-location-content > .home-weather {
+  min-width: 0;
+}
+
+.home-location-content > .home-weather {
+  margin-top: 0;
+  padding-top: 0;
+  border-top: 0;
+}
+
+.home-location-panel .location-map {
+  max-width: none;
 }
 
 .home-location-header {
@@ -560,6 +579,17 @@
 
   .home-location-search-controls .admin-btn {
     width: 100%;
+  }
+}
+
+@media (max-width: 960px) {
+  .home-location-content {
+    grid-template-columns: 1fr;
+  }
+
+  .home-location-content > .home-weather {
+    padding-top: 1.5rem;
+    border-top: 1px solid var(--border-light);
   }
 }
 

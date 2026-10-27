@@ -14,9 +14,8 @@ import {
   PlayCircle,
   ClipboardList,
   CalendarDays,
-  MapPin,
 } from "lucide-react";
-import LocationMap from "../components/locations/LocationMap";
+import HomeLocationPanel from "../components/locations/HomeLocationPanel";
 import WeatherWidget from "../components/weather/WeatherWidget";
 
 interface IpLocation {
@@ -286,6 +285,18 @@ export default function Home() {
     : venue.lat === FALLBACK_VENUE.lat && venue.lon === FALLBACK_VENUE.lon
       ? "Coogee Beach, Sydney, NSW, Australia"
       : `${venue.lat},${venue.lon}`;
+  const locationHeading = showingSearchedLocation
+    ? "Location Search"
+    : detectedLocation
+      ? "Near You"
+      : "Featured Venue";
+  const locationDescription = searchedLocation
+    ? `Showing Google Maps results for ${searchedLocation}.`
+    : detectedLocation?.source === "ip" && detectedLocation.city
+      ? `Train near ${detectedLocation.city}, ${detectedLocation.country}.`
+      : detectedLocation?.source === "browser"
+        ? `Your current location (${venue.lat.toFixed(4)}, ${venue.lon.toFixed(4)}).`
+        : "Train at Coogee Beach, one of Sydney’s iconic beach volleyball spots.";
 
   const handleLocationSearch = (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -331,72 +342,25 @@ export default function Home() {
       </section>
       <section className="home-location">
         <div className="home-location-content">
-          <div>
-            <div className="home-location-header">
-              <MapPin size={20} aria-hidden="true" />
-              <h2>
-                {showingSearchedLocation
-                  ? "Location Search"
-                  : detectedLocation
-                    ? "Near You"
-                    : "Featured Venue"}
-              </h2>
-            </div>
-            <form
-              className="home-location-search"
-              onSubmit={handleLocationSearch}
-            >
-              <label htmlFor="home-location-search">
-                Search for a location
-              </label>
-              <div className="home-location-search-controls">
-                <input
-                  id="home-location-search"
-                  type="search"
-                  value={locationSearch}
-                  onChange={(event) => setLocationSearch(event.target.value)}
-                  placeholder="City, suburb, beach, or address"
-                />
-                <button type="submit" className="admin-btn admin-btn-add">
-                  Search
-                </button>
-                {showingSearchedLocation && (
-                  <button
-                    type="button"
-                    className="admin-btn"
-                    onClick={useDetectedLocation}
-                  >
-                    Use my location
-                  </button>
-                )}
-              </div>
-            </form>
-            {locationLoading && !showingSearchedLocation && (
-              <p className="home-location-loading">Detecting your location…</p>
-            )}
-            {locationError && !detectedLocation && !showingSearchedLocation && (
-              <p className="home-location-error">
-                {locationError} Showing featured venue.
-              </p>
-            )}
-            <p className="home-location-text">
-              {searchedLocation
-                ? `Showing Google Maps results for ${searchedLocation}.`
-                : detectedLocation?.source === "ip" && detectedLocation.city
-                  ? `Train near ${detectedLocation.city}, ${detectedLocation.country}.`
-                  : detectedLocation?.source === "browser"
-                    ? `Your current location (${venue.lat.toFixed(4)}, ${venue.lon.toFixed(4)}).`
-                    : "Train at Coogee Beach, one of Sydney’s iconic beach volleyball spots."}
-            </p>
-
-            <LocationMap
-              name={searchedLocation ?? detectedLocationName}
-              latitude={showingSearchedLocation ? null : venue.lat}
-              longitude={showingSearchedLocation ? null : venue.lon}
-              externalUrl={null}
-              query={searchedLocation ?? detectedLocationQuery}
-            />
-          </div>
+          <HomeLocationPanel
+            heading={locationHeading}
+            searchValue={locationSearch}
+            onSearchValueChange={setLocationSearch}
+            onSearch={handleLocationSearch}
+            showUseMyLocation={showingSearchedLocation}
+            onUseMyLocation={useDetectedLocation}
+            loading={locationLoading && !showingSearchedLocation}
+            error={
+              locationError && !detectedLocation && !showingSearchedLocation
+                ? locationError
+                : null
+            }
+            description={locationDescription}
+            mapName={searchedLocation ?? detectedLocationName}
+            mapLatitude={showingSearchedLocation ? null : venue.lat}
+            mapLongitude={showingSearchedLocation ? null : venue.lon}
+            mapQuery={searchedLocation ?? detectedLocationQuery}
+          />
           <WeatherWidget
             weather={weather}
             loading={weatherLoading}

@@ -15,7 +15,8 @@ function metric(
   value: number | null | undefined,
   format: (value: number) => string,
 ): string {
-  if (value === null || value === undefined || !Number.isFinite(value)) return "–";
+  if (value === null || value === undefined || !Number.isFinite(value))
+    return "–";
   return format(value);
 }
 
@@ -53,11 +54,15 @@ function CurrentConditions({ current }: { current: WeatherCurrent }) {
         </div>
         <div>
           <dt>Gusts</dt>
-          <dd>{metric(current.wind_gust_kph, (v) => `${Math.round(v)} km/h`)}</dd>
+          <dd>
+            {metric(current.wind_gust_kph, (v) => `${Math.round(v)} km/h`)}
+          </dd>
         </div>
         <div>
           <dt>Humidity</dt>
-          <dd>{metric(current.humidity_percent, (v) => `${Math.round(v)}%`)}</dd>
+          <dd>
+            {metric(current.humidity_percent, (v) => `${Math.round(v)}%`)}
+          </dd>
         </div>
         <div>
           <dt>UV</dt>
@@ -65,7 +70,9 @@ function CurrentConditions({ current }: { current: WeatherCurrent }) {
         </div>
         <div>
           <dt>Precipitation</dt>
-          <dd>{metric(current.precipitation_mm, (v) => `${v.toFixed(1)} mm`)}</dd>
+          <dd>
+            {metric(current.precipitation_mm, (v) => `${v.toFixed(1)} mm`)}
+          </dd>
         </div>
       </dl>
       {typeof gustGap === "number" && gustGap > 15 && (
@@ -92,7 +99,8 @@ function Advisor({ weather }: { weather: WeatherResponse }) {
         </span>
       </div>
       <p className="weather-advisor-note">
-        Playing-suitability estimate for coaching — not an official safety rating.
+        Playing-suitability estimate for coaching — not an official safety
+        rating.
       </p>
       {volleyball.warnings.map((warning) => (
         <p className="weather-warning" role="alert" key={warning}>
@@ -118,6 +126,8 @@ export default function WeatherWidget({
   searchError = null,
   locationName,
 }: WeatherWidgetProps) {
+  const forecast = Array.isArray(weather?.forecast) ? weather.forecast : [];
+  const attribution = weather?.attribution;
   const updated = weather?.updated_at
     ? new Intl.DateTimeFormat(undefined, {
         hour: "2-digit",
@@ -132,7 +142,9 @@ export default function WeatherWidget({
           <h3 id="home-weather-title">Beach volleyball weather</h3>
           <p>{locationName}</p>
         </div>
-        {updated && <span className="home-weather-freshness">Updated {updated}</span>}
+        {updated && (
+          <span className="home-weather-freshness">Updated {updated}</span>
+        )}
       </div>
 
       {findingLocation && (
@@ -159,42 +171,52 @@ export default function WeatherWidget({
       {weather && (
         <>
           {weather.current && <CurrentConditions current={weather.current} />}
+          aaaaaaa
           <Advisor weather={weather} />
-          <div className="home-weather-grid">
-            {weather.forecast.map((day) => (
-              <article className="home-weather-card" key={day.date}>
-                <time dateTime={day.date}>
-                  {new Intl.DateTimeFormat(undefined, {
-                    weekday: "short",
-                    month: "short",
-                    day: "numeric",
-                    timeZone: "UTC",
-                  }).format(new Date(`${day.date}T00:00:00Z`))}
-                </time>
-                <img src={day.icon_url} alt="" width="64" height="64" />
-                <strong>{day.condition}</strong>
-                <span>
-                  {Math.round(day.max_temp_c)}° / {Math.round(day.min_temp_c)}°C
-                </span>
-                <span>
-                  Rain{" "}
-                  {day.rain_chance_percent === null ? "–" : `${day.rain_chance_percent}%`} ·
-                  Wind{" "}
-                  {day.max_wind_kph === null ? "–" : `${Math.round(day.max_wind_kph)} km/h`}
-                </span>
-              </article>
-            ))}
-          </div>
-          <p className="home-weather-attribution">
-            Weather data provided by{" "}
-            <a href={weather.attribution.url} target="_blank" rel="noreferrer">
-              {weather.attribution.name}
-            </a>{" "}
-            · Official warnings:{" "}
-            <a href={BOM_WARNINGS_URL} target="_blank" rel="noreferrer">
-              Bureau of Meteorology
-            </a>
-          </p>
+          {forecast.length > 0 && (
+            <div className="home-weather-grid">
+              {forecast.map((day) => (
+                <article className="home-weather-card" key={day.date}>
+                  <time dateTime={day.date}>
+                    {new Intl.DateTimeFormat(undefined, {
+                      weekday: "short",
+                      month: "short",
+                      day: "numeric",
+                      timeZone: "UTC",
+                    }).format(new Date(`${day.date}T00:00:00Z`))}
+                  </time>
+                  <img src={day.icon_url} alt="" width="64" height="64" />
+                  <strong>{day.condition}</strong>
+                  <span>
+                    {Math.round(day.max_temp_c)}° / {Math.round(day.min_temp_c)}
+                    °C
+                  </span>
+                  <span>
+                    Rain{" "}
+                    {day.rain_chance_percent === null
+                      ? "–"
+                      : `${day.rain_chance_percent}%`}{" "}
+                    · Wind{" "}
+                    {day.max_wind_kph === null
+                      ? "–"
+                      : `${Math.round(day.max_wind_kph)} km/h`}
+                  </span>
+                </article>
+              ))}
+            </div>
+          )}
+          {attribution?.url && attribution.name && (
+            <p className="home-weather-attribution">
+              Weather data provided by{" "}
+              <a href={attribution.url} target="_blank" rel="noreferrer">
+                {attribution.name}
+              </a>{" "}
+              · Official warnings:{" "}
+              <a href={BOM_WARNINGS_URL} target="_blank" rel="noreferrer">
+                Bureau of Meteorology
+              </a>
+            </p>
+          )}
         </>
       )}
     </section>
