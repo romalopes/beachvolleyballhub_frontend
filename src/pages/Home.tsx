@@ -1,6 +1,12 @@
 import { type FormEvent, useEffect, useState } from "react";
 import { Link } from "react-router-dom";
-import { api, type Category, type Skill, type Drill } from "../api";
+import {
+  api,
+  type Category,
+  type Drill,
+  type Skill,
+  type WeatherResponse,
+} from "../api";
 import {
   ArrowRight,
   Target,
@@ -11,6 +17,7 @@ import {
   MapPin,
 } from "lucide-react";
 import LocationMap from "../components/locations/LocationMap";
+import WeatherWidget from "../components/weather/WeatherWidget";
 
 interface IpLocation {
   status: string;
@@ -28,6 +35,10 @@ interface DetectedLocation {
   country: string | null;
   source: "browser" | "ip";
 }
+
+type WeatherRequest =
+  | { key: string; status: "success"; data: WeatherResponse }
+  | { key: string; status: "error"; message: string };
 
 const FALLBACK_VENUE: DetectedLocation = {
   lat: -33.919655,
@@ -84,8 +95,18 @@ export default function Home() {
     useState<DetectedLocation | null>(null);
   const [locationLoading, setLocationLoading] = useState(true);
   const [locationError, setLocationError] = useState<string | null>(null);
+  const [weatherRequest, setWeatherRequest] = useState<WeatherRequest | null>(
+    null,
+  );
   const [locationSearch, setLocationSearch] = useState("");
   const [searchedLocation, setSearchedLocation] = useState<string | null>(null);
+  const [searchedCoords, setSearchedCoords] = useState<{
+    lat: number;
+    lon: number;
+  } | null>(null);
+  const [searchCoordsError, setSearchCoordsError] = useState<string | null>(
+    null,
+  );
 
   useEffect(() => {
     Promise.all([api.categories(), api.skills(), api.drills()])
@@ -97,6 +118,37 @@ export default function Home() {
       .catch(console.error)
       .finally(() => setLoading(false));
   }, []);
+
+  useEffect(() => {
+    const weatherLocation =
+      searchedLocation !== null
+        ? searchedCoords
+        : (detectedLocation ?? FALLBACK_VENUE);
+    if (!weatherLocation) return;
+
+    const controller = new AbortController();
+    const requestKey = `${weatherLocation.lat},${weatherLocation.lon}`;
+
+    api
+      .weather(weatherLocation.lat, weatherLocation.lon, controller.signal)
+      .then((data) =>
+        setWeatherRequest({ key: requestKey, status: "success", data }),
+      )
+      .catch((error: unknown) => {
+        if (error instanceof DOMException && error.name === "AbortError")
+          return;
+        setWeatherRequest({
+          key: requestKey,
+          status: "error",
+          message:
+            error instanceof Error
+              ? error.message
+              : "Unable to load the forecast.",
+        });
+      });
+
+    return () => controller.abort();
+  }, [detectedLocation, searchedLocation, searchedCoords]);
 
   useEffect(() => {
     let cancelled = false;
@@ -192,14 +244,45 @@ export default function Home() {
   if (loading) return <div className="loading">Loading...</div>;
 
   const venue = detectedLocation ?? FALLBACK_VENUE;
+  const weatherTarget =
+    searchedLocation !== null
+      ? searchedCoords
+      : (detectedLocation ?? FALLBACK_VENUE);
+  const weatherKey = weatherTarget
+    ? `${weatherTarget.lat},${weatherTarget.lon}`
+    : null;
+  const weatherLoading =
+    weatherKey !== null && weatherRequest?.key !== weatherKey;
+  const searchCoordsPending =
+    weatherKey === null && searchedLocation !== null && !searchCoordsError;
+  const weatherLocationName =
+    searchedLocation !== null
+      ? searchedLocation
+      : detectedLocation?.city
+        ? [detectedLocation.city, detectedLocation.country]
+            .filter(Boolean)
+            .join(", ")
+        : "Coogee Beach, Sydney";
+  const weather =
+    weatherRequest?.key === weatherKey && weatherRequest.status === "success"
+      ? weatherRequest.data
+      : null;
+  const weatherError =
+    weatherRequest?.key === weatherKey && weatherRequest.status === "error"
+      ? weatherRequest.message
+      : null;
   const showingSearchedLocation = searchedLocation !== null;
   const detectedLocationName = detectedLocation?.city
-    ? [detectedLocation.city, detectedLocation.country].filter(Boolean).join(", ")
+    ? [detectedLocation.city, detectedLocation.country]
+        .filter(Boolean)
+        .join(", ")
     : venue.lat === FALLBACK_VENUE.lat && venue.lon === FALLBACK_VENUE.lon
       ? "Coogee Beach"
       : "Your location";
   const detectedLocationQuery = detectedLocation?.city
-    ? [detectedLocation.city, detectedLocation.country].filter(Boolean).join(", ")
+    ? [detectedLocation.city, detectedLocation.country]
+        .filter(Boolean)
+        .join(", ")
     : venue.lat === FALLBACK_VENUE.lat && venue.lon === FALLBACK_VENUE.lon
       ? "Coogee Beach, Sydney, NSW, Australia"
       : `${venue.lat},${venue.lon}`;
@@ -207,12 +290,31 @@ export default function Home() {
   const handleLocationSearch = (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     const query = locationSearch.trim();
-    if (query) setSearchedLocation(query);
+    if (!query) return;
+
+    setSearchedLocation(query);
+    setSearchedCoords(null);
+    setSearchCoordsError(null);
+
+    api
+      .geocode(query)
+      .then((result) =>
+        setSearchedCoords({ lat: result.latitude, lon: result.longitude }),
+      )
+      .catch((error: unknown) => {
+        setSearchCoordsError(
+          error instanceof Error
+            ? error.message
+            : "Unable to find that location.",
+        );
+      });
   };
 
   const useDetectedLocation = () => {
     setLocationSearch("");
     setSearchedLocation(null);
+    setSearchedCoords(null);
+    setSearchCoordsError(null);
   };
 
   return (
@@ -229,59 +331,83 @@ export default function Home() {
       </section>
       <section className="home-location">
         <div className="home-location-content">
-          <div className="home-location-header">
-            <MapPin size={20} aria-hidden="true" />
-            <h2>
-              {showingSearchedLocation
-                ? "Location Search"
-                : detectedLocation
-                  ? "Near You"
-                  : "Featured Venue"}
-            </h2>
-          </div>
-          <form className="home-location-search" onSubmit={handleLocationSearch}>
-            <label htmlFor="home-location-search">Search for a location</label>
-            <div className="home-location-search-controls">
-              <input
-                id="home-location-search"
-                type="search"
-                value={locationSearch}
-                onChange={(event) => setLocationSearch(event.target.value)}
-                placeholder="City, suburb, beach, or address"
-              />
-              <button type="submit" className="admin-btn admin-btn-add">
-                Search
-              </button>
-              {showingSearchedLocation && (
-                <button type="button" className="admin-btn" onClick={useDetectedLocation}>
-                  Use my location
-                </button>
-              )}
+          <div>
+            <div className="home-location-header">
+              <MapPin size={20} aria-hidden="true" />
+              <h2>
+                {showingSearchedLocation
+                  ? "Location Search"
+                  : detectedLocation
+                    ? "Near You"
+                    : "Featured Venue"}
+              </h2>
             </div>
-          </form>
-          {locationLoading && !showingSearchedLocation && (
-            <p className="home-location-loading">Detecting your location…</p>
-          )}
-          {locationError && !detectedLocation && !showingSearchedLocation && (
-            <p className="home-location-error">
-              {locationError} Showing featured venue.
+            <form
+              className="home-location-search"
+              onSubmit={handleLocationSearch}
+            >
+              <label htmlFor="home-location-search">
+                Search for a location
+              </label>
+              <div className="home-location-search-controls">
+                <input
+                  id="home-location-search"
+                  type="search"
+                  value={locationSearch}
+                  onChange={(event) => setLocationSearch(event.target.value)}
+                  placeholder="City, suburb, beach, or address"
+                />
+                <button type="submit" className="admin-btn admin-btn-add">
+                  Search
+                </button>
+                {showingSearchedLocation && (
+                  <button
+                    type="button"
+                    className="admin-btn"
+                    onClick={useDetectedLocation}
+                  >
+                    Use my location
+                  </button>
+                )}
+              </div>
+            </form>
+            {locationLoading && !showingSearchedLocation && (
+              <p className="home-location-loading">Detecting your location…</p>
+            )}
+            {locationError && !detectedLocation && !showingSearchedLocation && (
+              <p className="home-location-error">
+                {locationError} Showing featured venue.
+              </p>
+            )}
+            <p className="home-location-text">
+              {searchedLocation
+                ? `Showing Google Maps results for ${searchedLocation}.`
+                : detectedLocation?.source === "ip" && detectedLocation.city
+                  ? `Train near ${detectedLocation.city}, ${detectedLocation.country}.`
+                  : detectedLocation?.source === "browser"
+                    ? `Your current location (${venue.lat.toFixed(4)}, ${venue.lon.toFixed(4)}).`
+                    : "Train at Coogee Beach, one of Sydney’s iconic beach volleyball spots."}
             </p>
-          )}
-          <p className="home-location-text">
-            {searchedLocation
-              ? `Showing Google Maps results for ${searchedLocation}.`
-              : detectedLocation?.source === "ip" && detectedLocation.city
-              ? `Train near ${detectedLocation.city}, ${detectedLocation.country}.`
-              : detectedLocation?.source === "browser"
-                ? `Your current location (${venue.lat.toFixed(4)}, ${venue.lon.toFixed(4)}).`
-                : "Train at Coogee Beach, one of Sydney’s iconic beach volleyball spots."}
-          </p>
-          <LocationMap
-            name={searchedLocation ?? detectedLocationName}
-            latitude={showingSearchedLocation ? null : venue.lat}
-            longitude={showingSearchedLocation ? null : venue.lon}
-            externalUrl={null}
-            query={searchedLocation ?? detectedLocationQuery}
+
+            <LocationMap
+              name={searchedLocation ?? detectedLocationName}
+              latitude={showingSearchedLocation ? null : venue.lat}
+              longitude={showingSearchedLocation ? null : venue.lon}
+              externalUrl={null}
+              query={searchedLocation ?? detectedLocationQuery}
+            />
+          </div>
+          <WeatherWidget
+            weather={weather}
+            loading={weatherLoading}
+            error={weatherError}
+            findingLocation={searchCoordsPending}
+            searchError={
+              searchCoordsError && searchedLocation !== null
+                ? searchCoordsError
+                : null
+            }
+            locationName={weatherLocationName}
           />
         </div>
       </section>

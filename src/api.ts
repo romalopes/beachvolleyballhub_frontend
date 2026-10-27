@@ -91,6 +91,66 @@ export interface HealthDetailed {
   counts: Record<string, number>;
 }
 
+export interface WeatherForecastDay {
+  date: string;
+  max_temp_c: number;
+  min_temp_c: number;
+  average_temp_c: number;
+  condition: string;
+  icon_url: string;
+  rain_chance_percent: number | null;
+  max_wind_kph: number | null;
+}
+
+export interface WeatherCurrent {
+  temperature_c: number | null;
+  feels_like_c: number | null;
+  condition: string | null;
+  condition_code: number | null;
+  wind_kph: number | null;
+  wind_gust_kph: number | null;
+  wind_degree: number | null;
+  wind_direction: string | null;
+  humidity_percent: number | null;
+  uv_index: number | null;
+  precipitation_mm: number | null;
+  icon_url: string | null;
+}
+
+export interface WeatherVolleyball {
+  score: number | null;
+  label: string;
+  advice: string[];
+  warnings: string[];
+  safety_override: boolean;
+}
+
+export interface WeatherResponse {
+  forecast: WeatherForecastDay[];
+  current: WeatherCurrent | null;
+  location: {
+    latitude: number;
+    longitude: number;
+    timezone: string | null;
+  };
+  updated_at: string | null;
+  stale: boolean;
+  volleyball: WeatherVolleyball | null;
+  attribution: {
+    name: string;
+    url: string;
+  };
+}
+
+export interface GeocodeResponse {
+  latitude: number;
+  longitude: number;
+  formatted_address: string | null;
+  locality: string | null;
+  administrative_area: string | null;
+  country_code: string | null;
+}
+
 function authHeaders(
   extra: Record<string, string> = {},
 ): Record<string, string> {
@@ -2327,6 +2387,16 @@ export interface AnalysisDetail extends AnalysisSummary {
 // ===== End Analysis API Types =====
 
 export const api = {
+  weather: (lat: number, lon: number, signal?: AbortSignal) =>
+    fetchAPI<WeatherResponse>(
+      `/weather?${new URLSearchParams({ lat: String(lat), lon: String(lon) })}`,
+      { signal },
+    ),
+  geocode: (query: string, signal?: AbortSignal) =>
+    fetchAPI<GeocodeResponse>(
+      `/geocode?${new URLSearchParams({ q: query })}`,
+      { signal },
+    ),
   categories: () => fetchAPI<Category[]>("/categories"),
   skills: () => fetchAPI<Skill[]>("/skills"),
   skill: (slugOrId: string) =>
