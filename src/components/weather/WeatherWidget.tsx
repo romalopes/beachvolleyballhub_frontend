@@ -1,4 +1,6 @@
 import type { WeatherCurrent, WeatherResponse } from "../../api";
+import DailyForecast from "./DailyForecast";
+import ThreeHourlyConditions from "./ThreeHourlyConditions";
 
 interface WeatherWidgetProps {
   weather: WeatherResponse | null;
@@ -127,6 +129,7 @@ export default function WeatherWidget({
   locationName,
 }: WeatherWidgetProps) {
   const forecast = Array.isArray(weather?.forecast) ? weather.forecast : [];
+  const hourly = Array.isArray(weather?.hourly) ? weather.hourly : [];
   const attribution = weather?.attribution;
   const updated = weather?.updated_at
     ? new Intl.DateTimeFormat(undefined, {
@@ -171,40 +174,12 @@ export default function WeatherWidget({
       {weather && (
         <>
           {weather.current && <CurrentConditions current={weather.current} />}
-          aaaaaaa
+          <ThreeHourlyConditions
+            conditions={hourly}
+            timezone={weather.location?.timezone ?? null}
+          />
           <Advisor weather={weather} />
-          {forecast.length > 0 && (
-            <div className="home-weather-grid">
-              {forecast.map((day) => (
-                <article className="home-weather-card" key={day.date}>
-                  <time dateTime={day.date}>
-                    {new Intl.DateTimeFormat(undefined, {
-                      weekday: "short",
-                      month: "short",
-                      day: "numeric",
-                      timeZone: "UTC",
-                    }).format(new Date(`${day.date}T00:00:00Z`))}
-                  </time>
-                  <img src={day.icon_url} alt="" width="64" height="64" />
-                  <strong>{day.condition}</strong>
-                  <span>
-                    {Math.round(day.max_temp_c)}° / {Math.round(day.min_temp_c)}
-                    °C
-                  </span>
-                  <span>
-                    Rain{" "}
-                    {day.rain_chance_percent === null
-                      ? "–"
-                      : `${day.rain_chance_percent}%`}{" "}
-                    · Wind{" "}
-                    {day.max_wind_kph === null
-                      ? "–"
-                      : `${Math.round(day.max_wind_kph)} km/h`}
-                  </span>
-                </article>
-              ))}
-            </div>
-          )}
+          <DailyForecast forecast={forecast} />
           {attribution?.url && attribution.name && (
             <p className="home-weather-attribution">
               Weather data provided by{" "}

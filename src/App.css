@@ -739,6 +739,57 @@
   font-size: 0.8rem;
 }
 
+.weather-hourly,
+.weather-daily {
+  margin-top: 1rem;
+}
+
+.weather-hourly h4,
+.weather-daily h4 {
+  margin: 0 0 0.65rem;
+  color: var(--charcoal);
+  font-size: 1rem;
+}
+
+.weather-hourly-scroll {
+  display: grid;
+  grid-auto-columns: minmax(145px, 0.75fr);
+  grid-auto-flow: column;
+  gap: 0.75rem;
+  overflow-x: auto;
+  padding: 0.1rem 0 0.6rem;
+  scroll-snap-type: x proximity;
+}
+
+.weather-hourly-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.25rem;
+  padding: 0.8rem 0.65rem;
+  border: 1px solid var(--border-light);
+  border-radius: var(--radius-md);
+  background: var(--bg-secondary);
+  text-align: center;
+  scroll-snap-align: start;
+}
+
+.weather-hourly-card time,
+.weather-hourly-card span {
+  color: var(--text-secondary);
+  font-size: 0.78rem;
+}
+
+.weather-hourly-card strong {
+  color: var(--charcoal);
+  font-size: 1.05rem;
+}
+
+.weather-hourly-card img {
+  width: 48px;
+  height: 48px;
+}
+
 .weather-advisor {
   margin-top: 1rem;
   padding: 1rem;

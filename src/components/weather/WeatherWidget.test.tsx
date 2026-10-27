@@ -1,4 +1,4 @@
-import { render, screen } from "@testing-library/react";
+import { render, screen, within } from "@testing-library/react";
 import { describe, expect, it } from "vitest";
 import type { WeatherResponse } from "../../api";
 import WeatherWidget from "./WeatherWidget";
@@ -14,6 +14,7 @@ const weather = (overrides: Partial<WeatherResponse> = {}): WeatherResponse => (
       icon_url: "https://cdn.weatherapi.com/icon.png",
       rain_chance_percent: 20,
       max_wind_kph: 24,
+      max_wind_direction: "NE",
     },
     {
       date: "2026-10-28",
@@ -24,6 +25,7 @@ const weather = (overrides: Partial<WeatherResponse> = {}): WeatherResponse => (
       icon_url: "https://cdn.weatherapi.com/icon2.png",
       rain_chance_percent: 55,
       max_wind_kph: 31,
+      max_wind_direction: "SE",
     },
     {
       date: "2026-10-29",
@@ -34,8 +36,26 @@ const weather = (overrides: Partial<WeatherResponse> = {}): WeatherResponse => (
       icon_url: "https://cdn.weatherapi.com/icon3.png",
       rain_chance_percent: 85,
       max_wind_kph: 18,
+      max_wind_direction: null,
     },
   ],
+  hourly: Array.from({ length: 8 }, (_, index) => {
+    const timeEpoch = Date.parse("2026-10-27T07:00:00Z") / 1000 + index * 3 * 60 * 60;
+    return {
+      time: index < 2
+        ? `2026-10-27 ${18 + index * 3}:00`
+        : `2026-10-28 ${String((index - 2) * 3).padStart(2, "0")}:00`,
+      time_epoch: timeEpoch,
+      temperature_c: 22 + index,
+      feels_like_c: 23 + index,
+      condition: index === 0 ? "Partly cloudy" : "Sunny",
+      icon_url: "https://cdn.weatherapi.com/hour.png",
+      rain_chance_percent: 20 + index,
+      wind_kph: 18 + index,
+      wind_gust_kph: 27 + index,
+      wind_direction: index === 0 ? "NE" : "E",
+    };
+  }),
   current: {
     temperature_c: 23.0,
     feels_like_c: 24.0,
@@ -66,15 +86,17 @@ const weather = (overrides: Partial<WeatherResponse> = {}): WeatherResponse => (
 
 describe("WeatherWidget", () => {
   it("renders current conditions with written wind, rain and temperature detail", () => {
-    render(<WeatherWidget weather={weather()} loading={false} error={null} locationName="Adelaide, SA" />);
+    const { container } = render(<WeatherWidget weather={weather()} loading={false} error={null} locationName="Adelaide, SA" />);
+    const current = container.querySelector<HTMLElement>(".weather-current");
+    expect(current).not.toBeNull();
 
-    expect(screen.getByText("23°C")).toBeInTheDocument();
-    expect(screen.getByText("Feels like 24°C")).toBeInTheDocument();
-    expect(screen.getByText(/18 km\/h NE/)).toBeInTheDocument();
-    expect(screen.getByText("27 km/h")).toBeInTheDocument();
-    expect(screen.getByText("64%")).toBeInTheDocument();
-    expect(screen.getByText("6.0")).toBeInTheDocument();
-    expect(screen.getByText("0.0 mm")).toBeInTheDocument();
+    expect(within(current!).getByText("23°C")).toBeInTheDocument();
+    expect(within(current!).getByText("Feels like 24°C")).toBeInTheDocument();
+    expect(within(current!).getByText(/18 km\/h NE/)).toBeInTheDocument();
+    expect(within(current!).getByText("27 km/h")).toBeInTheDocument();
+    expect(within(current!).getByText("64%")).toBeInTheDocument();
+    expect(within(current!).getByText("6.0")).toBeInTheDocument();
+    expect(within(current!).getByText("0.0 mm")).toBeInTheDocument();
     expect(screen.getByText("Adelaide, SA")).toBeInTheDocument();
   });
 
@@ -83,18 +105,74 @@ describe("WeatherWidget", () => {
 
     expect(screen.getByText("Good")).toBeInTheDocument();
     expect(screen.getByText("78/100 for beach volleyball")).toBeInTheDocument();
-    expect(screen.getByRole("list")).toHaveTextContent(
+    expect(document.querySelector(".weather-advice")).toHaveTextContent(
       "UV is elevated: use sunscreen, a hat and sunglasses.",
     );
     expect(screen.getByText(/not an official safety rating/i)).toBeInTheDocument();
   });
 
-  it("shows forecast days with rain chance and max wind", () => {
+  it("shows forecast days with rain chance, max wind and direction", () => {
     render(<WeatherWidget weather={weather()} loading={false} error={null} locationName="Coogee Beach, Sydney" />);
 
-    expect(screen.getAllByRole("article")).toHaveLength(3);
+    const daily = screen.getByRole("heading", { name: "Three-day forecast" }).closest<HTMLElement>(".weather-daily");
+    expect(daily).not.toBeNull();
+    expect(within(daily!).getAllByRole("article")).toHaveLength(3);
     expect(screen.getByText(/Rain 85%/)).toBeInTheDocument();
-    expect(screen.getByText(/Wind 31 km\/h/)).toBeInTheDocument();
+    expect(screen.getByText(/Wind 31 km\/h SE/)).toBeInTheDocument();
+    expect(screen.getByText(/Wind 18 km\/h(?! \w)/)).toBeInTheDocument();
+  });
+
+  it("renders eight three-hour conditions with wind direction and gusts", () => {
+    render(<WeatherWidget weather={weather()} loading={false} error={null} locationName="Coogee Beach, Sydney" />);
+
+    const hourlyList = screen.getByRole("list", { name: "Next 24 hours" });
+    expect(hourlyList).toBeInTheDocument();
+    expect(within(hourlyList).getAllByRole("listitem")).toHaveLength(8);
+    expect(within(hourlyList).getByText("Wind 18 km/h NE")).toBeInTheDocument();
+    expect(within(hourlyList).getByText("Gusts 27 km/h")).toBeInTheDocument();
+    expect(within(hourlyList).getByText("Feels 23°C")).toBeInTheDocument();
+    expect(within(hourlyList).getByText("Rain 20%")).toBeInTheDocument();
+  });
+
+  it("places hourly conditions between current conditions and the advisor", () => {
+    const { container } = render(<WeatherWidget weather={weather()} loading={false} error={null} locationName="Coogee Beach, Sydney" />);
+
+    const current = container.querySelector(".weather-current");
+    const hourly = container.querySelector(".weather-hourly");
+    const advisor = container.querySelector(".weather-advisor");
+    const daily = container.querySelector(".weather-daily");
+
+    expect(current).not.toBeNull();
+    expect(hourly).not.toBeNull();
+    expect(advisor).not.toBeNull();
+    expect(daily).not.toBeNull();
+    expect(current!.compareDocumentPosition(hourly!) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    expect(hourly!.compareDocumentPosition(advisor!) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    expect(advisor!.compareDocumentPosition(daily!) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+  });
+
+  it("handles missing hourly values and malformed runtime arrays", () => {
+    const incomplete = weather({
+      hourly: [
+        {
+          ...weather().hourly[0],
+          temperature_c: null,
+          feels_like_c: null,
+          rain_chance_percent: null,
+          wind_kph: null,
+          wind_gust_kph: null,
+          wind_direction: null,
+        },
+      ],
+      forecast: null as unknown as WeatherResponse["forecast"],
+    });
+
+    render(<WeatherWidget weather={incomplete} loading={false} error={null} locationName="Coogee Beach, Sydney" />);
+
+    const hourly = screen.getByRole("list", { name: "Next 24 hours" });
+    expect(within(hourly).getByText("Wind –")).toBeInTheDocument();
+    expect(within(hourly).getByText("Gusts –")).toBeInTheDocument();
+    expect(screen.queryByRole("heading", { name: "Three-day forecast" })).not.toBeInTheDocument();
   });
 
   it("surfaces safety warnings with alert semantics", () => {

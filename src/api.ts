@@ -100,6 +100,20 @@ export interface WeatherForecastDay {
   icon_url: string;
   rain_chance_percent: number | null;
   max_wind_kph: number | null;
+  max_wind_direction: string | null;
+}
+
+export interface WeatherForecastHour {
+  time: string;
+  time_epoch: number;
+  temperature_c: number | null;
+  feels_like_c: number | null;
+  condition: string | null;
+  icon_url: string | null;
+  rain_chance_percent: number | null;
+  wind_kph: number | null;
+  wind_gust_kph: number | null;
+  wind_direction: string | null;
 }
 
 export interface WeatherCurrent {
@@ -127,6 +141,7 @@ export interface WeatherVolleyball {
 
 export interface WeatherResponse {
   forecast: WeatherForecastDay[];
+  hourly: WeatherForecastHour[];
   current: WeatherCurrent | null;
   location: {
     latitude: number;
