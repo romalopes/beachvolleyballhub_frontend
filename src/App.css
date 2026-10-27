@@ -523,6 +523,46 @@
   max-width: 560px;
 }
 
+.home-location-search {
+  margin-bottom: 1rem;
+}
+
+.home-location-search label {
+  display: block;
+  margin-bottom: 0.4rem;
+  color: var(--charcoal);
+  font-size: 0.875rem;
+  font-weight: 600;
+}
+
+.home-location-search-controls {
+  display: flex;
+  align-items: center;
+  gap: 0.625rem;
+}
+
+.home-location-search-controls input {
+  flex: 1;
+  min-width: 0;
+}
+
+.home-location-search-controls .admin-btn {
+  flex: 0 0 auto;
+  min-height: 2.75rem;
+  padding-inline: 1rem;
+}
+
+@media (max-width: 600px) {
+  .home-location-search-controls {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .home-location-search-controls .admin-btn {
+    width: 100%;
+  }
+}
+
 .home-location-loading {
   font-size: 0.875rem;
   color: var(--text-secondary);

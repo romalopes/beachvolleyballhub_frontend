@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { type FormEvent, useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { api, type Category, type Skill, type Drill } from "../api";
 import {
@@ -84,6 +84,8 @@ export default function Home() {
     useState<DetectedLocation | null>(null);
   const [locationLoading, setLocationLoading] = useState(true);
   const [locationError, setLocationError] = useState<string | null>(null);
+  const [locationSearch, setLocationSearch] = useState("");
+  const [searchedLocation, setSearchedLocation] = useState<string | null>(null);
 
   useEffect(() => {
     Promise.all([api.categories(), api.skills(), api.drills()])
@@ -190,6 +192,28 @@ export default function Home() {
   if (loading) return <div className="loading">Loading...</div>;
 
   const venue = detectedLocation ?? FALLBACK_VENUE;
+  const showingSearchedLocation = searchedLocation !== null;
+  const detectedLocationName = detectedLocation?.city
+    ? [detectedLocation.city, detectedLocation.country].filter(Boolean).join(", ")
+    : venue.lat === FALLBACK_VENUE.lat && venue.lon === FALLBACK_VENUE.lon
+      ? "Coogee Beach"
+      : "Your location";
+  const detectedLocationQuery = detectedLocation?.city
+    ? [detectedLocation.city, detectedLocation.country].filter(Boolean).join(", ")
+    : venue.lat === FALLBACK_VENUE.lat && venue.lon === FALLBACK_VENUE.lon
+      ? "Coogee Beach, Sydney, NSW, Australia"
+      : `${venue.lat},${venue.lon}`;
+
+  const handleLocationSearch = (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    const query = locationSearch.trim();
+    if (query) setSearchedLocation(query);
+  };
+
+  const useDetectedLocation = () => {
+    setLocationSearch("");
+    setSearchedLocation(null);
+  };
 
   return (
     <div className="page">
@@ -207,43 +231,57 @@ export default function Home() {
         <div className="home-location-content">
           <div className="home-location-header">
             <MapPin size={20} aria-hidden="true" />
-            <h2>{detectedLocation ? "Near You" : "Featured Venue"}</h2>
+            <h2>
+              {showingSearchedLocation
+                ? "Location Search"
+                : detectedLocation
+                  ? "Near You"
+                  : "Featured Venue"}
+            </h2>
           </div>
-          {locationLoading && (
+          <form className="home-location-search" onSubmit={handleLocationSearch}>
+            <label htmlFor="home-location-search">Search for a location</label>
+            <div className="home-location-search-controls">
+              <input
+                id="home-location-search"
+                type="search"
+                value={locationSearch}
+                onChange={(event) => setLocationSearch(event.target.value)}
+                placeholder="City, suburb, beach, or address"
+              />
+              <button type="submit" className="admin-btn admin-btn-add">
+                Search
+              </button>
+              {showingSearchedLocation && (
+                <button type="button" className="admin-btn" onClick={useDetectedLocation}>
+                  Use my location
+                </button>
+              )}
+            </div>
+          </form>
+          {locationLoading && !showingSearchedLocation && (
             <p className="home-location-loading">Detecting your location…</p>
           )}
-          {locationError && !detectedLocation && (
+          {locationError && !detectedLocation && !showingSearchedLocation && (
             <p className="home-location-error">
               {locationError} Showing featured venue.
             </p>
           )}
           <p className="home-location-text">
-            {detectedLocation?.source === "ip" && detectedLocation.city
+            {searchedLocation
+              ? `Showing Google Maps results for ${searchedLocation}.`
+              : detectedLocation?.source === "ip" && detectedLocation.city
               ? `Train near ${detectedLocation.city}, ${detectedLocation.country}.`
               : detectedLocation?.source === "browser"
                 ? `Your current location (${venue.lat.toFixed(4)}, ${venue.lon.toFixed(4)}).`
                 : "Train at Coogee Beach, one of Sydney’s iconic beach volleyball spots."}
           </p>
           <LocationMap
-            name={
-              detectedLocation?.city
-                ? `${detectedLocation.city}, ${detectedLocation.country}`
-                : venue.lat === FALLBACK_VENUE.lat &&
-                    venue.lon === FALLBACK_VENUE.lon
-                  ? "Coogee Beach"
-                  : "Your location"
-            }
-            latitude={venue.lat}
-            longitude={venue.lon}
+            name={searchedLocation ?? detectedLocationName}
+            latitude={showingSearchedLocation ? null : venue.lat}
+            longitude={showingSearchedLocation ? null : venue.lon}
             externalUrl={null}
-            query={
-              detectedLocation?.city
-                ? `${detectedLocation.city}, ${detectedLocation.country}`
-                : venue.lat === FALLBACK_VENUE.lat &&
-                    venue.lon === FALLBACK_VENUE.lon
-                  ? "Coogee Beach, Sydney, NSW, Australia"
-                  : `${venue.lat},${venue.lon}`
-            }
+            query={searchedLocation ?? detectedLocationQuery}
           />
         </div>
       </section>
