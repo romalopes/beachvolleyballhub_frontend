@@ -195,7 +195,7 @@ export default function Home() {
       cancelled = true;
       controller.abort();
     };
-  }, [agendaRangeEnd, agendaRangeStart]);
+  }, [agendaRangeEnd, agendaRangeStart, showMyTraining, showMyTournaments]);
 
   const moveAgendaCursor = (offset: number) => {
     setAgendaLoading(true);
@@ -483,28 +483,6 @@ export default function Home() {
             locationName={weatherLocationName}
             showHourly={false}
           />
-          <div className="home-agenda-filters">
-            <div className="home-agenda-filter-row">
-              <label className="home-agenda-filter-label">
-                <input
-                  type="checkbox"
-                  checked={showMyTournaments}
-                  onChange={(e) => setShowMyTournaments(e.target.checked)}
-                  id="mine-tournaments"
-                />
-                <span>{showMyTournaments ? "My Tournaments" : "All Tournaments"}</span>
-              </label>
-              <label className="home-agenda-filter-label">
-                <input
-                  type="checkbox"
-                  checked={showMyTraining}
-                  onChange={(e) => setShowMyTraining(e.target.checked)}
-                  id="mine-training"
-                />
-                <span>{showMyTraining ? "My Training" : "All Training"}</span>
-              </label>
-            </div>
-          </div>
           <UpcomingAgenda
             trainingSessions={trainingSessions}
             tournaments={tournaments}
@@ -516,6 +494,10 @@ export default function Home() {
             onToday={showAgendaToday}
             onNext={() => moveAgendaCursor(1)}
             onRangeChange={changeAgendaRange}
+            showMyTournaments={showMyTournaments}
+            onShowMyTournamentsChange={(e) => setShowMyTournaments(e.target.checked)}
+            showMyTraining={showMyTraining}
+            onShowMyTrainingChange={(e) => setShowMyTraining(e.target.checked)}
           />
           {weather && (
             <div className="home-hourly">

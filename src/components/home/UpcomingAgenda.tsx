@@ -30,6 +30,10 @@ interface UpcomingAgendaProps {
   onToday: () => void;
   onNext: () => void;
   onRangeChange: (range: "month" | "week") => void;
+  showMyTournaments?: boolean;
+  onShowMyTournamentsChange?: (e: React.ChangeEvent<HTMLInputElement>) => void;
+  showMyTraining?: boolean;
+  onShowMyTrainingChange?: (e: React.ChangeEvent<HTMLInputElement>) => void;
 }
 
 type AgendaItem =
@@ -74,7 +78,9 @@ function trainingLocation(session: TrainingSession): string | null {
 
 function tournamentLocation(tournament: Tournament): string | null {
   const venue = tournament.location?.name ?? tournament.location_name;
-  return [venue, tournament.location_detail].filter(Boolean).join(" · ") || null;
+  return (
+    [venue, tournament.location_detail].filter(Boolean).join(" · ") || null
+  );
 }
 
 function itemsByDayFor(
@@ -143,6 +149,10 @@ export default function UpcomingAgenda({
   onToday,
   onNext,
   onRangeChange,
+  showMyTournaments,
+  onShowMyTournamentsChange,
+  showMyTraining,
+  onShowMyTrainingChange,
 }: UpcomingAgendaProps) {
   const days = range === "month" ? monthGridDays(cursor) : weekGridDays(cursor);
   const itemsByDay = itemsByDayFor(trainingSessions, tournaments, days);
@@ -162,6 +172,30 @@ export default function UpcomingAgenda({
         <div>
           <span className="home-agenda-eyebrow">Schedule</span>
           <h3 id="home-agenda-title">Training & tournaments</h3>
+          <div className="home-agenda-filters-mobile">
+            <span className="home-agenda-filter-row">
+              <label className="home-agenda-filter-label">
+                <input
+                  type="checkbox"
+                  checked={showMyTournaments}
+                  onChange={(e) => onShowMyTournamentsChange?.(e)}
+                  id="mine-tournaments"
+                />
+                <span>
+                  {showMyTournaments ? "My Tournaments" : "All Tournaments"}
+                </span>
+              </label>
+              <label className="home-agenda-filter-label">
+                <input
+                  type="checkbox"
+                  checked={showMyTraining}
+                  onChange={(e) => onShowMyTrainingChange?.(e)}
+                  id="mine-training"
+                />
+                <span>{showMyTraining ? "My Training" : "All Training"}</span>
+              </label>
+            </span>
+          </div>
         </div>
         <CalendarDays size={20} aria-hidden="true" />
       </header>
