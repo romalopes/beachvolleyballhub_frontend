@@ -8,23 +8,23 @@ interface CalendarGridProps<Item> {
   itemsByDay: Map<string, Item[]>;
   cursor: Date;
   range?: "month" | "week";
+  todayKey?: string;
   className?: string;
   ariaLabel?: string;
   renderItem: (item: Item, dayKey: string) => ReactNode;
 }
 
-/** Shared month/week grid used by training and tournament calendars. */
+/** Shared calendar grid used by training, tournament, and Home calendars. */
 export default function CalendarGrid<Item>({
   days,
   itemsByDay,
   cursor,
   range = "month",
+  todayKey = toISODate(new Date()),
   className = "",
   ariaLabel,
   renderItem,
 }: CalendarGridProps<Item>) {
-  const todayKey = toISODate(new Date());
-
   return (
     <div
       className={["calendar", `calendar--${range}`, className]

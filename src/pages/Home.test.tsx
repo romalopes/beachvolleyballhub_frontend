@@ -23,8 +23,17 @@ vi.mock("../api", async (importOriginal) => {
 
 const mockedApi = vi.mocked(api, true);
 
+function futureIso(daysFromNow: number, hour: number): string {
+  const date = new Date();
+  date.setDate(date.getDate() + daysFromNow);
+  date.setHours(hour, 0, 0, 0);
+  return date.toISOString();
+}
+
 beforeEach(() => {
   vi.clearAllMocks();
+  vi.useFakeTimers({ toFake: ["Date"] });
+  vi.setSystemTime(new Date(2026, 9, 28, 12));
   vi.stubEnv("VITE_GOOGLE_MAPS_EMBED_API_KEY", "embed-key");
   mockedApi.categories.mockResolvedValue([]);
   mockedApi.skills.mockResolvedValue([]);
@@ -64,8 +73,8 @@ const training = (overrides: Partial<TrainingSession> = {}): TrainingSession => 
   id: 1,
   title: "Sunrise training",
   description: null,
-  starts_at: "2099-11-02T08:00:00Z",
-  ends_at: "2099-11-02T09:30:00Z",
+  starts_at: futureIso(7, 8),
+  ends_at: futureIso(7, 9),
   location: "Coogee Beach",
   status: "scheduled",
   visibility: "shared",
@@ -85,8 +94,8 @@ const tournament = (overrides: Partial<Tournament> = {}): Tournament => ({
   location_name: "Maroubra Beach",
   timezone: "UTC",
   all_day: false,
-  starts_at: "2099-11-02T06:00:00Z",
-  ends_at: "2099-11-02T10:00:00Z",
+  starts_at: futureIso(7, 6),
+  ends_at: futureIso(7, 10),
   created_by_account_id: 1,
   divisions: [],
   participations: [],
@@ -121,6 +130,7 @@ function weatherWithHourly(): WeatherResponse {
 }
 
 afterEach(() => {
+  vi.useRealTimers();
   vi.unstubAllEnvs();
 });
 
@@ -183,7 +193,7 @@ describe("Home location search", () => {
 });
 
 describe("Home upcoming agenda and weather layout", () => {
-  it("loads visible upcoming events and renders the hourly forecast once", async () => {
+  it("loads visible month events and renders the hourly forecast once", async () => {
     mockedApi.trainingSessions.mockResolvedValue([training()]);
     mockedApi.tournaments.mockResolvedValueOnce({
       data: [tournament()],
@@ -196,21 +206,85 @@ describe("Home upcoming agenda and weather layout", () => {
     expect(await screen.findByText("Future Sand Series")).toBeInTheDocument();
     expect(screen.getByText("Sunrise training")).toBeInTheDocument();
     expect(mockedApi.trainingSessions).toHaveBeenCalledWith(
-      expect.objectContaining({ status: "scheduled" }),
+      expect.objectContaining({
+        status: "scheduled",
+        starts_at_from: "2026-09-27",
+        starts_at_to: "2026-11-08",
+      }),
     );
     expect(mockedApi.tournaments).toHaveBeenCalledWith(
-      {
-        temporal_status: "upcoming",
+      expect.objectContaining({
         publication_state: "active",
         page: 1,
         per_page: 100,
-      },
+        starts_at: "2026-09-27",
+        ends_at: "2026-11-08",
+      }),
       expect.objectContaining({ signal: expect.any(AbortSignal) }),
     );
     expect(
       await screen.findAllByRole("heading", { name: "Next 24 hours" }),
     ).toHaveLength(1);
     expect(screen.getByRole("heading", { name: "Beach volleyball weather" })).toBeInTheDocument();
+  });
+
+  it("refetches the visible range for month and week navigation", async () => {
+    const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTime });
+    renderHome();
+
+    await waitFor(() => expect(mockedApi.trainingSessions).toHaveBeenCalledTimes(1));
+
+    await user.click(screen.getByRole("button", { name: "Next period" }));
+    await waitFor(() =>
+      expect(mockedApi.trainingSessions).toHaveBeenLastCalledWith(
+        expect.objectContaining({
+          starts_at_from: "2026-11-01",
+          starts_at_to: "2026-12-06",
+        }),
+      ),
+    );
+
+    await user.click(screen.getByRole("tab", { name: "Week" }));
+    await waitFor(() =>
+      expect(mockedApi.trainingSessions).toHaveBeenLastCalledWith(
+        expect.objectContaining({
+          starts_at_from: "2026-11-01",
+          starts_at_to: "2026-11-08",
+        }),
+      ),
+    );
+
+    await user.click(screen.getByRole("button", { name: "Previous period" }));
+    await waitFor(() =>
+      expect(mockedApi.tournaments).toHaveBeenLastCalledWith(
+        expect.objectContaining({
+          starts_at: "2026-10-25",
+          ends_at: "2026-11-01",
+          publication_state: "active",
+        }),
+        expect.objectContaining({ signal: expect.any(AbortSignal) }),
+      ),
+    );
+
+    await user.click(screen.getByRole("button", { name: "Next period" }));
+    await waitFor(() =>
+      expect(mockedApi.trainingSessions).toHaveBeenLastCalledWith(
+        expect.objectContaining({
+          starts_at_from: "2026-11-01",
+          starts_at_to: "2026-11-08",
+        }),
+      ),
+    );
+
+    await user.click(screen.getByRole("button", { name: "Today" }));
+    await waitFor(() =>
+      expect(mockedApi.trainingSessions).toHaveBeenLastCalledWith(
+        expect.objectContaining({
+          starts_at_from: "2026-10-25",
+          starts_at_to: "2026-11-01",
+        }),
+      ),
+    );
   });
 
   it("loads every tournament page", async () => {
@@ -238,7 +312,7 @@ describe("Home upcoming agenda and weather layout", () => {
   it("shows agenda empty and failure states", async () => {
     const { unmount } = renderHome();
     expect(
-      await screen.findByText(/No upcoming training sessions or tournaments/),
+      await screen.findByText(/No training sessions or tournaments are scheduled/),
     ).toBeInTheDocument();
     unmount();
 

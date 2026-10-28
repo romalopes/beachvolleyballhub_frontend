@@ -34,4 +34,40 @@ describe("CalendarGrid", () => {
     within(cell).getByRole("button", { name: /beach event/i }).click();
     expect(onSelect).toHaveBeenCalledWith(1);
   });
+
+  it("marks today and only treats adjacent-month cells as outside in month view", () => {
+    const cursor = new Date(2026, 9, 28);
+    const days = [new Date(2026, 8, 30), new Date(2026, 9, 1)];
+    const { rerender } = render(
+      <CalendarGrid
+        days={days}
+        itemsByDay={new Map()}
+        cursor={cursor}
+        range="month"
+        todayKey="2026-10-01"
+        renderItem={() => null}
+      />,
+    );
+
+    expect(screen.getByRole("region", { name: days[0].toLocaleDateString() })).toHaveClass(
+      "outside-month",
+    );
+    expect(screen.getByRole("region", { name: days[1].toLocaleDateString() })).toHaveClass(
+      "today",
+    );
+
+    rerender(
+      <CalendarGrid
+        days={days}
+        itemsByDay={new Map()}
+        cursor={cursor}
+        range="week"
+        todayKey="2026-10-01"
+        renderItem={() => null}
+      />,
+    );
+    expect(screen.getByRole("region", { name: days[0].toLocaleDateString() })).not.toHaveClass(
+      "outside-month",
+    );
+  });
 });

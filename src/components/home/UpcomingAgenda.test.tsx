@@ -1,9 +1,12 @@
 import { render, screen, within } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
 import type { ComponentProps } from "react";
 import { MemoryRouter } from "react-router-dom";
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import type { Tournament, TrainingSession } from "../../api";
 import UpcomingAgenda from "./UpcomingAgenda";
+
+const CURSOR = new Date(2026, 9, 28, 12);
 
 const training = (overrides: Partial<TrainingSession> = {}): TrainingSession => ({
   id: 1,
@@ -19,6 +22,7 @@ const training = (overrides: Partial<TrainingSession> = {}): TrainingSession => 
   ...overrides,
 });
 
+
 const tournament = (overrides: Partial<Tournament> = {}): Tournament => ({
   id: 2,
   name: "Sydney Sand Series",
@@ -29,7 +33,7 @@ const tournament = (overrides: Partial<Tournament> = {}): Tournament => ({
   website_url: null,
   description: null,
   location_name: "Maroubra Beach",
-  timezone: "Australia/Sydney",
+  timezone: "UTC",
   all_day: false,
   starts_at: "2026-11-02T06:00:00Z",
   ends_at: "2026-11-02T10:00:00Z",
@@ -50,6 +54,12 @@ function renderAgenda(
         tournaments={[]}
         loading={false}
         error={null}
+        cursor={CURSOR}
+        range="month"
+        onPrevious={vi.fn()}
+        onToday={vi.fn()}
+        onNext={vi.fn()}
+        onRangeChange={vi.fn()}
         {...props}
       />
     </MemoryRouter>,
@@ -57,21 +67,62 @@ function renderAgenda(
 }
 
 describe("UpcomingAgenda", () => {
-  it("mixes events chronologically and groups them by date", () => {
+  it("renders the month grid and mixes events chronologically by day", () => {
     renderAgenda({
       trainingSessions: [training()],
       tournaments: [tournament()],
     });
 
-    const group = screen.getByRole("heading", { name: "Monday, November 2" })
-      .closest<HTMLElement>(".home-agenda-group");
-    expect(group).not.toBeNull();
-    const links = within(group!).getAllByRole("link");
+    const calendar = screen.getByLabelText(
+      "Sep 27 – Nov 7, 2026 training and tournament calendar",
+    );
+    expect(within(calendar).getAllByRole("region")).toHaveLength(42);
+
+    const day = within(calendar)
+      .getByText("Sydney Sand Series")
+      .closest<HTMLElement>(".calendar-day");
+    expect(day).not.toBeNull();
+    const links = within(day!).getAllByRole("link");
     expect(links).toHaveLength(2);
     expect(links[0]).toHaveTextContent("Sydney Sand Series");
     expect(links[1]).toHaveTextContent("Morning passing");
     expect(links[0]).toHaveAttribute("href", "/tournaments/2");
     expect(links[1]).toHaveAttribute("href", "/training/1");
+  });
+
+  it("renders a seven-day week and invokes the controlled navigation callbacks", async () => {
+    const user = userEvent.setup();
+    const onPrevious = vi.fn();
+    const onToday = vi.fn();
+    const onNext = vi.fn();
+    const onRangeChange = vi.fn();
+
+    renderAgenda({
+      range: "week",
+      onPrevious,
+      onToday,
+      onNext,
+      onRangeChange,
+    });
+
+    const calendar = screen.getByLabelText(
+      "Oct 25 – Oct 31, 2026 training and tournament calendar",
+    );
+    expect(within(calendar).getAllByRole("region")).toHaveLength(7);
+    expect(screen.getByRole("tab", { name: "Week" })).toHaveAttribute(
+      "aria-selected",
+      "true",
+    );
+
+    await user.click(screen.getByRole("button", { name: "Previous period" }));
+    await user.click(screen.getByRole("button", { name: "Today" }));
+    await user.click(screen.getByRole("button", { name: "Next period" }));
+    await user.click(screen.getByRole("tab", { name: "Month" }));
+
+    expect(onPrevious).toHaveBeenCalledOnce();
+    expect(onToday).toHaveBeenCalledOnce();
+    expect(onNext).toHaveBeenCalledOnce();
+    expect(onRangeChange).toHaveBeenCalledWith("month");
   });
 
   it("shows compact event details and optional training labels", () => {
@@ -88,27 +139,27 @@ describe("UpcomingAgenda", () => {
     expect(screen.getByText("Maroubra Beach")).toBeInTheDocument();
   });
 
-  it("limits the combined chronological agenda and links to the full calendars", () => {
+  it("shows every event in the visible range and excludes events outside it", () => {
+    const visibleTraining = Array.from({ length: 7 }, (_, index) =>
+      training({
+        id: index + 1,
+        title: `Training ${index + 1}`,
+        starts_at: `2026-11-${String(index + 1).padStart(2, "0")}T08:00:00Z`,
+      }),
+    );
+
     renderAgenda({
-      maxItems: 3,
       trainingSessions: [
-        training({ id: 1, title: "Second event", starts_at: "2026-11-02T08:00:00Z" }),
-        training({ id: 2, title: "Fourth event", starts_at: "2026-11-04T08:00:00Z" }),
+        ...visibleTraining,
+        training({ id: 20, title: "Outside range", starts_at: "2026-12-06T08:00:00Z" }),
       ],
-      tournaments: [
-        tournament({ id: 3, name: "First event", starts_at: "2026-11-01T06:00:00Z" }),
-        tournament({ id: 4, name: "Third event", starts_at: "2026-11-03T06:00:00Z" }),
-      ],
+      tournaments: [tournament({ id: 30, name: "Visible tournament" })],
     });
 
-    const eventLinks = document.querySelectorAll(".home-agenda-item");
-    expect(eventLinks).toHaveLength(3);
-    expect([...eventLinks].map((link) => link.textContent)).toEqual([
-      expect.stringContaining("First event"),
-      expect.stringContaining("Second event"),
-      expect.stringContaining("Third event"),
-    ]);
-    expect(screen.queryByText("Fourth event")).not.toBeInTheDocument();
+    expect(document.querySelectorAll(".home-agenda-item")).toHaveLength(8);
+    expect(screen.getByText("Training 7")).toBeInTheDocument();
+    expect(screen.getByText("Visible tournament")).toBeInTheDocument();
+    expect(screen.queryByText("Outside range")).not.toBeInTheDocument();
     expect(screen.getByRole("link", { name: "View all training" })).toHaveAttribute(
       "href",
       "/training?view=calendar",
@@ -125,16 +176,41 @@ describe("UpcomingAgenda", () => {
 
     rerender(
       <MemoryRouter>
-        <UpcomingAgenda trainingSessions={[]} tournaments={[]} loading={false} error="boom" />
+        <UpcomingAgenda
+          trainingSessions={[]}
+          tournaments={[]}
+          loading={false}
+          error="boom"
+          cursor={CURSOR}
+          range="month"
+          onPrevious={vi.fn()}
+          onToday={vi.fn()}
+          onNext={vi.fn()}
+          onRangeChange={vi.fn()}
+        />
       </MemoryRouter>,
     );
     expect(screen.getByRole("alert")).toHaveTextContent("boom");
 
     rerender(
       <MemoryRouter>
-        <UpcomingAgenda trainingSessions={[]} tournaments={[]} loading={false} error={null} />
+        <UpcomingAgenda
+          trainingSessions={[]}
+          tournaments={[]}
+          loading={false}
+          error={null}
+          cursor={CURSOR}
+          range="month"
+          onPrevious={vi.fn()}
+          onToday={vi.fn()}
+          onNext={vi.fn()}
+          onRangeChange={vi.fn()}
+        />
       </MemoryRouter>,
     );
-    expect(screen.getByText(/No upcoming training sessions or tournaments/)).toBeInTheDocument();
+    expect(
+      screen.getByText(/No training sessions or tournaments are scheduled/),
+    ).toBeInTheDocument();
+    expect(screen.getByLabelText(/training and tournament calendar/)).toBeInTheDocument();
   });
 });

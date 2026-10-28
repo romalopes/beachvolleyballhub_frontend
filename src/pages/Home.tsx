@@ -1,4 +1,4 @@
-import { type FormEvent, useEffect, useState } from "react";
+import { type FormEvent, useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import {
   api,
@@ -21,7 +21,13 @@ import HomeLocationPanel from "../components/locations/HomeLocationPanel";
 import UpcomingAgenda from "../components/home/UpcomingAgenda";
 import ThreeHourlyConditions from "../components/weather/ThreeHourlyConditions";
 import WeatherWidget from "../components/weather/WeatherWidget";
-import { toISODate } from "../utils/calendar";
+import {
+  addDays,
+  addMonths,
+  monthGridDays,
+  toISODate,
+  weekGridDays,
+} from "../utils/calendar";
 import { fetchAllTournamentPages, isAbortError } from "../utils/tournaments";
 
 interface IpLocation {
@@ -44,6 +50,8 @@ interface DetectedLocation {
 type WeatherRequest =
   | { key: string; status: "success"; data: WeatherResponse }
   | { key: string; status: "error"; message: string };
+
+type AgendaRange = "month" | "week";
 
 const FALLBACK_VENUE: DetectedLocation = {
   lat: -33.919655,
@@ -102,6 +110,8 @@ export default function Home() {
   const [tournaments, setTournaments] = useState<Tournament[]>([]);
   const [agendaLoading, setAgendaLoading] = useState(true);
   const [agendaError, setAgendaError] = useState<string | null>(null);
+  const [agendaRange, setAgendaRange] = useState<AgendaRange>("month");
+  const [agendaCursor, setAgendaCursor] = useState(() => new Date());
   const [detectedLocation, setDetectedLocation] =
     useState<DetectedLocation | null>(null);
   const [locationLoading, setLocationLoading] = useState(true);
@@ -118,6 +128,15 @@ export default function Home() {
   const [searchCoordsError, setSearchCoordsError] = useState<string | null>(
     null,
   );
+  const agendaDays = useMemo(
+    () =>
+      agendaRange === "month"
+        ? monthGridDays(agendaCursor)
+        : weekGridDays(agendaCursor),
+    [agendaCursor, agendaRange],
+  );
+  const agendaRangeStart = toISODate(agendaDays[0]);
+  const agendaRangeEnd = toISODate(addDays(agendaDays[agendaDays.length - 1], 1));
 
   useEffect(() => {
     Promise.all([api.categories(), api.skills(), api.drills()])
@@ -133,24 +152,26 @@ export default function Home() {
   useEffect(() => {
     let cancelled = false;
     const controller = new AbortController();
-    const now = new Date();
 
     Promise.all([
       api.trainingSessions({
-        starts_at_from: toISODate(now),
+        starts_at_from: agendaRangeStart,
+        starts_at_to: agendaRangeEnd,
         status: "scheduled",
       }),
       fetchAllTournamentPages(
-        { temporal_status: "upcoming", publication_state: "active" },
+        {
+          publication_state: "active",
+          starts_at: agendaRangeStart,
+          ends_at: agendaRangeEnd,
+        },
         controller.signal,
         api.tournaments,
       ),
     ])
       .then(([sessions, upcomingTournaments]) => {
         if (cancelled) return;
-        setTrainingSessions(
-          sessions.filter((session) => new Date(session.ends_at) >= now),
-        );
+        setTrainingSessions(sessions);
         setTournaments(upcomingTournaments);
         setAgendaError(null);
       })
@@ -170,7 +191,37 @@ export default function Home() {
       cancelled = true;
       controller.abort();
     };
-  }, []);
+  }, [agendaRangeEnd, agendaRangeStart]);
+
+  const moveAgendaCursor = (offset: number) => {
+    setAgendaLoading(true);
+    setAgendaCursor((cursor) =>
+      agendaRange === "month"
+        ? addMonths(cursor, offset)
+        : addDays(cursor, offset * 7),
+    );
+  };
+
+  const showAgendaToday = () => {
+    const today = new Date();
+    const todayDays =
+      agendaRange === "month" ? monthGridDays(today) : weekGridDays(today);
+    const todayRangeStart = toISODate(todayDays[0]);
+    const todayRangeEnd = toISODate(addDays(todayDays[todayDays.length - 1], 1));
+    if (
+      todayRangeStart !== agendaRangeStart ||
+      todayRangeEnd !== agendaRangeEnd
+    ) {
+      setAgendaLoading(true);
+    }
+    setAgendaCursor(today);
+  };
+
+  const changeAgendaRange = (range: AgendaRange) => {
+    if (range === agendaRange) return;
+    setAgendaLoading(true);
+    setAgendaRange(range);
+  };
 
   useEffect(() => {
     const weatherLocation =
@@ -433,7 +484,12 @@ export default function Home() {
             tournaments={tournaments}
             loading={agendaLoading}
             error={agendaError}
-            maxItems={6}
+            cursor={agendaCursor}
+            range={agendaRange}
+            onPrevious={() => moveAgendaCursor(-1)}
+            onToday={showAgendaToday}
+            onNext={() => moveAgendaCursor(1)}
+            onRangeChange={changeAgendaRange}
           />
           {weather && (
             <div className="home-hourly">

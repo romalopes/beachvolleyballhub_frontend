@@ -1,26 +1,40 @@
-import { CalendarDays, Clock, MapPin, Trophy, Volleyball } from "lucide-react";
+import {
+  CalendarDays,
+  ChevronLeft,
+  ChevronRight,
+  Clock,
+  MapPin,
+  Trophy,
+  Volleyball,
+} from "lucide-react";
 import { Link } from "react-router-dom";
 import type { Tournament, TrainingSession } from "../../api";
+import {
+  formatWeekRange,
+  monthGridDays,
+  toISODate,
+  weekGridDays,
+} from "../../utils/calendar";
 import { formatTrainingTime, isPrivateSession } from "../../utils/training";
 import CalendarEvent from "../calendar/CalendarEvent";
+import CalendarGrid from "../calendar/CalendarGrid";
 
 interface UpcomingAgendaProps {
   trainingSessions: TrainingSession[];
   tournaments: Tournament[];
   loading: boolean;
   error: string | null;
-  maxItems?: number;
+  cursor: Date;
+  range: "month" | "week";
+  onPrevious: () => void;
+  onToday: () => void;
+  onNext: () => void;
+  onRangeChange: (range: "month" | "week") => void;
 }
 
 type AgendaItem =
   | { kind: "training"; startsAt: string; session: TrainingSession }
   | { kind: "tournament"; startsAt: string; tournament: Tournament };
-
-interface AgendaGroup {
-  key: string;
-  label: string;
-  items: AgendaItem[];
-}
 
 function dateParts(iso: string, timeZone?: string): Record<string, string> {
   const parts = new Intl.DateTimeFormat("en-US", {
@@ -35,15 +49,6 @@ function dateParts(iso: string, timeZone?: string): Record<string, string> {
 function dateKey(iso: string, timeZone?: string): string {
   const parts = dateParts(iso, timeZone);
   return `${parts.year}-${parts.month}-${parts.day}`;
-}
-
-function dateLabel(iso: string, timeZone?: string): string {
-  return new Intl.DateTimeFormat("en-US", {
-    weekday: "long",
-    month: "long",
-    day: "numeric",
-    ...(timeZone ? { timeZone } : {}),
-  }).format(new Date(iso));
 }
 
 function tournamentTime(tournament: Tournament): string {
@@ -72,11 +77,12 @@ function tournamentLocation(tournament: Tournament): string | null {
   return [venue, tournament.location_detail].filter(Boolean).join(" · ") || null;
 }
 
-function groupsFor(
+function itemsByDayFor(
   trainingSessions: TrainingSession[],
   tournaments: Tournament[],
-  maxItems: number,
-): AgendaGroup[] {
+  visibleDays: Date[],
+): Map<string, AgendaItem[]> {
+  const visibleKeys = new Set(visibleDays.map(toISODate));
   const items: AgendaItem[] = [
     ...trainingSessions.map(
       (session): AgendaItem => ({
@@ -92,24 +98,38 @@ function groupsFor(
         tournament,
       }),
     ),
-  ]
-    .sort((left, right) => left.startsAt.localeCompare(right.startsAt))
-    .slice(0, Math.max(0, maxItems));
+  ].sort((left, right) => left.startsAt.localeCompare(right.startsAt));
 
-  const groups = new Map<string, AgendaGroup>();
+  const grouped = new Map<string, AgendaItem[]>();
   for (const item of items) {
     const timeZone =
       item.kind === "tournament" ? item.tournament.timezone : undefined;
     const key = dateKey(item.startsAt, timeZone);
-    const group = groups.get(key) ?? {
-      key,
-      label: dateLabel(item.startsAt, timeZone),
-      items: [],
-    };
-    group.items.push(item);
-    groups.set(key, group);
+    if (!visibleKeys.has(key)) continue;
+
+    const dayItems = grouped.get(key) ?? [];
+    dayItems.push(item);
+    grouped.set(key, dayItems);
   }
-  return [...groups.values()];
+
+  return grouped;
+}
+
+function rangeLabel(days: Date[]): string {
+  const start = days[0];
+  const end = days[days.length - 1];
+  const sameYear = start.getFullYear() === end.getFullYear();
+  const startLabel = start.toLocaleDateString("en-US", {
+    month: "short",
+    day: "numeric",
+    ...(sameYear ? {} : { year: "numeric" }),
+  });
+  const endLabel = end.toLocaleDateString("en-US", {
+    month: "short",
+    day: "numeric",
+    year: "numeric",
+  });
+  return `${startLabel} – ${endLabel}`;
 }
 
 export default function UpcomingAgenda({
@@ -117,21 +137,82 @@ export default function UpcomingAgenda({
   tournaments,
   loading,
   error,
-  maxItems = 6,
+  cursor,
+  range,
+  onPrevious,
+  onToday,
+  onNext,
+  onRangeChange,
 }: UpcomingAgendaProps) {
-  const groups = groupsFor(trainingSessions, tournaments, maxItems);
+  const days = range === "month" ? monthGridDays(cursor) : weekGridDays(cursor);
+  const itemsByDay = itemsByDayFor(trainingSessions, tournaments, days);
+  const visibleItemCount = Array.from(itemsByDay.values()).reduce(
+    (total, items) => total + items.length,
+    0,
+  );
+  const label = rangeLabel(days);
+  const title =
+    range === "month"
+      ? cursor.toLocaleDateString("en-US", { month: "long", year: "numeric" })
+      : formatWeekRange(days[0], days[days.length - 1]);
 
   return (
     <section className="home-agenda" aria-labelledby="home-agenda-title">
-      <div className="home-agenda-header">
+      <header className="home-agenda-header">
         <div>
-          <span className="home-agenda-eyebrow">Coming up</span>
-          <h3 id="home-agenda-title">Training &amp; tournaments</h3>
+          <span className="home-agenda-eyebrow">Schedule</span>
+          <h3 id="home-agenda-title">Training & tournaments</h3>
         </div>
         <CalendarDays size={20} aria-hidden="true" />
+      </header>
+
+      <div className="home-agenda-nav">
+        <div className="home-agenda-nav-buttons">
+          <button
+            type="button"
+            className="admin-btn"
+            onClick={onPrevious}
+            aria-label="Previous period"
+          >
+            <ChevronLeft size={16} />
+          </button>
+          <button type="button" className="admin-btn" onClick={onToday}>
+            Today
+          </button>
+          <button
+            type="button"
+            className="admin-btn"
+            onClick={onNext}
+            aria-label="Next period"
+          >
+            <ChevronRight size={16} />
+          </button>
+        </div>
+        <div className="home-agenda-period">
+          <h4>{title}</h4>
+          <p className="home-agenda-range">{label}</p>
+        </div>
+        <div
+          className="training-view-toggle home-agenda-view-toggle"
+          role="tablist"
+          aria-label="Calendar range"
+        >
+          {(["month", "week"] as const).map((option) => (
+            <button
+              key={option}
+              type="button"
+              role="tab"
+              aria-selected={range === option}
+              className={`filter-btn${range === option ? " active" : ""}`}
+              onClick={() => onRangeChange(option)}
+            >
+              {option === "month" ? "Month" : "Week"}
+            </button>
+          ))}
+        </div>
       </div>
 
-      {loading && groups.length === 0 ? (
+      {loading ? (
         <p className="home-agenda-state" role="status">
           Loading upcoming events…
         </p>
@@ -139,85 +220,89 @@ export default function UpcomingAgenda({
         <p className="home-agenda-state home-agenda-error" role="alert">
           Upcoming events are temporarily unavailable. {error}
         </p>
-      ) : groups.length === 0 ? (
-        <p className="home-agenda-state">
-          No upcoming training sessions or tournaments are scheduled yet.
-        </p>
       ) : (
-        <div className="home-agenda-groups">
-          {groups.map((group) => (
-            <section className="home-agenda-group" key={group.key}>
-              <h4>{group.label}</h4>
-              <div className="home-agenda-items">
-                {group.items.map((item) => {
-                  if (item.kind === "training") {
-                    const location = trainingLocation(item.session);
-                    return (
-                      <CalendarEvent
-                        key={`training-${item.session.id}`}
-                        to={`/training/${item.session.id}`}
-                        className="home-agenda-item home-agenda-item--training"
-                        icon={<Volleyball size={17} />}
-                        eyebrow={
-                          <>
-                            Training
-                            {isPrivateSession(item.session) ? " · Private" : ""}
-                            {item.session.training_series_id ? " · Recurring" : ""}
-                          </>
-                        }
-                        title={item.session.title}
-                        details={
-                          <>
-                          <span className="home-agenda-fact">
-                            <Clock size={13} aria-hidden="true" />
-                            {formatTrainingTime(
-                              item.session.starts_at,
-                              item.session.ends_at,
-                            )}
-                          </span>
-                          {location && (
-                            <span className="home-agenda-fact">
-                              <MapPin size={13} aria-hidden="true" />
-                              {location}
-                            </span>
-                          )}
-                          </>
-                        }
-                      />
-                    );
-                  }
-
-                  const location = tournamentLocation(item.tournament);
-                  return (
-                    <CalendarEvent
-                      key={`tournament-${item.tournament.id}`}
-                      to={`/tournaments/${item.tournament.id}`}
-                      className="home-agenda-item home-agenda-item--tournament"
-                      icon={<Trophy size={17} />}
-                      eyebrow="Tournament"
-                      title={item.tournament.name}
-                      details={
-                        <>
+        <div className="home-agenda-calendar">
+          {visibleItemCount === 0 && (
+            <p className="home-agenda-state">
+              No training sessions or tournaments are scheduled in this period.
+            </p>
+          )}
+          <CalendarGrid
+            days={days}
+            itemsByDay={itemsByDay}
+            cursor={cursor}
+            range={range}
+            todayKey={toISODate(new Date())}
+            className="home-calendar"
+            ariaLabel={`${label} training and tournament calendar`}
+            renderItem={(item, key) => {
+              if (item.kind === "training") {
+                const location = trainingLocation(item.session);
+                return (
+                  <CalendarEvent
+                    key={`training-${item.session.id}-${key}`}
+                    to={`/training/${item.session.id}`}
+                    className="home-agenda-item home-agenda-item--training"
+                    icon={<Volleyball size={14} />}
+                    eyebrow={
+                      <>
+                        Training
+                        {isPrivateSession(item.session) ? " · Private" : ""}
+                        {item.session.training_series_id ? " · Recurring" : ""}
+                      </>
+                    }
+                    title={item.session.title}
+                    details={
+                      <>
                         <span className="home-agenda-fact">
-                          <Clock size={13} aria-hidden="true" />
-                          {tournamentTime(item.tournament)}
+                          <Clock size={12} aria-hidden="true" />
+                          {formatTrainingTime(
+                            item.session.starts_at,
+                            item.session.ends_at,
+                          )}
                         </span>
                         {location && (
                           <span className="home-agenda-fact">
-                            <MapPin size={13} aria-hidden="true" />
+                            <MapPin size={12} aria-hidden="true" />
                             {location}
                           </span>
                         )}
-                        </>
-                      }
-                    />
-                  );
-                })}
-              </div>
-            </section>
-          ))}
+                      </>
+                    }
+                  />
+                );
+              }
+
+              const location = tournamentLocation(item.tournament);
+              return (
+                <CalendarEvent
+                  key={`tournament-${item.tournament.id}-${key}`}
+                  to={`/tournaments/${item.tournament.id}`}
+                  className="home-agenda-item home-agenda-item--tournament"
+                  icon={<Trophy size={14} />}
+                  eyebrow="Tournament"
+                  title={item.tournament.name}
+                  details={
+                    <>
+                      <span className="home-agenda-fact">
+                        <Clock size={12} aria-hidden="true" />
+                        {tournamentTime(item.tournament)}
+                      </span>
+                      {location && (
+                        <span className="home-agenda-fact">
+                          <MapPin size={12} aria-hidden="true" />
+                          {location}
+                        </span>
+                      )}
+                    </>
+                  }
+                />
+              );
+            }}
+          />
         </div>
       )}
+
       <nav className="home-agenda-footer" aria-label="Full event calendars">
         <Link to="/training?view=calendar">View all training</Link>
         <Link to="/tournaments">View all tournaments</Link>
