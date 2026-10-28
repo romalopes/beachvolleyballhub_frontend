@@ -110,6 +110,8 @@ export default function Home() {
   const [tournaments, setTournaments] = useState<Tournament[]>([]);
   const [agendaLoading, setAgendaLoading] = useState(true);
   const [agendaError, setAgendaError] = useState<string | null>(null);
+  const [showMyTournaments, setShowMyTournaments] = useState(false);
+  const [showMyTraining, setShowMyTraining] = useState(false);
   const [agendaRange, setAgendaRange] = useState<AgendaRange>("month");
   const [agendaCursor, setAgendaCursor] = useState(() => new Date());
   const [detectedLocation, setDetectedLocation] =
@@ -158,10 +160,12 @@ export default function Home() {
         starts_at_from: agendaRangeStart,
         starts_at_to: agendaRangeEnd,
         status: "scheduled",
+        mine: showMyTraining,
       }),
       fetchAllTournamentPages(
         {
           publication_state: "active",
+          mine: showMyTournaments,
           starts_at: agendaRangeStart,
           ends_at: agendaRangeEnd,
         },
@@ -479,6 +483,28 @@ export default function Home() {
             locationName={weatherLocationName}
             showHourly={false}
           />
+          <div className="home-agenda-filters">
+            <div className="home-agenda-filter-row">
+              <label className="home-agenda-filter-label">
+                <input
+                  type="checkbox"
+                  checked={showMyTournaments}
+                  onChange={(e) => setShowMyTournaments(e.target.checked)}
+                  id="mine-tournaments"
+                />
+                <span>{showMyTournaments ? "My Tournaments" : "All Tournaments"}</span>
+              </label>
+              <label className="home-agenda-filter-label">
+                <input
+                  type="checkbox"
+                  checked={showMyTraining}
+                  onChange={(e) => setShowMyTraining(e.target.checked)}
+                  id="mine-training"
+                />
+                <span>{showMyTraining ? "My Training" : "All Training"}</span>
+              </label>
+            </div>
+          </div>
           <UpcomingAgenda
             trainingSessions={trainingSessions}
             tournaments={tournaments}
