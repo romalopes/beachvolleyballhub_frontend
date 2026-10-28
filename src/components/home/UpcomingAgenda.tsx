@@ -19,6 +19,13 @@ import { formatTrainingTime, isPrivateSession } from "../../utils/training";
 import CalendarEvent from "../calendar/CalendarEvent";
 import CalendarGrid from "../calendar/CalendarGrid";
 
+/**
+ * The agenda's location filter. "25km" keeps only events whose canonical venue
+ * lies within 25 km of the point the page is anchored to — the searched
+ * location when there is one, otherwise the detected one.
+ */
+export type LocalEventRadius = "all" | "25km";
+
 interface UpcomingAgendaProps {
   trainingSessions: TrainingSession[];
   tournaments: Tournament[];
@@ -34,6 +41,8 @@ interface UpcomingAgendaProps {
   onShowMyTournamentsChange?: (e: React.ChangeEvent<HTMLInputElement>) => void;
   showMyTraining?: boolean;
   onShowMyTrainingChange?: (e: React.ChangeEvent<HTMLInputElement>) => void;
+  localEventRadius?: LocalEventRadius;
+  onLocalEventRadiusChange?: (value: LocalEventRadius) => void;
 }
 
 type AgendaItem =
@@ -153,6 +162,8 @@ export default function UpcomingAgenda({
   onShowMyTournamentsChange,
   showMyTraining,
   onShowMyTrainingChange,
+  localEventRadius = "all",
+  onLocalEventRadiusChange,
 }: UpcomingAgendaProps) {
   const days = range === "month" ? monthGridDays(cursor) : weekGridDays(cursor);
   const itemsByDay = itemsByDayFor(trainingSessions, tournaments, days);
@@ -193,6 +204,17 @@ export default function UpcomingAgenda({
                   id="mine-training"
                 />
                 <span>{showMyTraining ? "My Training" : "All Training"}</span>
+              </label>
+              <label className="home-agenda-filter-label">
+                <input
+                  type="checkbox"
+                  checked={localEventRadius === "25km"}
+                  onChange={(e) =>
+                    onLocalEventRadiusChange?.(e.target.checked ? "25km" : "all")
+                  }
+                  id="local-events"
+                />
+                <span>Within 25 km</span>
               </label>
             </span>
           </div>

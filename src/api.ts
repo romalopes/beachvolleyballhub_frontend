@@ -2214,6 +2214,15 @@ export interface TournamentFilters {
   publication_state?: PublicationState;
   starts_at?: string; // ISO string
   ends_at?: string; // ISO string
+  /**
+   * Radius filter, applied server-side against the canonical venue: keep only
+   * tournaments within `radius_km` of (latitude, longitude). All three travel
+   * together. Deliberately not part of FILTER_KEYS in utils/tournaments — it is
+   * a transient view control, not a bookmarkable directory filter.
+   */
+  latitude?: number;
+  longitude?: number;
+  radius_km?: number;
   page?: number;
   per_page?: number;
 }
@@ -2485,6 +2494,13 @@ export const api = {
     /** mine=true narrows the calendar to the current player's own sessions. */
     mine?: boolean;
     training_series_id?: number;
+    /**
+     * Radius filter: keep only sessions whose canonical venue lies within
+     * `radius_km` of (latitude, longitude). All three travel together.
+     */
+    latitude?: number;
+    longitude?: number;
+    radius_km?: number;
   }) => {
     const qs = new URLSearchParams();
     if (params?.starts_at_from) qs.set("starts_at_from", params.starts_at_from);
@@ -2493,6 +2509,9 @@ export const api = {
     if (params?.mine) qs.set("mine", "1");
     if (params?.training_series_id)
       qs.set("training_series_id", String(params.training_series_id));
+    if (params?.latitude !== undefined) qs.set("latitude", String(params.latitude));
+    if (params?.longitude !== undefined) qs.set("longitude", String(params.longitude));
+    if (params?.radius_km !== undefined) qs.set("radius_km", String(params.radius_km));
     const query = qs.toString();
     return fetchAPI<TrainingSession[]>(
       `/training_sessions${query ? `?${query}` : ""}`,
@@ -4189,6 +4208,9 @@ export const api = {
     if (filters?.publication_state) params.set("publication_state", filters.publication_state);
     if (filters?.starts_at) params.set("starts_at", filters.starts_at);
     if (filters?.ends_at) params.set("ends_at", filters.ends_at);
+    if (filters?.latitude !== undefined) params.set("latitude", String(filters.latitude));
+    if (filters?.longitude !== undefined) params.set("longitude", String(filters.longitude));
+    if (filters?.radius_km !== undefined) params.set("radius_km", String(filters.radius_km));
     if (filters?.page !== undefined) params.set("page", String(filters.page));
     if (filters?.per_page !== undefined) params.set("per_page", String(filters.per_page));
     const query = params.toString();

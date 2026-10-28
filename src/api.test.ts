@@ -167,6 +167,37 @@ describe("tournaments client", () => {
     const [url] = fetchMock.mock.calls[0] as [string, RequestInit];
     expect(url).toContain("/api/v1/tournaments?organisation_ids%5B%5D=3&organisation_ids%5B%5D=8");
   });
+
+  it("serializes the radius filter for the calendar", async () => {
+    const fetchMock = mockFetchOnce({
+      ok: true, status: 200,
+      body: { tournaments: [], meta: { page: 1, per_page: 100, total: 0, total_pages: 0 } },
+    });
+
+    await api.tournaments({
+      publication_state: "active",
+      latitude: -33.9197,
+      longitude: 151.2585,
+      radius_km: 25,
+    });
+
+    const [url] = fetchMock.mock.calls[0] as [string, RequestInit];
+    expect(url).toBe(
+      "/api/v1/tournaments?publication_state=active&latitude=-33.9197&longitude=151.2585&radius_km=25",
+    );
+  });
+
+  it("omits the radius filter when no location is being filtered", async () => {
+    const fetchMock = mockFetchOnce({
+      ok: true, status: 200,
+      body: { tournaments: [], meta: { page: 1, per_page: 100, total: 0, total_pages: 0 } },
+    });
+
+    await api.tournaments({ publication_state: "active" });
+
+    const [url] = fetchMock.mock.calls[0] as [string, RequestInit];
+    expect(url).toBe("/api/v1/tournaments?publication_state=active");
+  });
 });
 
 describe("postJSON (auth + mutations)", () => {
@@ -437,6 +468,29 @@ describe("training sessions client", () => {
     await api.trainingSessions({ mine: true });
     const [url] = fetchMock.mock.calls[0] as [string, RequestInit];
     expect(url).toBe("/api/v1/training_sessions?mine=1");
+  });
+
+  it("adds the radius triple to the session calendar query", async () => {
+    const fetchMock = mockFetchOnce({ ok: true, status: 200, body: [] });
+    await api.trainingSessions({
+      starts_at_from: "2026-10-01",
+      starts_at_to: "2026-10-31",
+      latitude: -33.9197,
+      longitude: 151.2585,
+      radius_km: 25,
+    });
+    const [url] = fetchMock.mock.calls[0] as [string, RequestInit];
+    expect(url).toContain("latitude=-33.9197");
+    expect(url).toContain("longitude=151.2585");
+    expect(url).toContain("radius_km=25");
+  });
+
+  it("omits the radius parameters when no location filter is active", async () => {
+    const fetchMock = mockFetchOnce({ ok: true, status: 200, body: [] });
+    await api.trainingSessions({ starts_at_from: "2026-10-01" });
+    const [url] = fetchMock.mock.calls[0] as [string, RequestInit];
+    expect(url).not.toContain("latitude");
+    expect(url).not.toContain("radius_km");
   });
 
   it("sends the session visibility and its players", async () => {

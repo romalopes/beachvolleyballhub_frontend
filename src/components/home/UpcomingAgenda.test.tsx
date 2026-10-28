@@ -213,4 +213,24 @@ describe("UpcomingAgenda", () => {
     ).toBeInTheDocument();
     expect(screen.getByLabelText(/training and tournament calendar/)).toBeInTheDocument();
   });
+
+  it("renders the location filter off by default and reports the change", async () => {
+    const user = userEvent.setup();
+    const onLocalEventRadiusChange = vi.fn();
+
+    renderAgenda({ localEventRadius: "all", onLocalEventRadiusChange });
+
+    const toggle = screen.getByRole("checkbox", { name: "Within 25 km" });
+    expect(toggle).not.toBeChecked();
+
+    await user.click(toggle);
+
+    expect(onLocalEventRadiusChange).toHaveBeenCalledWith("25km");
+  });
+
+  it("shows the location filter as active when the radius is limited", () => {
+    renderAgenda({ localEventRadius: "25km" });
+
+    expect(screen.getByRole("checkbox", { name: "Within 25 km" })).toBeChecked();
+  });
 });

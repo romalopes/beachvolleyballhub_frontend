@@ -552,6 +552,42 @@
   font-size: 1.125rem;
 }
 
+/* Filter controls sit under the heading in the header's left column. The row
+   wraps, so the third control simply moves to the next line when space runs
+   out. */
+.home-agenda-filters-mobile {
+  margin-top: 0.6rem;
+}
+
+.home-agenda-filter-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.4rem 1rem;
+}
+
+.home-agenda-filter-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  color: var(--text-secondary);
+  font-size: 0.75rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.home-agenda-filter-label:hover {
+  color: var(--amber-600);
+}
+
+.home-agenda-filter-label input {
+  width: 0.95rem;
+  height: 0.95rem;
+  margin: 0;
+  accent-color: var(--amber-600);
+  cursor: pointer;
+}
+
 .home-agenda-range {
   margin: 0.25rem 0 0;
   color: var(--text-secondary);
@@ -12748,6 +12784,18 @@
 
 .training-calendar-nav .training-view-toggle {
   margin-left: auto;
+}
+
+/* The tournaments page carries its view toggle and timezone note inside the
+   calendar nav, so the nav has to wrap on narrow screens and the toolbar has
+   to drop the hero's own block spacing. */
+.tournament-calendar-nav {
+  flex-wrap: wrap;
+  row-gap: 0.75rem;
+}
+
+.training-calendar-nav .library-hero-toolbar {
+  margin: 0 0 0 auto;
 }
 
 @media (max-width: 640px) {

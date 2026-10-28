@@ -123,29 +123,6 @@ export default function TournamentsPage() {
           )
         }
       />
-      <div className="library-hero-toolbar">
-        <div
-          className="training-view-toggle"
-          role="tablist"
-          aria-label="Tournament view"
-        >
-          {(["calendar", "list"] as TournamentView[]).map((mode) => (
-            <button
-              key={mode}
-              type="button"
-              role="tab"
-              aria-selected={view === mode}
-              className={`filter-btn${view === mode ? " active" : ""}`}
-              onClick={() => updateUrl(filters, mode, month)}
-            >
-              {mode === "calendar" ? "Calendar" : "List"}
-            </button>
-          ))}
-        </div>
-        <span className="tournament-timezone">
-          Calendar dates use each tournament’s timezone.
-        </span>
-      </div>
       <div className="tournaments-page-content">
         <aside className="tournaments-filters" aria-label="Tournament filters" aria-expanded={!isFiltersCollapsed}>
           <h2>Filters</h2>
@@ -194,6 +171,29 @@ export default function TournamentsPage() {
               <ChevronRight size={16} />
             </button>
             <h2>{title}</h2>
+            <div className="library-hero-toolbar">
+              <div
+                className="training-view-toggle"
+                role="tablist"
+                aria-label="Tournament view"
+              >
+                {(["calendar", "list"] as TournamentView[]).map((mode) => (
+                  <button
+                    key={mode}
+                    type="button"
+                    role="tab"
+                    aria-selected={view === mode}
+                    className={`filter-btn${view === mode ? " active" : ""}`}
+                    onClick={() => updateUrl(filters, mode, month)}
+                  >
+                    {mode === "calendar" ? "Calendar" : "List"}
+                  </button>
+                ))}
+              </div>
+              <span className="tournament-timezone">
+                Calendar dates use each tournament’s timezone.
+              </span>
+            </div>
           </div>
           <FilterState
             filters={filters}

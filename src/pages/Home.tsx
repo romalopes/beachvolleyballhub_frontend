@@ -18,7 +18,9 @@ import {
   CalendarDays,
 } from "lucide-react";
 import HomeLocationPanel from "../components/locations/HomeLocationPanel";
-import UpcomingAgenda from "../components/home/UpcomingAgenda";
+import UpcomingAgenda, {
+  type LocalEventRadius,
+} from "../components/home/UpcomingAgenda";
 import ThreeHourlyConditions from "../components/weather/ThreeHourlyConditions";
 import WeatherWidget from "../components/weather/WeatherWidget";
 import {
@@ -52,6 +54,23 @@ type WeatherRequest =
   | { key: string; status: "error"; message: string };
 
 type AgendaRange = "month" | "week";
+
+/** Radius of the agenda's "Within 25 km" location filter, in kilometres. */
+const LOCAL_EVENT_RADIUS_KM = 25;
+
+/** The agenda's server-side radius filter, spread into both event queries. */
+type AgendaRadiusFilter = {
+  latitude?: number;
+  longitude?: number;
+  radius_km?: number;
+};
+
+/**
+ * Stable empty filter. Returning this shared object rather than a fresh `{}`
+ * keeps an inactive location filter from changing identity, which would refetch
+ * the agenda as soon as the detected location arrives.
+ */
+const NO_RADIUS_FILTER: AgendaRadiusFilter = {};
 
 const FALLBACK_VENUE: DetectedLocation = {
   lat: -33.919655,
@@ -112,6 +131,8 @@ export default function Home() {
   const [agendaError, setAgendaError] = useState<string | null>(null);
   const [showMyTournaments, setShowMyTournaments] = useState(false);
   const [showMyTraining, setShowMyTraining] = useState(false);
+  const [localEventRadius, setLocalEventRadius] =
+    useState<LocalEventRadius>("all");
   const [agendaRange, setAgendaRange] = useState<AgendaRange>("month");
   const [agendaCursor, setAgendaCursor] = useState(() => new Date());
   const [detectedLocation, setDetectedLocation] =
@@ -151,6 +172,28 @@ export default function Home() {
       .finally(() => setLoading(false));
   }, []);
 
+  // The location filter measures from the same point the weather panel uses:
+  // the searched location when there is one, otherwise the detected location,
+  // otherwise the featured venue. While a search is still geocoding there is no
+  // point to measure from, so the filter waits for the coordinates rather than
+  // silently matching nothing.
+  const agendaRadiusFilter = useMemo<AgendaRadiusFilter>(() => {
+    if (localEventRadius !== "25km") return NO_RADIUS_FILTER;
+
+    const target =
+      searchedLocation !== null
+        ? searchedCoords
+        : (detectedLocation ?? FALLBACK_VENUE);
+
+    return target === null
+      ? NO_RADIUS_FILTER
+      : {
+          latitude: target.lat,
+          longitude: target.lon,
+          radius_km: LOCAL_EVENT_RADIUS_KM,
+        };
+  }, [detectedLocation, localEventRadius, searchedCoords, searchedLocation]);
+
   useEffect(() => {
     let cancelled = false;
     const controller = new AbortController();
@@ -161,6 +204,7 @@ export default function Home() {
         starts_at_to: agendaRangeEnd,
         status: "scheduled",
         mine: showMyTraining,
+        ...agendaRadiusFilter,
       }),
       fetchAllTournamentPages(
         {
@@ -168,6 +212,7 @@ export default function Home() {
           mine: showMyTournaments,
           starts_at: agendaRangeStart,
           ends_at: agendaRangeEnd,
+          ...agendaRadiusFilter,
         },
         controller.signal,
         api.tournaments,
@@ -195,7 +240,13 @@ export default function Home() {
       cancelled = true;
       controller.abort();
     };
-  }, [agendaRangeEnd, agendaRangeStart, showMyTraining, showMyTournaments]);
+  }, [
+    agendaRangeEnd,
+    agendaRangeStart,
+    agendaRadiusFilter,
+    showMyTraining,
+    showMyTournaments,
+  ]);
 
   const moveAgendaCursor = (offset: number) => {
     setAgendaLoading(true);
@@ -498,6 +549,8 @@ export default function Home() {
             onShowMyTournamentsChange={(e) => setShowMyTournaments(e.target.checked)}
             showMyTraining={showMyTraining}
             onShowMyTrainingChange={(e) => setShowMyTraining(e.target.checked)}
+            localEventRadius={localEventRadius}
+            onLocalEventRadiusChange={setLocalEventRadius}
           />
           {weather && (
             <div className="home-hourly">

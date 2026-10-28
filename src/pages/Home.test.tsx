@@ -322,4 +322,39 @@ describe("Home upcoming agenda and weather layout", () => {
       "agenda failed",
     );
   });
+
+  it("filters the agenda to the detected location within 25 km and back", async () => {
+    const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTime });
+    renderHome();
+
+    await waitFor(() => expect(mockedApi.trainingSessions).toHaveBeenCalledTimes(1));
+    // The initial load is unfiltered.
+    expect(mockedApi.trainingSessions.mock.calls[0][0]).not.toHaveProperty("radius_km");
+
+    const toggle = screen.getByRole("checkbox", { name: "Within 25 km" });
+    await user.click(toggle);
+
+    // The browser geolocation stub above is the anchor the weather panel uses.
+    await waitFor(() =>
+      expect(mockedApi.trainingSessions).toHaveBeenLastCalledWith(
+        expect.objectContaining({
+          latitude: -33.9,
+          longitude: 151.2,
+          radius_km: 25,
+        }),
+      ),
+    );
+    expect(mockedApi.tournaments).toHaveBeenLastCalledWith(
+      expect.objectContaining({ latitude: -33.9, longitude: 151.2, radius_km: 25 }),
+      expect.objectContaining({ signal: expect.any(AbortSignal) }),
+    );
+
+    await user.click(toggle);
+
+    await waitFor(() => {
+      const lastCall = mockedApi.trainingSessions.mock.calls.at(-1);
+      expect(lastCall?.[0]).not.toHaveProperty("radius_km");
+    });
+  });
+
 });
