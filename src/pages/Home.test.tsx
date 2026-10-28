@@ -2,7 +2,7 @@ import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { MemoryRouter } from "react-router-dom";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { api } from "../api";
+import { api, type Tournament, type TrainingSession, type WeatherResponse } from "../api";
 import Home from "./Home";
 
 vi.mock("../api", async (importOriginal) => {
@@ -14,6 +14,9 @@ vi.mock("../api", async (importOriginal) => {
       categories: vi.fn(),
       skills: vi.fn(),
       drills: vi.fn(),
+      trainingSessions: vi.fn(),
+      tournaments: vi.fn(),
+      weather: vi.fn(),
     },
   };
 });
@@ -26,6 +29,21 @@ beforeEach(() => {
   mockedApi.categories.mockResolvedValue([]);
   mockedApi.skills.mockResolvedValue([]);
   mockedApi.drills.mockResolvedValue([]);
+  mockedApi.trainingSessions.mockResolvedValue([]);
+  mockedApi.tournaments.mockResolvedValue({
+    data: [],
+    meta: { page: 1, per_page: 100, total: 0, total_pages: 0 },
+  });
+  mockedApi.weather.mockResolvedValue({
+    forecast: [],
+    hourly: [],
+    current: null,
+    location: { latitude: -33.9, longitude: 151.2, timezone: "Australia/Sydney" },
+    updated_at: "2026-10-28T00:00:00Z",
+    stale: false,
+    volleyball: null,
+    attribution: { name: "WeatherAPI.com", url: "https://www.weatherapi.com/" },
+  });
 
   Object.defineProperty(navigator, "geolocation", {
     configurable: true,
@@ -41,6 +59,66 @@ beforeEach(() => {
     },
   });
 });
+
+const training = (overrides: Partial<TrainingSession> = {}): TrainingSession => ({
+  id: 1,
+  title: "Sunrise training",
+  description: null,
+  starts_at: "2099-11-02T08:00:00Z",
+  ends_at: "2099-11-02T09:30:00Z",
+  location: "Coogee Beach",
+  status: "scheduled",
+  visibility: "shared",
+  created_by_id: 1,
+  ...overrides,
+});
+
+const tournament = (overrides: Partial<Tournament> = {}): Tournament => ({
+  id: 2,
+  name: "Future Sand Series",
+  organisation: { id: 1, name: "Beach Club", acronym: "BC" } as Tournament["organisation"],
+  scope: "club",
+  division_scheme: "letter",
+  publication_state: "active",
+  website_url: null,
+  description: null,
+  location_name: "Maroubra Beach",
+  timezone: "UTC",
+  all_day: false,
+  starts_at: "2099-11-02T06:00:00Z",
+  ends_at: "2099-11-02T10:00:00Z",
+  created_by_account_id: 1,
+  divisions: [],
+  participations: [],
+  watch_links: [],
+  ...overrides,
+});
+
+function weatherWithHourly(): WeatherResponse {
+  return {
+    forecast: [],
+    hourly: [
+      {
+        time: "2099-11-02 06:00",
+        time_epoch: Date.parse("2099-11-02T06:00:00Z") / 1000,
+        temperature_c: 24,
+        feels_like_c: 25,
+        condition: "Sunny",
+        icon_url: null,
+        rain_chance_percent: 5,
+        wind_kph: 12,
+        wind_gust_kph: 18,
+        wind_direction: "NE",
+      },
+    ],
+    current: null,
+    location: { latitude: -33.9, longitude: 151.2, timezone: "UTC" },
+    updated_at: "2099-11-02T05:00:00Z",
+    stale: false,
+    volleyball: null,
+    attribution: { name: "WeatherAPI.com", url: "https://www.weatherapi.com/" },
+  };
+}
 
 afterEach(() => {
   vi.unstubAllEnvs();
@@ -101,5 +179,73 @@ describe("Home location search", () => {
 
     const source = new URL(screen.getByTitle("Map of Your location").getAttribute("src") ?? "");
     expect(source.searchParams.get("q")).toBe("-33.9,151.2");
+  });
+});
+
+describe("Home upcoming agenda and weather layout", () => {
+  it("loads visible upcoming events and renders the hourly forecast once", async () => {
+    mockedApi.trainingSessions.mockResolvedValue([training()]);
+    mockedApi.tournaments.mockResolvedValueOnce({
+      data: [tournament()],
+      meta: { page: 1, per_page: 100, total: 1, total_pages: 1 },
+    });
+    mockedApi.weather.mockResolvedValue(weatherWithHourly());
+
+    renderHome();
+
+    expect(await screen.findByText("Future Sand Series")).toBeInTheDocument();
+    expect(screen.getByText("Sunrise training")).toBeInTheDocument();
+    expect(mockedApi.trainingSessions).toHaveBeenCalledWith(
+      expect.objectContaining({ status: "scheduled" }),
+    );
+    expect(mockedApi.tournaments).toHaveBeenCalledWith(
+      {
+        temporal_status: "upcoming",
+        publication_state: "active",
+        page: 1,
+        per_page: 100,
+      },
+      expect.objectContaining({ signal: expect.any(AbortSignal) }),
+    );
+    expect(
+      await screen.findAllByRole("heading", { name: "Next 24 hours" }),
+    ).toHaveLength(1);
+    expect(screen.getByRole("heading", { name: "Beach volleyball weather" })).toBeInTheDocument();
+  });
+
+  it("loads every tournament page", async () => {
+    mockedApi.tournaments
+      .mockResolvedValueOnce({
+        data: [tournament()],
+        meta: { page: 1, per_page: 100, total: 2, total_pages: 2 },
+      })
+      .mockResolvedValueOnce({
+        data: [tournament({ id: 3, name: "Second Sand Series" })],
+        meta: { page: 2, per_page: 100, total: 2, total_pages: 2 },
+      });
+
+    renderHome();
+
+    expect(await screen.findByText("Second Sand Series")).toBeInTheDocument();
+    expect(mockedApi.tournaments).toHaveBeenCalledTimes(2);
+    expect(mockedApi.tournaments).toHaveBeenNthCalledWith(
+      2,
+      expect.objectContaining({ page: 2, per_page: 100 }),
+      expect.objectContaining({ signal: expect.any(AbortSignal) }),
+    );
+  });
+
+  it("shows agenda empty and failure states", async () => {
+    const { unmount } = renderHome();
+    expect(
+      await screen.findByText(/No upcoming training sessions or tournaments/),
+    ).toBeInTheDocument();
+    unmount();
+
+    mockedApi.trainingSessions.mockRejectedValueOnce(new Error("agenda failed"));
+    renderHome();
+    expect(await screen.findByRole("alert", { name: "" })).toHaveTextContent(
+      "agenda failed",
+    );
   });
 });

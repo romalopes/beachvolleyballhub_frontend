@@ -5,6 +5,8 @@ import {
   type Category,
   type Drill,
   type Skill,
+  type Tournament,
+  type TrainingSession,
   type WeatherResponse,
 } from "../api";
 import {
@@ -16,7 +18,11 @@ import {
   CalendarDays,
 } from "lucide-react";
 import HomeLocationPanel from "../components/locations/HomeLocationPanel";
+import UpcomingAgenda from "../components/home/UpcomingAgenda";
+import ThreeHourlyConditions from "../components/weather/ThreeHourlyConditions";
 import WeatherWidget from "../components/weather/WeatherWidget";
+import { toISODate } from "../utils/calendar";
+import { fetchAllTournamentPages, isAbortError } from "../utils/tournaments";
 
 interface IpLocation {
   status: string;
@@ -90,6 +96,12 @@ export default function Home() {
   const [skills, setSkills] = useState<Skill[]>([]);
   const [drills, setDrills] = useState<Drill[]>([]);
   const [loading, setLoading] = useState(true);
+  const [trainingSessions, setTrainingSessions] = useState<TrainingSession[]>(
+    [],
+  );
+  const [tournaments, setTournaments] = useState<Tournament[]>([]);
+  const [agendaLoading, setAgendaLoading] = useState(true);
+  const [agendaError, setAgendaError] = useState<string | null>(null);
   const [detectedLocation, setDetectedLocation] =
     useState<DetectedLocation | null>(null);
   const [locationLoading, setLocationLoading] = useState(true);
@@ -116,6 +128,48 @@ export default function Home() {
       })
       .catch(console.error)
       .finally(() => setLoading(false));
+  }, []);
+
+  useEffect(() => {
+    let cancelled = false;
+    const controller = new AbortController();
+    const now = new Date();
+
+    Promise.all([
+      api.trainingSessions({
+        starts_at_from: toISODate(now),
+        status: "scheduled",
+      }),
+      fetchAllTournamentPages(
+        { temporal_status: "upcoming", publication_state: "active" },
+        controller.signal,
+        api.tournaments,
+      ),
+    ])
+      .then(([sessions, upcomingTournaments]) => {
+        if (cancelled) return;
+        setTrainingSessions(
+          sessions.filter((session) => new Date(session.ends_at) >= now),
+        );
+        setTournaments(upcomingTournaments);
+        setAgendaError(null);
+      })
+      .catch((error: unknown) => {
+        if (cancelled || isAbortError(error)) return;
+        setAgendaError(
+          error instanceof Error
+            ? error.message
+            : "Unable to load upcoming events.",
+        );
+      })
+      .finally(() => {
+        if (!cancelled) setAgendaLoading(false);
+      });
+
+    return () => {
+      cancelled = true;
+      controller.abort();
+    };
   }, []);
 
   useEffect(() => {
@@ -372,7 +426,23 @@ export default function Home() {
                 : null
             }
             locationName={weatherLocationName}
+            showHourly={false}
           />
+          <UpcomingAgenda
+            trainingSessions={trainingSessions}
+            tournaments={tournaments}
+            loading={agendaLoading}
+            error={agendaError}
+            maxItems={6}
+          />
+          {weather && (
+            <div className="home-hourly">
+              <ThreeHourlyConditions
+                conditions={Array.isArray(weather.hourly) ? weather.hourly : []}
+                timezone={weather.location?.timezone ?? null}
+              />
+            </div>
+          )}
         </div>
       </section>
       <section className="home-stats">

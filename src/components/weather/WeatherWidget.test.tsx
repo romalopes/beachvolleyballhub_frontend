@@ -134,6 +134,24 @@ describe("WeatherWidget", () => {
     expect(within(hourlyList).getByText("Rain 20%")).toBeInTheDocument();
   });
 
+  it("can omit hourly conditions without hiding the weather summary", () => {
+    render(
+      <WeatherWidget
+        weather={weather()}
+        loading={false}
+        error={null}
+        locationName="Coogee Beach, Sydney"
+        showHourly={false}
+      />,
+    );
+
+    expect(screen.queryByRole("heading", { name: "Next 24 hours" })).not.toBeInTheDocument();
+    expect(screen.getByText("23°C")).toBeInTheDocument();
+    expect(screen.getByText("Good")).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "Three-day forecast" })).toBeInTheDocument();
+    expect(screen.getByText("WeatherAPI.com")).toBeInTheDocument();
+  });
+
   it("places hourly conditions between current conditions and the advisor", () => {
     const { container } = render(<WeatherWidget weather={weather()} loading={false} error={null} locationName="Coogee Beach, Sydney" />);
 

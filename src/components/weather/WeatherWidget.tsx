@@ -9,6 +9,7 @@ interface WeatherWidgetProps {
   findingLocation?: boolean;
   searchError?: string | null;
   locationName: string;
+  showHourly?: boolean;
 }
 
 const BOM_WARNINGS_URL = "https://www.bom.gov.au/";
@@ -127,6 +128,7 @@ export default function WeatherWidget({
   findingLocation = false,
   searchError = null,
   locationName,
+  showHourly = true,
 }: WeatherWidgetProps) {
   const forecast = Array.isArray(weather?.forecast) ? weather.forecast : [];
   const hourly = Array.isArray(weather?.hourly) ? weather.hourly : [];
@@ -174,10 +176,12 @@ export default function WeatherWidget({
       {weather && (
         <>
           {weather.current && <CurrentConditions current={weather.current} />}
-          <ThreeHourlyConditions
-            conditions={hourly}
-            timezone={weather.location?.timezone ?? null}
-          />
+          {showHourly && (
+            <ThreeHourlyConditions
+              conditions={hourly}
+              timezone={weather.location?.timezone ?? null}
+            />
+          )}
           <Advisor weather={weather} />
           <DailyForecast forecast={forecast} />
           {attribution?.url && attribution.name && (

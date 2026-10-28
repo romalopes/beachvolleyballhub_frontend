@@ -12,6 +12,8 @@ import FilterState from "../components/FilterState";
 import LibraryHero from "../components/LibraryHero";
 import TournamentFilterForm from "../components/TournamentFilterForm";
 import TournamentList from "../components/TournamentList";
+import CalendarEvent from "../components/calendar/CalendarEvent";
+import CalendarGrid from "../components/calendar/CalendarGrid";
 import { useTournaments } from "../hooks/useTournaments";
 import {
   addDays,
@@ -27,8 +29,6 @@ import {
   tournamentsByDay,
   type TournamentView,
 } from "../utils/tournaments";
-
-const WEEKDAY_LABELS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
 
 export default function TournamentsPage() {
   const navigate = useNavigate();
@@ -208,60 +208,37 @@ export default function TournamentsPage() {
               groupByWeek
             />
           ) : (
-            <div
+            <CalendarGrid
+              days={days}
+              itemsByDay={grouped}
+              cursor={month}
               className="tournament-calendar"
-              aria-label={`${title} tournament calendar`}
-            >
-              <div className="training-calendar-weekdays">
-                {WEEKDAY_LABELS.map((label) => (
-                  <span key={label}>{label}</span>
-                ))}
-              </div>
-              <div className="tournament-calendar-grid">
-                {days.map((day) => {
-                  const key = toISODate(day);
-                  const events = grouped.get(key) ?? [];
-                  const outsideMonth = day.getMonth() !== month.getMonth();
-                  return (
-                    <section
-                      key={key}
-                      className={`tournament-calendar-day${outsideMonth ? " outside-month" : ""}${key === toISODate(new Date()) ? " today" : ""}`}
-                      aria-label={day.toLocaleDateString()}
-                    >
-                      <span className="training-calendar-date">
-                        {day.getDate()}
-                      </span>
-                      {events.map((tournament) => {
-                        // Cancelled events keep their red-stripe treatment;
-                        // the relationship stripe would only fight it.
-                        const relationship =
-                          tournament.publication_state === "cancelled"
-                            ? null
-                            : tournamentRelationship(tournament, user?.account_id);
-                        return (
-                        <button
-                          key={`${tournament.id}-${key}`}
-                          type="button"
-                          className={`tournament-calendar-event${tournament.publication_state === "cancelled" ? " cancelled" : ""}${relationship ? ` tournament-calendar-event--${relationship}` : ""}`}
-                          onClick={() =>
-                            navigate(`/tournaments/${tournament.id}`)
-                          }
-                        >
-                          <span>{tournament.name}</span>
-                          <small>
-                            {tournament.organisation.name}
-                            {tournament.publication_state === "cancelled"
-                              ? " · Cancelled"
-                              : ""}
-                          </small>
-                        </button>
-                        );
-                      })}
-                    </section>
-                  );
-                })}
-              </div>
-            </div>
+              ariaLabel={`${title} tournament calendar`}
+              renderItem={(tournament, key) => {
+                // Cancelled events keep their red-stripe treatment;
+                // the relationship stripe would only fight it.
+                const relationship =
+                  tournament.publication_state === "cancelled"
+                    ? null
+                    : tournamentRelationship(tournament, user?.account_id);
+                return (
+                  <CalendarEvent
+                    key={`${tournament.id}-${key}`}
+                    className={`tournament-calendar-event${tournament.publication_state === "cancelled" ? " cancelled" : ""}${relationship ? ` tournament-calendar-event--${relationship}` : ""}`}
+                    onClick={() => navigate(`/tournaments/${tournament.id}`)}
+                    title={tournament.name}
+                    details={
+                      <>
+                        {tournament.organisation.name}
+                        {tournament.publication_state === "cancelled"
+                          ? " · Cancelled"
+                          : ""}
+                      </>
+                    }
+                  />
+                );
+              }}
+            />
           )}
         </main>
       </div>
