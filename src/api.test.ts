@@ -75,6 +75,25 @@ describe("fetchAPI (GET helpers)", () => {
     expect(url).toBe("/api/v1/admin/users/7");
   });
 
+  it("exposes admin create-user validation messages", async () => {
+    mockFetchOnce({
+      ok: false,
+      status: 422,
+      body: { errors: ["Email address has already been taken"] },
+    });
+
+    await expect(
+      api.adminCreateUser({
+        email_address: "existing@example.com",
+        password: "password123",
+      }),
+    ).rejects.toMatchObject({
+      name: "ApiValidationError",
+      message: "Email address has already been taken",
+      errors: ["Email address has already been taken"],
+    });
+  });
+
   it("requests the self-service joinable group catalogue", async () => {
     const fetchMock = mockFetchOnce({
       ok: true,

@@ -3906,6 +3906,13 @@ export const api = {
   adminDeleteUser: (userId: number) =>
     postJSON<void>(`/admin/users/${userId}`, {}, "DELETE"),
 
+  adminCreateUser: (data: {
+    email_address: string;
+    password: string;
+    first_name?: string;
+    last_name?: string;
+  }) => postJSON<AdminUser>(`/admin/users`, data),
+
   // Admin Settings — Skills (admin-only endpoints, authorize_admin! on backend)
   adminSkills: async (params?: { page?: number; per_page?: number }) => {
     const qs = new URLSearchParams();

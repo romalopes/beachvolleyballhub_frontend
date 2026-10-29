@@ -1,5 +1,9 @@
 import { useEffect, useState } from "react";
-import { Search, ShieldCheck, Users } from "lucide-react";
+import {
+  Search,
+  ShieldCheck,
+  Users,
+} from "lucide-react";
 import { api, type AdminUser, type PaginationMeta } from "../api";
 import { useAuth } from "../auth/AuthContext";
 import AdminUserRoleControls from "../components/AdminUserRoleControls";
@@ -20,6 +24,16 @@ export default function AdminUsers() {
   const [searchDraft, setSearchDraft] = useState("");
   const [search, setSearch] = useState("");
   const [refreshKey, setRefreshKey] = useState(0);
+  const [createUserModal, setCreateUserModal] = useState(false);
+  const [creatingUser, setCreatingUser] = useState(false);
+  const [createUserError, setCreateUserError] = useState<string | null>(null);
+  const [createUserSuccess, setCreateUserSuccess] = useState(false);
+  const [createUserData, setCreateUserData] = useState({
+    email: "",
+    password: "",
+    first_name: "",
+    last_name: "",
+  });
 
   // Which query the rows on screen belong to. While a newer query is in flight
   // the keys differ, so `loading` is derived from them instead of being synced
@@ -59,6 +73,33 @@ export default function AdminUsers() {
     setError(null);
     setPage(1);
     setSearch(searchDraft.trim());
+  };
+
+  const handleCreateUser = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setCreateUserError(null);
+    setCreateUserSuccess(false);
+    setCreatingUser(true);
+
+    try {
+      const data = {
+        email_address: createUserData.email,
+        password: createUserData.password,
+        first_name: createUserData.first_name || undefined,
+        last_name: createUserData.last_name || undefined,
+      };
+
+      await api.adminCreateUser(data);
+      setCreateUserSuccess(true);
+      setCreateUserModal(false);
+      setRefreshKey((k) => k + 1); // Refresh the user list
+    } catch (err: unknown) {
+      setCreateUserError(
+        err instanceof Error ? err.message : "Failed to create user",
+      );
+    } finally {
+      setCreatingUser(false);
+    }
   };
 
   if (!isAdmin) {
@@ -114,9 +155,161 @@ export default function AdminUsers() {
             Search
           </button>
         </div>
+        <button
+          type="button"
+          className="admin-btn admin-btn-add"
+          onClick={() => setCreateUserModal(true)}
+          disabled={loading}
+        >
+          Create User
+        </button>
       </form>
 
       {error && <div className="auth-flash auth-flash-error">{error}</div>}
+
+      {createUserModal ? (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm">
+          <div
+            className="bg-white rounded-lg p-6 max-w-md w-full shadow-xl"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="create-user-title"
+          >
+            <h3 id="create-user-title" className="text-lg font-medium mb-4">
+              Create New User
+            </h3>
+            {createUserSuccess ? (
+              <div className="bg-green-100 text-green-800 p-3 rounded mb-4">
+                User created successfully!
+              </div>
+            ) : (
+              <form
+                onSubmit={(e) => handleCreateUser(e)}
+                className="space-y-4"
+                style={{ display: "iflex", gap: 4 }}
+              >
+                {createUserError && (
+                  <div className="auth-flash auth-flash-error" role="alert">
+                    {createUserError}
+                  </div>
+                )}
+                <div>
+                  <label
+                    htmlFor="create-user-email"
+                    className="block text-sm font-medium mb-2"
+                  >
+                    Email address
+                  </label>
+                  <input
+                    id="create-user-email"
+                    type="email"
+                    required
+                    placeholder="user@example.com"
+                    value={createUserData.email}
+                    onChange={(e) =>
+                      setCreateUserData({ ...createUserData, email: e.target.value })
+                    }
+                  />
+                </div>
+                <div>
+                  <label
+                    htmlFor="create-user-password"
+                    className="block text-sm font-medium mb-2"
+                  >
+                    Password
+                  </label>
+                  <input
+                    id="create-user-password"
+                    type="password"
+                    required
+                    placeholder="••••••••"
+                    value={createUserData.password}
+                    onChange={(e) =>
+                      setCreateUserData({ ...createUserData, password: e.target.value })
+                    }
+                  />
+                  <p className="text-sm text-gray-500">
+                    Minimum 8 characters
+                  </p>
+                </div>
+                <div>
+                  <label
+                    htmlFor="create-user-first-name"
+                    className="block text-sm font-medium mb-2"
+                  >
+                    First name (optional)
+                  </label>
+                  <input
+                    id="create-user-first-name"
+                    placeholder="John"
+                    value={createUserData.first_name || ""}
+                    onChange={(e) =>
+                      setCreateUserData({
+                        ...createUserData,
+                        first_name: e.target.value,
+                      })
+                    }
+                  />
+                </div>
+                <div>
+                  <label
+                    htmlFor="create-user-last-name"
+                    className="block text-sm font-medium mb-2"
+                  >
+                    Last name (optional)
+                  </label>
+                  <input
+                    id="create-user-last-name"
+                    placeholder="Doe"
+                    value={createUserData.last_name || ""}
+                    onChange={(e) =>
+                      setCreateUserData({
+                        ...createUserData,
+                        last_name: e.target.value,
+                      })
+                    }
+                  />
+                </div>
+                <div className="flex gap-3">
+                  <button
+                    type="submit"
+                    className="admin-btn admin-btn-primary flex-1"
+                    disabled={creatingUser}
+                  >
+                    {creatingUser ? "Creating..." : "Create User"}
+                  </button>
+                  <button
+                    type="button"
+                    className="admin-btn admin-btn-outline flex-1"
+                    onClick={() => setCreateUserModal(false)}
+                  >
+                    Cancel
+                  </button>
+                </div>
+              </form>
+            )}
+            <button
+              type="button"
+              className="absolute right-2 top-2 text-gray-400 hover:text-gray-600"
+              onClick={() => setCreateUserModal(false)}
+            >
+              <svg
+                className="h-6 w-6"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M6 18L18 6M6 6l12 12"
+                />
+              </svg>
+            </button>
+          </div>
+        </div>
+      ) : ""}
 
       {loading ? (
         <p>Loading users…</p>
