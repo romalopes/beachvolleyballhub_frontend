@@ -1,4 +1,4 @@
-import { render, screen, waitFor } from "@testing-library/react";
+import { render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { MemoryRouter, Route, Routes, useLocation } from "react-router-dom";
 import { beforeEach, describe, expect, it, vi } from "vitest";
@@ -62,11 +62,84 @@ describe("Tournaments directory", () => {
     const user = userEvent.setup();
     renderPage();
     await screen.findByText("Sand Series");
+    const viewTabs = screen.getByRole("tablist", { name: "Tournament view" });
+    expect(viewTabs.querySelectorAll("svg")).toHaveLength(2);
     await user.click(screen.getByRole("tab", { name: "List" }));
     expect(screen.getByTestId("location")).toHaveTextContent("view=list");
     await user.type(screen.getByLabelText("Search"), "open");
     await waitFor(() => expect(screen.getByTestId("location")).toHaveTextContent("search=open"));
     expect(mockedApi.tournaments).toHaveBeenLastCalledWith(expect.objectContaining({ search: "open" }), expect.anything());
+  });
+
+  it("shows month and week controls after the view controls in calendar mode", async () => {
+    renderPage();
+    await screen.findByText("Sand Series");
+
+    const toolbar = document.querySelector(".tournament-calendar-nav");
+    expect(toolbar).not.toBeNull();
+    const tablists = within(toolbar as HTMLElement).getAllByRole("tablist");
+
+    expect(tablists).toHaveLength(2);
+    expect(tablists[0]).toHaveAccessibleName("Tournament view");
+    expect(tablists[1]).toHaveAccessibleName("Calendar range");
+    expect(within(tablists[0]).getAllByRole("tab").map((tab) => tab.textContent)).toEqual([
+      "List",
+      "Calendar",
+    ]);
+    expect(within(tablists[1]).getAllByRole("tab").map((tab) => tab.textContent)).toEqual([
+      "Month",
+      "Week",
+    ]);
+  });
+
+  it("switches the calendar to a URL-driven week and navigates by week", async () => {
+    const user = userEvent.setup();
+    renderPage();
+    await screen.findByText("Sand Series");
+
+    await user.click(screen.getByRole("tab", { name: "Week" }));
+
+    expect(screen.getByTestId("location")).toHaveTextContent("range=week");
+    expect(screen.getByTestId("location")).toHaveTextContent("cursor=2026-03-01");
+    expect(screen.getByText("Week of Mar 1, 2026")).toBeInTheDocument();
+    expect(document.querySelector(".tournament-calendar.calendar--week")).not.toBeNull();
+    expect(mockedApi.tournaments).toHaveBeenLastCalledWith(
+      expect.objectContaining({
+        starts_at: "2026-03-01",
+        ends_at: "2026-03-08",
+      }),
+      expect.anything(),
+    );
+
+    await user.click(screen.getByRole("button", { name: "Next week" }));
+
+    expect(screen.getByText("Week of Mar 8, 2026")).toBeInTheDocument();
+    expect(mockedApi.tournaments).toHaveBeenLastCalledWith(
+      expect.objectContaining({
+        starts_at: "2026-03-08",
+        ends_at: "2026-03-15",
+      }),
+      expect.anything(),
+    );
+  });
+
+  it("keeps list mode month-based after selecting a calendar week", async () => {
+    const user = userEvent.setup();
+    renderPage("/tournaments?range=week&cursor=2026-03-18&month=2026-03");
+    await screen.findByRole("heading", { name: "Week of Mar 18, 2026" });
+
+    await user.click(screen.getByRole("tab", { name: "List" }));
+
+    expect(screen.getByRole("heading", { name: "March 2026" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Previous month" })).toBeInTheDocument();
+    expect(screen.queryByRole("tablist", { name: "Calendar range" })).not.toBeInTheDocument();
+    expect(mockedApi.tournaments).toHaveBeenLastCalledWith(
+      expect.objectContaining({
+        starts_at: "2026-03-01",
+        ends_at: "2026-04-05",
+      }),
+      expect.anything(),
+    );
   });
 
   it("filters by multiple searched organisations", async () => {

@@ -1,6 +1,13 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
-import { ArrowUpDown, CalendarDays, ChevronLeft, ChevronRight, Globe2, Trophy } from "lucide-react";
+import {
+  ArrowUpDown,
+  CalendarRange,
+  CalendarDays,
+  Globe2,
+  List,
+  Trophy,
+} from "lucide-react";
 import {
   api,
   type Organisation,
@@ -14,12 +21,16 @@ import TournamentFilterForm from "../components/TournamentFilterForm";
 import TournamentList from "../components/TournamentList";
 import CalendarEvent from "../components/calendar/CalendarEvent";
 import CalendarGrid from "../components/calendar/CalendarGrid";
+import CalendarToolbar, {
+  CalendarToolbarTabs,
+} from "../components/calendar/CalendarToolbar";
 import { useTournaments } from "../hooks/useTournaments";
 import {
   addDays,
   addMonths,
   monthGridDays,
   toISODate,
+  weekGridDays,
 } from "../utils/calendar";
 import {
   filtersFromSearchParams,
@@ -27,8 +38,18 @@ import {
   tournamentRelationship,
   tournamentSearchParams,
   tournamentsByDay,
+  type TournamentRange,
   type TournamentView,
 } from "../utils/tournaments";
+
+function cursorFromSearchParams(searchParams: URLSearchParams): Date {
+  const value = searchParams.get("cursor");
+  if (value) {
+    const parsed = new Date(`${value}T00:00:00`);
+    if (!Number.isNaN(parsed.getTime())) return parsed;
+  }
+  return monthFromSearchParam(searchParams.get("month"));
+}
 
 export default function TournamentsPage() {
   const navigate = useNavigate();
@@ -39,21 +60,37 @@ export default function TournamentsPage() {
   );
   const view: TournamentView =
     searchParams.get("view") === "list" ? "list" : "calendar";
-  const month = useMemo(
-    () => monthFromSearchParam(searchParams.get("month")),
+  const range: TournamentRange =
+    searchParams.get("range") === "week" ? "week" : "month";
+  const cursor = useMemo(
+    () => cursorFromSearchParams(searchParams),
     [searchParams],
   );
-  const days = useMemo(() => monthGridDays(month), [month]);
+  const navigationRange: TournamentRange = view === "list" ? "month" : range;
+  const days = useMemo(
+    () =>
+      navigationRange === "month"
+        ? monthGridDays(cursor)
+        : weekGridDays(cursor),
+    [cursor, navigationRange],
+  );
   const [options, setOptions] = useState<TournamentOptions | null>(null);
   const [organisations, setOrganisations] = useState<Organisation[]>([]);
   const [isFiltersCollapsed, setIsFiltersCollapsed] = useState(false);
   const { user } = useAuth();
 
   const updateUrl = useCallback(
-    (nextFilters: TournamentFilters, nextView = view, nextMonth = month) => {
-      setSearchParams(tournamentSearchParams(nextFilters, nextView, nextMonth));
+    (
+      nextFilters: TournamentFilters,
+      nextView = view,
+      nextCursor = cursor,
+      nextRange = range,
+    ) => {
+      setSearchParams(
+        tournamentSearchParams(nextFilters, nextView, nextCursor, nextRange),
+      );
     },
-    [month, setSearchParams, view],
+    [cursor, range, setSearchParams, view],
   );
   const rangeFilters = useMemo<TournamentFilters>(
     () => ({
@@ -63,9 +100,7 @@ export default function TournamentsPage() {
     }),
     [days, filters],
   );
-  const {
-    tournaments,
-  } = useTournaments("all", rangeFilters);
+  const { tournaments } = useTournaments("all", rangeFilters);
   useEffect(() => {
     let active = true;
     api
@@ -91,12 +126,26 @@ export default function TournamentsPage() {
     () => tournamentsByDay(tournaments ?? []),
     [tournaments],
   );
-  const title = month.toLocaleDateString("en-US", {
-    month: "long",
-    year: "numeric",
-  });
-  const moveMonth = (offset: number) =>
-    updateUrl(filters, view, addMonths(month, offset));
+  const title =
+    navigationRange === "month"
+      ? cursor.toLocaleDateString("en-US", {
+          month: "long",
+          year: "numeric",
+        })
+      : `Week of ${cursor.toLocaleDateString("en-US", {
+          month: "short",
+          day: "numeric",
+          year: "numeric",
+        })}`;
+  const moveCursor = (offset: number) =>
+    updateUrl(
+      filters,
+      view,
+      navigationRange === "month"
+        ? addMonths(cursor, offset)
+        : addDays(cursor, offset * 7),
+      range,
+    );
 
   return (
     <div className="page tournament-directory-page">
@@ -124,7 +173,11 @@ export default function TournamentsPage() {
         }
       />
       <div className="tournaments-page-content">
-        <aside className="tournaments-filters" aria-label="Tournament filters" aria-expanded={!isFiltersCollapsed}>
+        <aside
+          className="tournaments-filters"
+          aria-label="Tournament filters"
+          aria-expanded={!isFiltersCollapsed}
+        >
           <h2>Filters</h2>
           <button
             type="button"
@@ -132,7 +185,11 @@ export default function TournamentsPage() {
             onClick={() => setIsFiltersCollapsed((prev) => !prev)}
             aria-pressed={isFiltersCollapsed}
           >
-            {isFiltersCollapsed ? <ArrowUpDown size={24} /> : <ArrowUpDown size={24} />}
+            {isFiltersCollapsed ? (
+              <ArrowUpDown size={24} />
+            ) : (
+              <ArrowUpDown size={24} />
+            )}
           </button>
           {isFiltersCollapsed ? null : (
             <TournamentFilterForm
@@ -140,65 +197,52 @@ export default function TournamentsPage() {
               options={options ?? undefined}
               organisations={organisations}
               onChange={(changes) =>
-                updateUrl({ ...filters, ...changes }, view, month)
+                updateUrl({ ...filters, ...changes })
               }
             />
           )}
         </aside>
         <main className="tournaments-list">
-          <div className="training-calendar-nav tournament-calendar-nav">
-            <button
-              type="button"
-              className="admin-btn"
-              onClick={() => moveMonth(-1)}
-              aria-label="Previous month"
-            >
-              <ChevronLeft size={16} />
-            </button>
-            <button
-              type="button"
-              className="admin-btn"
-              onClick={() => updateUrl(filters, view, new Date())}
-            >
-              Today
-            </button>
-            <button
-              type="button"
-              className="admin-btn"
-              onClick={() => moveMonth(1)}
-              aria-label="Next month"
-            >
-              <ChevronRight size={16} />
-            </button>
-            <h2>{title}</h2>
-            <div className="library-hero-toolbar">
-              <div
-                className="training-view-toggle"
-                role="tablist"
-                aria-label="Tournament view"
-              >
-                {(["calendar", "list"] as TournamentView[]).map((mode) => (
-                  <button
-                    key={mode}
-                    type="button"
-                    role="tab"
-                    aria-selected={view === mode}
-                    className={`filter-btn${view === mode ? " active" : ""}`}
-                    onClick={() => updateUrl(filters, mode, month)}
-                  >
-                    {mode === "calendar" ? "Calendar" : "List"}
-                  </button>
-                ))}
-              </div>
-              <span className="tournament-timezone">
-                Calendar dates use each tournament’s timezone.
-              </span>
-            </div>
-          </div>
+          <CalendarToolbar
+            title={title}
+            options={[
+              { value: "list", label: "List", icon: List },
+              { value: "calendar", label: "Calendar", icon: CalendarRange },
+            ]}
+            value={view}
+            onChange={(nextView: TournamentView) =>
+              updateUrl(filters, nextView)
+            }
+            tabsAriaLabel="Tournament view"
+            onPrevious={() => moveCursor(-1)}
+            onToday={() => updateUrl(filters, view, new Date())}
+            onNext={() => moveCursor(1)}
+            previousLabel={`Previous ${navigationRange}`}
+            nextLabel={`Next ${navigationRange}`}
+            className="tournament-calendar-nav"
+          >
+            {view === "calendar" && (
+              <CalendarToolbarTabs
+                options={[
+                  { value: "month", label: "Month" },
+                  { value: "week", label: "Week" },
+                ]}
+                value={range}
+                onChange={(nextRange: TournamentRange) =>
+                  updateUrl(filters, view, cursor, nextRange)
+                }
+                ariaLabel="Calendar range"
+                className="calendar-toolbar-range"
+              />
+            )}
+            <span className="tournament-timezone">
+              Calendar dates use each tournament’s timezone.
+            </span>
+          </CalendarToolbar>
           <FilterState
             filters={filters}
             organisations={organisations}
-            onReset={() => updateUrl({}, view, month)}
+            onReset={() => updateUrl({}, view)}
           />
           {view === "list" ? (
             <TournamentList
@@ -211,7 +255,8 @@ export default function TournamentsPage() {
             <CalendarGrid
               days={days}
               itemsByDay={grouped}
-              cursor={month}
+              cursor={cursor}
+              range={range}
               className="tournament-calendar"
               ariaLabel={`${title} tournament calendar`}
               renderItem={(tournament, key) => {

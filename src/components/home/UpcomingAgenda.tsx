@@ -1,7 +1,5 @@
 import {
   CalendarDays,
-  ChevronLeft,
-  ChevronRight,
   Clock,
   MapPin,
   Trophy,
@@ -18,6 +16,7 @@ import {
 import { formatTrainingTime, isPrivateSession } from "../../utils/training";
 import CalendarEvent from "../calendar/CalendarEvent";
 import CalendarGrid from "../calendar/CalendarGrid";
+import CalendarToolbar from "../calendar/CalendarToolbar";
 
 /**
  * The agenda's location filter. "25km" keeps only events whose canonical venue
@@ -222,51 +221,21 @@ export default function UpcomingAgenda({
         <CalendarDays size={20} aria-hidden="true" />
       </header>
 
-      <div className="home-agenda-nav">
-        <div className="home-agenda-nav-buttons">
-          <button
-            type="button"
-            className="admin-btn"
-            onClick={onPrevious}
-            aria-label="Previous period"
-          >
-            <ChevronLeft size={16} />
-          </button>
-          <button type="button" className="admin-btn" onClick={onToday}>
-            Today
-          </button>
-          <button
-            type="button"
-            className="admin-btn"
-            onClick={onNext}
-            aria-label="Next period"
-          >
-            <ChevronRight size={16} />
-          </button>
-        </div>
-        <div className="home-agenda-period">
-          <h4>{title}</h4>
-          <p className="home-agenda-range">{label}</p>
-        </div>
-        <div
-          className="training-view-toggle home-agenda-view-toggle"
-          role="tablist"
-          aria-label="Calendar range"
-        >
-          {(["month", "week"] as const).map((option) => (
-            <button
-              key={option}
-              type="button"
-              role="tab"
-              aria-selected={range === option}
-              className={`filter-btn${range === option ? " active" : ""}`}
-              onClick={() => onRangeChange(option)}
-            >
-              {option === "month" ? "Month" : "Week"}
-            </button>
-          ))}
-        </div>
-      </div>
+      <CalendarToolbar
+        title={title}
+        subtitle={label}
+        options={[
+          { value: "month", label: "Month" },
+          { value: "week", label: "Week" },
+        ]}
+        value={range}
+        onChange={onRangeChange}
+        tabsAriaLabel="Calendar range"
+        onPrevious={onPrevious}
+        onToday={onToday}
+        onNext={onNext}
+        className="home-agenda-nav"
+      />
 
       {loading ? (
         <p className="home-agenda-state" role="status">

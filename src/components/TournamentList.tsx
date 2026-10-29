@@ -6,6 +6,7 @@ import type { Tournament, TournamentFilters } from "../api";
 import LoadingState from "./LoadingState";
 import ErrorState from "./ErrorState";
 import EmptyState from "./EmptyState";
+import GroupedWeekList from "./GroupedWeekList";
 import { tournamentsByWeek } from "../utils/tournaments";
 
 type TournamentListProps = {
@@ -58,20 +59,12 @@ export default function TournamentList({
         <ErrorState error={error} onRetry={reload} />
       ) : data && data.length > 0 ? (
         groupByWeek ? (
-          <div className="tournament-weeks">
-            {weekGroups.map((group) => (
-              <section
-                key={group.key}
-                className="tournament-week"
-                aria-label={group.label}
-              >
-                <h3 className="tournament-week-heading">{group.label}</h3>
-                <div className="tournament-cards-grid">
-                  {group.tournaments.map(renderCard)}
-                </div>
-              </section>
-            ))}
-          </div>
+          <GroupedWeekList
+            groups={weekGroups}
+            variant="tournament"
+            getItems={(group) => group.tournaments}
+            renderItem={renderCard}
+          />
         ) : (
           <div className="tournaments-grid">
             {data.map(renderCard)}

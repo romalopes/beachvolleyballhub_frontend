@@ -2,29 +2,28 @@ import { useEffect, useMemo, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import {
   CalendarRange,
-  ChevronLeft,
-  ChevronRight,
   LayoutTemplate,
   List,
   Plus,
   Users,
 } from "lucide-react";
-import {
-  api,
-  type TrainingSession,
-  type TrainingSessionStatus,
-} from "../api";
+import { api, type TrainingSession, type TrainingSessionStatus } from "../api";
 import { useAuth } from "../auth/AuthContext";
 import EmptyState from "../components/EmptyState";
 import ErrorState from "../components/ErrorState";
+import GroupedWeekList from "../components/GroupedWeekList";
 import LoadingState from "../components/LoadingState";
 import LibraryHero from "../components/LibraryHero";
+import CalendarToolbar, {
+  CalendarToolbarTabs,
+} from "../components/calendar/CalendarToolbar";
 import TrainingCalendarGrid from "../components/training/TrainingCalendarGrid";
 import TrainingFilterForm from "../components/training/TrainingFilterForm";
 import TrainingSessionCard from "../components/training/TrainingSessionCard";
 import {
   addDays,
   addMonths,
+  monthIsoWeekRange,
   monthGridDays,
   toISODate,
   weekGridDays,
@@ -61,7 +60,9 @@ export default function Training() {
     () => parseCursor(searchParams.get("cursor")),
     [searchParams],
   );
-  const status = (searchParams.get("status") ?? "") as TrainingSessionStatus | "";
+  const status = (searchParams.get("status") ?? "") as
+    | TrainingSessionStatus
+    | "";
   const mine = searchParams.get("mine") === "1";
   const seriesFilter = Number(searchParams.get("training_series_id")) || null;
 
@@ -74,6 +75,8 @@ export default function Training() {
     () => (range === "month" ? monthGridDays(cursor) : weekGridDays(cursor)),
     [range, cursor],
   );
+  const listRange = useMemo(() => monthIsoWeekRange(cursor), [cursor]);
+  const navigationRange: CalendarRange = view === "list" ? "month" : range;
 
   // The list view groups sessions into calendar weeks (Monday–Sunday).
   const weekGroups = useMemo(() => sessionsByWeek(sessions), [sessions]);
@@ -84,14 +87,17 @@ export default function Training() {
       mine: mine || undefined,
       training_series_id: seriesFilter ?? undefined,
     };
-    const request =
+    const requestRange =
       view === "calendar"
-        ? api.trainingSessions({
-            ...filters,
+        ? {
             starts_at_from: toISODate(days[0]),
             starts_at_to: toISODate(addDays(days[days.length - 1], 1)),
-          })
-        : api.trainingSessions(filters);
+          }
+        : {
+            starts_at_from: toISODate(listRange.start),
+            starts_at_to: toISODate(listRange.endExclusive),
+          };
+    const request = api.trainingSessions({ ...filters, ...requestRange });
 
     request
       .then((loaded) => {
@@ -100,7 +106,7 @@ export default function Training() {
       })
       .catch((err: Error) => setError(err.message))
       .finally(() => setLoading(false));
-  }, [view, days, status, mine, seriesFilter, refreshKey]);
+  }, [view, days, listRange, status, mine, seriesFilter, refreshKey]);
 
   const updateParams = (patch: Record<string, string | undefined>) => {
     const next = new URLSearchParams(searchParams);
@@ -112,7 +118,7 @@ export default function Training() {
   };
 
   const title =
-    range === "month"
+    navigationRange === "month"
       ? cursor.toLocaleDateString("en-US", { month: "long", year: "numeric" })
       : `Week of ${cursor.toLocaleDateString("en-US", {
           month: "short",
@@ -122,7 +128,9 @@ export default function Training() {
 
   const moveCursor = (offset: number) => {
     const next =
-      range === "month" ? addMonths(cursor, offset) : addDays(cursor, offset * 7);
+      navigationRange === "month"
+        ? addMonths(cursor, offset)
+        : addDays(cursor, offset * 7);
     updateParams({ cursor: toISODate(next) });
   };
 
@@ -159,32 +167,6 @@ export default function Training() {
       />
 
       <div className="library-hero-toolbar">
-        <div className="training-view-toggle" role="tablist" aria-label="Training view">
-          {(
-            [
-              { value: "list", label: "List", icon: List },
-              { value: "calendar", label: "Calendar", icon: CalendarRange },
-            ] as { value: TrainingView; label: string; icon: typeof List }[]
-          ).map((option) => {
-            const Icon = option.icon;
-            return (
-              <button
-                key={option.value}
-                type="button"
-                role="tab"
-                aria-selected={view === option.value}
-                className={`filter-btn${view === option.value ? " active" : ""}`}
-                onClick={() =>
-                  updateParams({
-                    view: option.value === "calendar" ? "calendar" : undefined,
-                  })
-                }
-              >
-                <Icon size={14} aria-hidden="true" /> {option.label}
-              </button>
-            );
-          })}
-        </div>
         {canManage && (
           <>
             <button
@@ -234,54 +216,43 @@ export default function Training() {
         </aside>
 
         <main className="training-list-panel">
-          {view === "calendar" && (
-            <div className="training-calendar-nav">
-              <button
-                type="button"
-                className="admin-btn"
-                onClick={() => moveCursor(-1)}
-                aria-label="Previous period"
-              >
-                <ChevronLeft size={16} />
-              </button>
-              <button
-                type="button"
-                className="admin-btn"
-                onClick={() => updateParams({ cursor: toISODate(new Date()) })}
-              >
-                Today
-              </button>
-              <button
-                type="button"
-                className="admin-btn"
-                onClick={() => moveCursor(1)}
-                aria-label="Next period"
-              >
-                <ChevronRight size={16} />
-              </button>
-              <h2>{title}</h2>
-              <div
-                className="training-view-toggle"
-                role="tablist"
-                aria-label="Calendar range"
-              >
-                {(["month", "week"] as CalendarRange[]).map((option) => (
-                  <button
-                    key={option}
-                    type="button"
-                    role="tab"
-                    aria-selected={range === option}
-                    className={`filter-btn${range === option ? " active" : ""}`}
-                    onClick={() =>
-                      updateParams({ range: option === "week" ? "week" : undefined })
-                    }
-                  >
-                    {option === "month" ? "Month" : "Week"}
-                  </button>
-                ))}
-              </div>
-            </div>
-          )}
+          <CalendarToolbar
+            title={title}
+            options={[
+              { value: "list", label: "List", icon: List },
+              { value: "calendar", label: "Calendar", icon: CalendarRange },
+            ]}
+            value={view}
+            onChange={(nextView) =>
+              updateParams({
+                view: nextView === "calendar" ? "calendar" : undefined,
+              })
+            }
+            tabsAriaLabel="Training view"
+            onPrevious={() => moveCursor(-1)}
+            onToday={() => updateParams({ cursor: toISODate(new Date()) })}
+            onNext={() => moveCursor(1)}
+            previousLabel={`Previous ${navigationRange}`}
+            nextLabel={`Next ${navigationRange}`}
+            className="training-directory-toolbar"
+          >
+            {view === "calendar" && (
+              <CalendarToolbarTabs
+                options={[
+                  { value: "month", label: "Month" },
+                  { value: "week", label: "Week" },
+                ]}
+                value={range}
+                onChange={(nextRange: CalendarRange) =>
+                  updateParams({
+                    range: nextRange === "week" ? "week" : undefined,
+                  })
+                }
+                ariaLabel="Calendar range"
+                className="calendar-toolbar-range"
+              />
+            )}
+          </CalendarToolbar>
 
           {error ? (
             <ErrorState error={error} onRetry={retry} />
@@ -305,26 +276,18 @@ export default function Training() {
               onSelect={(session) => navigate(`/training/${session.id}`)}
             />
           ) : (
-            <div className="training-weeks">
-              {weekGroups.map((group) => (
-                <section
-                  key={group.key}
-                  className="training-week"
-                  aria-label={group.label}
-                >
-                  <h3 className="training-week-heading">{group.label}</h3>
-                  <div className="training-cards-grid">
-                    {group.sessions.map((session) => (
-                      <TrainingSessionCard
-                        key={session.id}
-                        session={session}
-                        onClick={() => navigate(`/training/${session.id}`)}
-                      />
-                    ))}
-                  </div>
-                </section>
-              ))}
-            </div>
+            <GroupedWeekList
+              groups={weekGroups}
+              variant="training"
+              getItems={(group) => group.sessions}
+              renderItem={(session) => (
+                <TrainingSessionCard
+                  key={session.id}
+                  session={session}
+                  onClick={() => navigate(`/training/${session.id}`)}
+                />
+              )}
+            />
           )}
         </main>
       </div>

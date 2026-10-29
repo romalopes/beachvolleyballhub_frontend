@@ -72,8 +72,8 @@ beforeEach(() => {
 afterEach(cleanup);
 
 describe("Training page", () => {
-  it("shows the list view by default with tournament-style cards", async () => {
-    renderPage();
+  it("shows the selected month's full ISO weeks in the list view", async () => {
+    renderPage("/training?cursor=2026-10-15");
 
     expect(await screen.findByText("Morning Session")).toBeInTheDocument();
     expect(screen.getByText("Cancelled Session")).toBeInTheDocument();
@@ -81,7 +81,42 @@ describe("Training page", () => {
     expect(screen.getAllByText("Scheduled").length).toBeGreaterThanOrEqual(1);
     expect(document.querySelector(".training-cards-grid")).not.toBeNull();
     expect(mockedApi.trainingSessions).toHaveBeenCalledWith(
-      expect.not.objectContaining({ starts_at_from: expect.any(String) }),
+      expect.objectContaining({
+        starts_at_from: "2026-09-28",
+        starts_at_to: "2026-11-02",
+      }),
+    );
+  });
+
+  it("updates the list range when navigating to another month", async () => {
+    const user = userEvent.setup();
+    renderPage("/training?cursor=2026-10-15");
+    await screen.findByText("Morning Session");
+
+    await user.click(screen.getByRole("button", { name: "Next month" }));
+
+    expect(mockedApi.trainingSessions).toHaveBeenLastCalledWith(
+      expect.objectContaining({
+        starts_at_from: "2026-10-26",
+        starts_at_to: "2026-12-07",
+      }),
+    );
+  });
+
+  it("uses month navigation in list view even when the URL keeps a week range", async () => {
+    const user = userEvent.setup();
+    renderPage("/training?view=calendar&range=week&cursor=2026-10-15");
+    await screen.findByText("Week of Oct 15, 2026");
+
+    await user.click(screen.getByRole("tab", { name: "List" }));
+
+    expect(screen.getByRole("heading", { name: "October 2026" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Previous month" })).toBeInTheDocument();
+    expect(mockedApi.trainingSessions).toHaveBeenLastCalledWith(
+      expect.objectContaining({
+        starts_at_from: "2026-09-28",
+        starts_at_to: "2026-11-02",
+      }),
     );
   });
 
@@ -123,6 +158,13 @@ describe("Training page", () => {
     const user = userEvent.setup();
     renderPage();
     await screen.findByText("Morning Session");
+
+    const toolbar = document.querySelector(".training-directory-toolbar");
+    expect(toolbar).not.toBeNull();
+    const viewTabs = within(toolbar as HTMLElement).getByRole("tablist", {
+      name: "Training view",
+    });
+    expect(viewTabs.querySelectorAll("svg")).toHaveLength(2);
 
     await user.click(screen.getByRole("tab", { name: /calendar/i }));
 

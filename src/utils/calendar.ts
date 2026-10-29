@@ -47,6 +47,23 @@ export function monthGridDays(cursor: Date): Date[] {
   return days;
 }
 
+/**
+ * Monday-starting full-week range covering a month, with an exclusive end.
+ * October 2026, for example, returns Sep 28 through Nov 2 (exclusive), so a
+ * grouped list starts with the week in which October begins.
+ */
+export function monthIsoWeekRange(cursor: Date): {
+  start: Date;
+  endExclusive: Date;
+} {
+  const firstOfMonth = new Date(cursor.getFullYear(), cursor.getMonth(), 1);
+  const lastOfMonth = new Date(cursor.getFullYear(), cursor.getMonth() + 1, 0);
+  return {
+    start: startOfIsoWeek(firstOfMonth),
+    endExclusive: addDays(startOfIsoWeek(lastOfMonth), 7),
+  };
+}
+
 /** The 7 days (Sunday–Saturday) of the week containing `cursor`. */
 export function weekGridDays(cursor: Date): Date[] {
   const start = startOfWeek(cursor);

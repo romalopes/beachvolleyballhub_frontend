@@ -7,6 +7,7 @@ import type {
 import { addDays, formatWeekRange, startOfIsoWeek, toISODate } from "./calendar";
 
 export type TournamentView = "calendar" | "list";
+export type TournamentRange = "month" | "week";
 
 const FILTER_KEYS = [
   "search", "scope", "organisation_id", "division_scheme", "location",
@@ -59,7 +60,12 @@ export function filtersFromSearchParams(params: URLSearchParams): TournamentFilt
   return filters;
 }
 
-export function tournamentSearchParams(filters: TournamentFilters, view: TournamentView, month: Date): URLSearchParams {
+export function tournamentSearchParams(
+  filters: TournamentFilters,
+  view: TournamentView,
+  cursor: Date,
+  range: TournamentRange = "month",
+): URLSearchParams {
   const params = new URLSearchParams();
   for (const key of FILTER_KEYS) {
     if (key === "organisation_id" && filters.organisation_ids?.length) continue;
@@ -77,7 +83,11 @@ export function tournamentSearchParams(filters: TournamentFilters, view: Tournam
     params.set("mine", "1");
   }
   if (view === "list") params.set("view", view);
-  params.set("month", monthKey(month));
+  if (range === "week") {
+    params.set("range", range);
+    params.set("cursor", toISODate(cursor));
+  }
+  params.set("month", monthKey(cursor));
   return params;
 }
 
