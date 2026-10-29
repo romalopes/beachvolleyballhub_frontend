@@ -113,6 +113,16 @@ function ManagerRoute({ children }: { children: React.ReactNode }) {
   return <>{children}</>;
 }
 
+function LocationOversightRoute({ children }: { children: React.ReactNode }) {
+  const { user, loading } = useAuth();
+  if (loading) return null;
+  const canOverseeLocations = user?.roles?.some(
+    (role) => role === "curator" || role === "admin",
+  );
+  if (!canOverseeLocations) return <Navigate to="/" replace />;
+  return <>{children}</>;
+}
+
 function GroupCreatorRoute({ children }: { children: React.ReactNode }) {
   const { user, loading } = useAuth();
   if (loading) return null;
@@ -528,33 +538,33 @@ export default function App() {
                 <Route
                   path="/settings/locations"
                   element={
-                    <AdminRoute>
+                    <LocationOversightRoute>
                       <Locations />
-                    </AdminRoute>
+                    </LocationOversightRoute>
                   }
                 />
                 <Route
                   path="/settings/locations/new"
                   element={
-                    <AdminRoute>
+                    <LocationOversightRoute>
                       <LocationCreatePage />
-                    </AdminRoute>
+                    </LocationOversightRoute>
                   }
                 />
                 <Route
                   path="/settings/locations/:slug/edit"
                   element={
-                    <AdminRoute>
+                    <LocationOversightRoute>
                       <LocationEditPage />
-                    </AdminRoute>
+                    </LocationOversightRoute>
                   }
                 />
                 <Route
                   path="/settings/locations/:slug"
                   element={
-                    <AdminRoute>
+                    <LocationOversightRoute>
                       <LocationDetail />
-                    </AdminRoute>
+                    </LocationOversightRoute>
                   }
                 />
                 <Route

@@ -9,7 +9,11 @@ export default function LocationCreatePage() {
   const navigate = useNavigate();
   const [success, setSuccess] = useState<string | null>(null);
 
-  if (!user?.roles?.includes("admin")) {
+  const canOverseeLocations = user?.roles?.some(
+    (role) => role === "admin" || role === "curator",
+  );
+
+  if (!canOverseeLocations) {
     return (
       <div className="page">
         <div className="admin-error">Not authorized.</div>
@@ -21,8 +25,8 @@ export default function LocationCreatePage() {
     <SettingsLayout
       title="Create Location"
       description="Propose a new venue/location."
-      backTo="/settings"
-      backLabel="Back to Settings"
+      backTo="/settings/locations"
+      backLabel="Back to Locations"
     >
       {success && (
         <div className="auth-flash auth-flash-success" role="alert">
@@ -34,8 +38,7 @@ export default function LocationCreatePage() {
         defaultExpanded
         onCreated={(location) => {
           setSuccess(`Location "${location.name}" created.`);
-          // Optionally navigate back after a short delay
-          setTimeout(() => navigate("/settings"), 1500);
+          setTimeout(() => navigate("/settings/locations"), 1500);
         }}
       />
     </SettingsLayout>

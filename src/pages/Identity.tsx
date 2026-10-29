@@ -55,7 +55,10 @@ export default function IdentityPage() {
   const [error, setError] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
   const [proposedLocations, setProposedLocations] = useState<Location[]>([]);
-  const [locationBusy, setLocationBusy] = useState(false);
+  const [createdLocations, setCreatedLocations] = useState<Location[]>([]);
+  const [createdLocationsLoading, setCreatedLocationsLoading] = useState(false);
+  const [createdLocationsError, setCreatedLocationsError] = useState<string | null>(null);
+  const [locationBusy, setLocationBusy] = useState<number | null>(null);
   const [busy, setBusy] = useState(false);
   const [showCreatePlayerModal, setShowCreatePlayerModal] = useState(false);
   const [createPlayerLoading, setCreatePlayerLoading] = useState(false);
@@ -78,6 +81,9 @@ export default function IdentityPage() {
     user?.roles.some(
       (role) => role === "admin" || role === "coach" || role === "curator",
     ),
+  );
+  const canOverseeLocations = Boolean(
+    user?.roles.some((role) => role === "admin" || role === "curator"),
   );
   const userId = user?.id;
   const accountId = user?.account_id;
@@ -254,7 +260,7 @@ export default function IdentityPage() {
   }, [accountId, loadedUserId]);
 
   useEffect(() => {
-    if (!canManageProfiles) return;
+    if (!canOverseeLocations) return;
     let cancelled = false;
     api
       .locations({ verification_status: "proposed" })
@@ -267,7 +273,73 @@ export default function IdentityPage() {
     return () => {
       cancelled = true;
     };
-  }, [canManageProfiles]);
+  }, [canOverseeLocations]);
+
+  useEffect(() => {
+    if (!accountId) return;
+    let cancelled = false;
+    const loadCreatedLocations = async () => {
+      await Promise.resolve();
+      if (cancelled) return [];
+      setCreatedLocationsLoading(true);
+      setCreatedLocationsError(null);
+      const allLocations: Location[] = [];
+      let page = 1;
+      while (true) {
+        const response = await api.locations({
+          created_by_me: true,
+          page,
+          per_page: 100,
+        });
+        allLocations.push(...response.data);
+        if (page >= response.meta.total_pages) break;
+        page += 1;
+      }
+      return allLocations;
+    };
+    loadCreatedLocations()
+      .then((locations) => {
+        if (!cancelled) setCreatedLocations(locations);
+      })
+      .catch((err: unknown) => {
+        if (!cancelled) {
+          setCreatedLocationsError(
+            err instanceof Error ? err.message : "Could not load your locations.",
+          );
+        }
+      })
+      .finally(() => {
+        if (!cancelled) setCreatedLocationsLoading(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [accountId]);
+
+  const moderateLocation = async (
+    location: Location,
+    action: "verify" | "reject",
+  ) => {
+    setLocationBusy(location.id);
+    setError(null);
+    try {
+      const updated =
+        action === "verify"
+          ? await api.verifyLocation(location.id)
+          : await api.rejectLocation(location.id);
+      setProposedLocations((current) =>
+        current.filter((row) => row.id !== location.id),
+      );
+      setCreatedLocations((current) =>
+        current.map((row) => (row.id === updated.id ? updated : row)),
+      );
+      setNotice(`Location "${updated.name}" ${action === "verify" ? "verified" : "rejected"}.`);
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : `Could not ${action} location.`);
+    } finally {
+      setLocationBusy(null);
+    }
+  };
 
   useEffect(() => {
     if (!accountId) return;
@@ -553,6 +625,49 @@ export default function IdentityPage() {
                 Create Coach Profile
               </button>
             </>
+          )}
+        </section>
+        <section className="detail-section">
+          <h2>Locations you created</h2>
+          {createdLocationsLoading ? (
+            <p>Loading your locations…</p>
+          ) : createdLocationsError ? (
+            <p role="alert">{createdLocationsError}</p>
+          ) : createdLocations.length ? (
+            <ul className="identity-link-list">
+              {createdLocations.map((createdLocation) => {
+                const content = (
+                  <>
+                    <strong>{createdLocation.name}</strong>
+                    {createdLocation.locality ? ` · ${createdLocation.locality}` : ""}
+                  </>
+                );
+                return (
+                  <li key={createdLocation.id}>
+                    {canOverseeLocations ? (
+                      <Link
+                        className="identity-link"
+                        to={`/settings/locations/${createdLocation.slug ?? createdLocation.id}`}
+                      >
+                        {content}
+                      </Link>
+                    ) : (
+                      content
+                    )}{" "}
+                    <span
+                      className={`status-badge status-${createdLocation.verification_status}`}
+                    >
+                      {createdLocation.verification_status}
+                    </span>{" "}
+                    <span className={`status-badge status-${createdLocation.status}`}>
+                      {createdLocation.status}
+                    </span>
+                  </li>
+                );
+              })}
+            </ul>
+          ) : (
+            <p>You have not created any locations.</p>
           )}
         </section>
         <MembershipSections
@@ -886,7 +1001,7 @@ export default function IdentityPage() {
             <p>No invitations have been sent to your verified account email.</p>
           )}
         </section>
-        {canManageProfiles && (
+        {canOverseeLocations && (
           <section className="detail-section">
             <h3>Locations pending verification</h3>
             <ul>
@@ -911,22 +1026,18 @@ export default function IdentityPage() {
                       </div>
                       <button
                         className="admin-btn"
-                        onClick={async () => {
-                          setLocationBusy(true);
-                          await api.verifyLocationById(loc.id);
-                          setLocationBusy(false);
-                        }}
+                        disabled={locationBusy === loc.id}
+                        aria-label={`Verify ${name}`}
+                        onClick={() => void moderateLocation(loc, "verify")}
                       >
                         Verify
                       </button>
                       <button
-                        className="admin-btn"
+                        className="admin-btn admin-btn-remove"
+                        disabled={locationBusy === loc.id}
+                        aria-label={`Reject ${name}`}
                         style={{ marginLeft: "0.5rem" }}
-                        onClick={async () => {
-                          setLocationBusy(true);
-                          await api.rejectLocationById(loc.id);
-                          setLocationBusy(false);
-                        }}
+                        onClick={() => void moderateLocation(loc, "reject")}
                       >
                         Reject
                       </button>
@@ -935,7 +1046,7 @@ export default function IdentityPage() {
                 })
               )}
             </ul>
-            {locationBusy && (
+            {locationBusy !== null && (
               <p className="field-hint" style={{ marginTop: "0.5rem" }}>
                 Working…
               </p>

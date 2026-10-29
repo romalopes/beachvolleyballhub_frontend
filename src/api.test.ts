@@ -89,6 +89,59 @@ describe("fetchAPI (GET helpers)", () => {
   });
 });
 
+describe("location API", () => {
+  const location = {
+    id: 7,
+    name: "Coogee Beach",
+    location_type: "beach",
+    formatted_address: null,
+    locality: "Sydney",
+    administrative_area: null,
+    country_code: "AU",
+    timezone: null,
+    latitude: null,
+    longitude: null,
+    status: "active",
+    verification_status: "proposed",
+    geocoding_status: "not_requested",
+    coordinate_source: null,
+    map_url: null,
+  };
+
+  it("serializes the current-account creator filter", async () => {
+    const fetchMock = mockFetchOnce({
+      ok: true,
+      status: 200,
+      body: { data: [], locations: [], meta: {} },
+    });
+
+    await api.locations({ created_by_me: true, page: 1, per_page: 100 });
+
+    expect(fetchMock.mock.calls[0]?.[0]).toBe(
+      "/api/v1/locations?page=1&per_page=100&created_by_me=1",
+    );
+  });
+
+  it.each([
+    ["verifyLocation", "verify"],
+    ["rejectLocation", "reject"],
+    ["archiveLocation", "archive"],
+    ["activateLocation", "activate"],
+  ] as const)("uses one API prefix and POST for %s", async (method, action) => {
+    const fetchMock = mockFetchOnce({
+      ok: true,
+      status: 200,
+      body: { location },
+    });
+
+    await api[method](7);
+
+    const [url, init] = fetchMock.mock.calls[0] as [string, RequestInit];
+    expect(url).toBe(`/api/v1/locations/7/${action}`);
+    expect(init.method).toBe("POST");
+  });
+});
+
 describe("analysis mutations", () => {
   it("lets the browser set the multipart boundary for video uploads", async () => {
     const fetchMock = mockFetchOnce({

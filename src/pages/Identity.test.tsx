@@ -8,7 +8,7 @@ import IdentityPage from "./Identity";
 
 vi.mock("../api", async (importOriginal) => {
   const actual = await importOriginal<typeof import("../api")>();
-  return { ...actual, api: { ...actual.api, playerProfileCandidates: vi.fn(), searchProfileCandidates: vi.fn(), receivedClaimInvitations: vi.fn(), acceptReceivedClaimInvitation: vi.fn(), declineReceivedClaimInvitation: vi.fn(), claimInvitations: vi.fn(), managementPlayerClaims: vi.fn(), managementClaimInvitations: vi.fn(), managementClaimables: vi.fn(), playerClaims: vi.fn(), requestPlayerClaim: vi.fn(), approvePlayerClaim: vi.fn(), rejectPlayerClaim: vi.fn(), redeemClaimInvitation: vi.fn(), people: vi.fn(), personConsolidationPreview: vi.fn(), createPlayer: vi.fn(), organisations: vi.fn(), groups: vi.fn(), joinOrganisation: vi.fn(), joinGroup: vi.fn(), leaveOrganisation: vi.fn(), leaveGroup: vi.fn() } };
+  return { ...actual, api: { ...actual.api, playerProfileCandidates: vi.fn(), searchProfileCandidates: vi.fn(), receivedClaimInvitations: vi.fn(), acceptReceivedClaimInvitation: vi.fn(), declineReceivedClaimInvitation: vi.fn(), claimInvitations: vi.fn(), managementPlayerClaims: vi.fn(), managementClaimInvitations: vi.fn(), managementClaimables: vi.fn(), playerClaims: vi.fn(), requestPlayerClaim: vi.fn(), approvePlayerClaim: vi.fn(), rejectPlayerClaim: vi.fn(), redeemClaimInvitation: vi.fn(), people: vi.fn(), personConsolidationPreview: vi.fn(), createPlayer: vi.fn(), organisations: vi.fn(), groups: vi.fn(), joinOrganisation: vi.fn(), joinGroup: vi.fn(), leaveOrganisation: vi.fn(), leaveGroup: vi.fn(), locations: vi.fn(), verifyLocation: vi.fn(), rejectLocation: vi.fn() } };
 });
 
 const mockedApi = vi.mocked(api, true);
@@ -80,9 +80,56 @@ beforeEach(() => {
   mockedApi.playerClaims.mockResolvedValue([]);
   mockedApi.organisations.mockResolvedValue({ data: [], meta: { page: 1, per_page: 20, total: 0, total_pages: 0 } });
   mockedApi.groups.mockResolvedValue({ data: [], meta: { page: 1, per_page: 20, total: 0, total_pages: 0 } });
+  mockedApi.locations.mockResolvedValue({ data: [], meta: { page: 1, per_page: 100, total: 0, total_pages: 0 } });
 });
 
 describe("Identity", () => {
+  it("shows every creator-owned location and both statuses", async () => {
+    mockedApi.locations.mockResolvedValue({
+      data: [{
+        id: 44, name: "Archived Proposal", slug: "archived-proposal", location_type: "beach",
+        formatted_address: null, locality: "Sydney", administrative_area: null, country_code: "AU",
+        timezone: null, latitude: null, longitude: null, status: "archived",
+        verification_status: "rejected", geocoding_status: "not_requested", coordinate_source: null,
+        map_url: null,
+      }],
+      meta: { page: 1, per_page: 100, total: 1, total_pages: 1 },
+    });
+
+    renderPage();
+
+    const section = (await screen.findByRole("heading", { name: "Locations you created" })).closest("section")!;
+    expect(within(section).getByText("Archived Proposal")).toBeInTheDocument();
+    expect(within(section).getByText("rejected")).toBeInTheDocument();
+    expect(within(section).getByText("archived")).toBeInTheDocument();
+    expect(within(section).queryByRole("link", { name: /Archived Proposal/ })).not.toBeInTheDocument();
+  });
+
+  it("allows curators but not coaches to moderate pending locations", async () => {
+    const pending = {
+      id: 45, name: "Pending Beach", slug: "pending-beach", location_type: "beach" as const,
+      formatted_address: null, locality: null, administrative_area: null, country_code: null,
+      timezone: null, latitude: null, longitude: null, status: "active" as const,
+      verification_status: "proposed" as const, geocoding_status: "not_requested" as const,
+      coordinate_source: null, map_url: null,
+    };
+    mockedApi.locations.mockImplementation(async (params) => ({
+      data: params?.verification_status === "proposed" ? [pending] : [],
+      meta: { page: 1, per_page: 100, total: 1, total_pages: 1 },
+    }));
+    mockedApi.verifyLocation.mockResolvedValue({ ...pending, verification_status: "verified" });
+
+    const curator = { ...user, roles: ["curator"] };
+    const { unmount } = renderPage("/identity", curator);
+    await userEvent.click(await screen.findByRole("button", { name: "Verify Pending Beach" }));
+    await waitFor(() => expect(screen.queryByText("Pending Beach")).not.toBeInTheDocument());
+    expect(mockedApi.verifyLocation).toHaveBeenCalledWith(45);
+    unmount();
+
+    renderPage("/identity", { ...user, roles: ["coach"] });
+    expect(await screen.findByRole("heading", { name: "Locations you created" })).toBeInTheDocument();
+    expect(screen.queryByRole("heading", { name: "Locations pending verification" })).not.toBeInTheDocument();
+  });
   it("keeps account and profile context distinct and explains empty suggestions", async () => {
     renderPage();
     expect(await screen.findByRole("heading", { name: "Account" })).toBeInTheDocument();

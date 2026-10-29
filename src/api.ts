@@ -516,6 +516,12 @@ export interface Location {
   coordinate_source: string | null;
   map_url: string | null;
   courts?: Court[];
+  proposed_by_account_id?: number | null;
+  verified_by_account_id?: number | null;
+  verified_at?: string | null;
+  archived_at?: string | null;
+  merged_into_id?: number | null;
+  can_edit?: boolean;
 }
 
 export type LocationType = Location["location_type"];
@@ -2530,6 +2536,8 @@ export const api = {
      */
     verification_status?: string;
     status?: string;
+    /** Return every location submitted by the signed-in account, including rejected/archived rows. */
+    created_by_me?: boolean;
   }) => {
     const qs = new URLSearchParams();
     if (params?.q) qs.set("q", params.q);
@@ -2538,6 +2546,7 @@ export const api = {
     if (params?.verification_status)
       qs.set("verification_status", params.verification_status);
     if (params?.status) qs.set("status", params.status);
+    if (params?.created_by_me) qs.set("created_by_me", "1");
     const query = qs.toString();
     return fetchAPI<PaginatedResponse<Location>>(`/locations${query ? `?${query}` : ""}`);
   },
@@ -2552,6 +2561,21 @@ export const api = {
   verifyLocation: (id: number) =>
     postJSON<{ location: Location }>(
       `/locations/${encodeURIComponent(String(id))}/verify`,
+      {},
+    ).then((response) => response.location),
+  rejectLocation: (id: number) =>
+    postJSON<{ location: Location }>(
+      `/locations/${encodeURIComponent(String(id))}/reject`,
+      {},
+    ).then((response) => response.location),
+  archiveLocation: (id: number) =>
+    postJSON<{ location: Location }>(
+      `/locations/${encodeURIComponent(String(id))}/archive`,
+      {},
+    ).then((response) => response.location),
+  activateLocation: (id: number) =>
+    postJSON<{ location: Location }>(
+      `/locations/${encodeURIComponent(String(id))}/activate`,
       {},
     ).then((response) => response.location),
   updateLocation: (id: number, data: Partial<LocationInput>) =>
@@ -4440,13 +4464,5 @@ export const api = {
     ),
 
   // ===== End Analysis API Methods =====
-
-  verifyLocationById: (id: number) => {
-    return postJSON<{ id: number }>(`/api/v1/locations/${id}/verify`, {}, "PATCH");
-  },
-
-  rejectLocationById: (id: number) => {
-    return postJSON<void>(`/api/v1/locations/${id}/reject`, {}, "PATCH");
-  },
 
 };

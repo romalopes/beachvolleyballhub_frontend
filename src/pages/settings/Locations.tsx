@@ -20,9 +20,13 @@ export default function Locations() {
   const [pendingDelete, setPendingDelete] = useState<Location | null>(null);
   const [deleting, setDeleting] = useState(false);
   const [deleteError, setDeleteError] = useState<string | null>(null);
+  const [locationBusy, setLocationBusy] = useState<number | null>(null);
+  const canOverseeLocations = user?.roles?.some(
+    (role) => role === "admin" || role === "curator",
+  );
 
   const fetchLocations = useCallback(async () => {
-    if (!user?.roles?.includes("admin")) return;
+    if (!canOverseeLocations) return;
     setLoading(true);
     setError(null);
     try {
@@ -38,7 +42,28 @@ export default function Locations() {
     } finally {
       setLoading(false);
     }
-  }, [page, query, user]);
+  }, [canOverseeLocations, page, query]);
+
+  const moderateLocation = async (
+    location: Location,
+    action: "verify" | "reject",
+  ) => {
+    setLocationBusy(location.id);
+    setError(null);
+    try {
+      const updated =
+        action === "verify"
+          ? await api.verifyLocation(location.id)
+          : await api.rejectLocation(location.id);
+      setLocations((current) =>
+        current.map((row) => (row.id === updated.id ? updated : row)),
+      );
+    } catch (e: unknown) {
+      setError(e instanceof Error ? e.message : `Failed to ${action} location.`);
+    } finally {
+      setLocationBusy(null);
+    }
+  };
 
   useEffect(() => {
     // Deferred so the fetch is not started synchronously inside the effect:
@@ -69,7 +94,7 @@ export default function Locations() {
     }
   };
 
-  if (!user?.roles?.includes("admin")) {
+  if (!canOverseeLocations) {
     return (
       <div className="page">
         <div className="admin-error">Not authorized.</div>
@@ -81,8 +106,8 @@ export default function Locations() {
     <SettingsLayout
       title="Locations"
       description="Manage locations/venues."
-      backTo="/settings"
-      backLabel="Back to Settings"
+      backTo={user?.roles?.includes("admin") ? "/settings" : "/identity"}
+      backLabel={user?.roles?.includes("admin") ? "Back to Settings" : "Back to Identity"}
     >
       <div
         style={{
@@ -170,6 +195,28 @@ export default function Locations() {
                   </td>
                   <td className="admin-table-actions-col">
                     <div className="admin-table-actions">
+                      {loc.verification_status === "proposed" && (
+                        <>
+                          <button
+                            type="button"
+                            className="admin-btn admin-btn-add"
+                            disabled={locationBusy === loc.id}
+                            aria-label={`Verify ${loc.name}`}
+                            onClick={() => void moderateLocation(loc, "verify")}
+                          >
+                            Verify
+                          </button>
+                          <button
+                            type="button"
+                            className="admin-btn admin-btn-remove"
+                            disabled={locationBusy === loc.id}
+                            aria-label={`Reject ${loc.name}`}
+                            onClick={() => void moderateLocation(loc, "reject")}
+                          >
+                            Reject
+                          </button>
+                        </>
+                      )}
                       <button
                         type="button"
                         className="admin-btn admin-btn-add"
