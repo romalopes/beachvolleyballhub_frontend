@@ -1049,6 +1049,35 @@ export interface Organisation {
   updated_at: string;
 }
 
+/** Public organisation card returned by the nearby discovery endpoint. */
+export interface NearbyOrganisation {
+  id: number;
+  name: string;
+  slug: string;
+  acronym: string | null;
+  organisation_type: OrganisationType;
+  logo_url: string | null;
+  default_location: Pick<
+    Location,
+    | "id"
+    | "name"
+    | "slug"
+    | "location_type"
+    | "formatted_address"
+    | "locality"
+    | "administrative_area"
+    | "country_code"
+    | "latitude"
+    | "longitude"
+    | "map_url"
+  >;
+  distance_km: number;
+}
+
+export interface NearbyOrganisationsResponse {
+  organisations: NearbyOrganisation[];
+}
+
 export interface OrganisationInput {
   name: string;
   /** URL identifier. The server normalizes it to a URL-safe unique value. */
@@ -3227,6 +3256,27 @@ export const api = {
     const query = params.toString();
     return fetchAPI<PaginatedResponse<Organisation>>(
       `/organisations${query ? `?${query}` : ""}`,
+    );
+  },
+  nearbyOrganisations: (
+    params: {
+      latitude: number;
+      longitude: number;
+      radius_km?: number;
+      limit?: number;
+    },
+    signal?: AbortSignal,
+  ) => {
+    const query = new URLSearchParams({
+      latitude: String(params.latitude),
+      longitude: String(params.longitude),
+    });
+    if (params.radius_km !== undefined)
+      query.set("radius_km", String(params.radius_km));
+    if (params.limit !== undefined) query.set("limit", String(params.limit));
+    return fetchAPI<NearbyOrganisationsResponse>(
+      `/organisations/nearby?${query}`,
+      { signal },
     );
   },
   organisation: (identifier: number | string) =>

@@ -1,12 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
-import {
-  CalendarRange,
-  LayoutTemplate,
-  List,
-  Plus,
-  Users,
-} from "lucide-react";
+import { CalendarRange, LayoutTemplate, List, Plus, Users } from "lucide-react";
 import { api, type TrainingSession, type TrainingSessionStatus } from "../api";
 import { useAuth } from "../auth/AuthContext";
 import EmptyState from "../components/EmptyState";

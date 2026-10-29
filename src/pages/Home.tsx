@@ -18,6 +18,7 @@ import {
   CalendarDays,
 } from "lucide-react";
 import HomeLocationPanel from "../components/locations/HomeLocationPanel";
+import PlacesToPlay from "../components/home/PlacesToPlay";
 import UpcomingAgenda, {
   type LocalEventRadius,
 } from "../components/home/UpcomingAgenda";
@@ -159,7 +160,9 @@ export default function Home() {
     [agendaCursor, agendaRange],
   );
   const agendaRangeStart = toISODate(agendaDays[0]);
-  const agendaRangeEnd = toISODate(addDays(agendaDays[agendaDays.length - 1], 1));
+  const agendaRangeEnd = toISODate(
+    addDays(agendaDays[agendaDays.length - 1], 1),
+  );
 
   useEffect(() => {
     Promise.all([api.categories(), api.skills(), api.drills()])
@@ -262,7 +265,9 @@ export default function Home() {
     const todayDays =
       agendaRange === "month" ? monthGridDays(today) : weekGridDays(today);
     const todayRangeStart = toISODate(todayDays[0]);
-    const todayRangeEnd = toISODate(addDays(todayDays[todayDays.length - 1], 1));
+    const todayRangeEnd = toISODate(
+      addDays(todayDays[todayDays.length - 1], 1),
+    );
     if (
       todayRangeStart !== agendaRangeStart ||
       todayRangeEnd !== agendaRangeEnd
@@ -403,12 +408,12 @@ export default function Home() {
   if (loading) return <div className="loading">Loading...</div>;
 
   const venue = detectedLocation ?? FALLBACK_VENUE;
-  const weatherTarget =
+  const effectiveCoordinates =
     searchedLocation !== null
       ? searchedCoords
       : (detectedLocation ?? FALLBACK_VENUE);
-  const weatherKey = weatherTarget
-    ? `${weatherTarget.lat},${weatherTarget.lon}`
+  const weatherKey = effectiveCoordinates
+    ? `${effectiveCoordinates.lat},${effectiveCoordinates.lon}`
     : null;
   const weatherLoading =
     weatherKey !== null && weatherRequest?.key !== weatherKey;
@@ -534,6 +539,20 @@ export default function Home() {
             locationName={weatherLocationName}
             showHourly={false}
           />
+          {weather && (
+            <div className="home-hourly">
+              <ThreeHourlyConditions
+                conditions={Array.isArray(weather.hourly) ? weather.hourly : []}
+                timezone={weather.location?.timezone ?? null}
+              />
+            </div>
+          )}
+          {effectiveCoordinates && (
+            <PlacesToPlay
+              latitude={effectiveCoordinates.lat}
+              longitude={effectiveCoordinates.lon}
+            />
+          )}
           <UpcomingAgenda
             trainingSessions={trainingSessions}
             tournaments={tournaments}
@@ -546,20 +565,14 @@ export default function Home() {
             onNext={() => moveAgendaCursor(1)}
             onRangeChange={changeAgendaRange}
             showMyTournaments={showMyTournaments}
-            onShowMyTournamentsChange={(e) => setShowMyTournaments(e.target.checked)}
+            onShowMyTournamentsChange={(e) =>
+              setShowMyTournaments(e.target.checked)
+            }
             showMyTraining={showMyTraining}
             onShowMyTrainingChange={(e) => setShowMyTraining(e.target.checked)}
             localEventRadius={localEventRadius}
             onLocalEventRadiusChange={setLocalEventRadius}
           />
-          {weather && (
-            <div className="home-hourly">
-              <ThreeHourlyConditions
-                conditions={Array.isArray(weather.hourly) ? weather.hourly : []}
-                timezone={weather.location?.timezone ?? null}
-              />
-            </div>
-          )}
         </div>
       </section>
       <section className="home-stats">

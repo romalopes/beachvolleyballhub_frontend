@@ -87,6 +87,25 @@ describe("fetchAPI (GET helpers)", () => {
     const [url] = fetchMock.mock.calls[0] as [string, RequestInit];
     expect(url).toBe("/api/v1/groups?status=active&joinable=1");
   });
+
+  it("requests nearby organisations with exact filters and forwards cancellation", async () => {
+    const controller = new AbortController();
+    const response = { organisations: [{ id: 7, name: "Coogee Club" }] };
+    const fetchMock = mockFetchOnce({ ok: true, status: 200, body: response });
+
+    await expect(
+      api.nearbyOrganisations(
+        { latitude: -33.92, longitude: 151.26, radius_km: 25, limit: 6 },
+        controller.signal,
+      ),
+    ).resolves.toEqual(response);
+
+    const [url, init] = fetchMock.mock.calls[0] as [string, RequestInit];
+    expect(url).toBe(
+      "/api/v1/organisations/nearby?latitude=-33.92&longitude=151.26&radius_km=25&limit=6",
+    );
+    expect(init.signal).toBe(controller.signal);
+  });
 });
 
 describe("location API", () => {

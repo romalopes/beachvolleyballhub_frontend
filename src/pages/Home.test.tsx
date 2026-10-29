@@ -17,6 +17,8 @@ vi.mock("../api", async (importOriginal) => {
       trainingSessions: vi.fn(),
       tournaments: vi.fn(),
       weather: vi.fn(),
+      geocode: vi.fn(),
+      nearbyOrganisations: vi.fn(),
     },
   };
 });
@@ -52,6 +54,15 @@ beforeEach(() => {
     stale: false,
     volleyball: null,
     attribution: { name: "WeatherAPI.com", url: "https://www.weatherapi.com/" },
+  });
+  mockedApi.nearbyOrganisations.mockResolvedValue({ organisations: [] });
+  mockedApi.geocode.mockResolvedValue({
+    latitude: -33.92,
+    longitude: 151.26,
+    formatted_address: "Coogee NSW, Australia",
+    locality: "Coogee",
+    administrative_area: "NSW",
+    country_code: "AU",
   });
 
   Object.defineProperty(navigator, "geolocation", {
@@ -355,6 +366,36 @@ describe("Home upcoming agenda and weather layout", () => {
       const lastCall = mockedApi.trainingSessions.mock.calls.at(-1);
       expect(lastCall?.[0]).not.toHaveProperty("radius_km");
     });
+  });
+
+  it("loads places to play from the same effective coordinates as the map and search", async () => {
+    const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTime });
+    mockedApi.geocode.mockResolvedValue({
+      latitude: -33.87,
+      longitude: 151.21,
+      formatted_address: "Sydney NSW, Australia",
+      locality: "Sydney",
+      administrative_area: "NSW",
+      country_code: "AU",
+    });
+    renderHome();
+
+    await waitFor(() =>
+      expect(mockedApi.nearbyOrganisations).toHaveBeenCalledWith(
+        { latitude: -33.9, longitude: 151.2, radius_km: 25, limit: 6 },
+        expect.any(AbortSignal),
+      ),
+    );
+
+    await user.type(screen.getByRole("searchbox", { name: "Search for a location" }), "Sydney");
+    await user.click(screen.getByRole("button", { name: "Search" }));
+
+    await waitFor(() =>
+      expect(mockedApi.nearbyOrganisations).toHaveBeenLastCalledWith(
+        { latitude: -33.87, longitude: 151.21, radius_km: 25, limit: 6 },
+        expect.any(AbortSignal),
+      ),
+    );
   });
 
 });

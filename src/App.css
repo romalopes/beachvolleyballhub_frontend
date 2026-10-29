@@ -503,6 +503,7 @@
   grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
   grid-template-areas:
     "location weather"
+    "places places"
     "agenda agenda"
     "hourly hourly";
   align-items: start;
@@ -535,6 +536,132 @@
   border: 1px solid var(--border-light);
   border-radius: var(--radius-lg);
   background: var(--bg-secondary);
+}
+
+.places-to-play {
+  grid-area: places;
+  min-width: 0;
+  padding: 1.25rem;
+  border: 1px solid var(--border-light);
+  border-radius: var(--radius-lg);
+  background: var(--bg-secondary);
+}
+
+.places-to-play-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-bottom: 1rem;
+  color: var(--amber-600);
+}
+
+.places-to-play-header h2 {
+  margin: 0.1rem 0 0;
+  color: var(--charcoal);
+  font-size: 1.35rem;
+}
+
+.places-to-play-eyebrow,
+.places-to-play-type {
+  color: var(--amber-600);
+  font-size: 0.7rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.places-to-play-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+  gap: 0.9rem;
+}
+
+.places-to-play-card {
+  display: flex;
+  min-width: 0;
+  gap: 0.9rem;
+  padding: 1rem;
+  border: 1px solid var(--border-light);
+  border-radius: var(--radius-md);
+  background: var(--bg-primary);
+}
+
+.places-to-play-logo {
+  flex: 0 0 auto;
+  width: 3rem;
+  height: 3rem;
+  border-radius: var(--radius-md);
+  object-fit: contain;
+}
+
+.places-to-play-logo-fallback {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--amber-50);
+  color: var(--amber-700);
+  font-size: 0.85rem;
+  font-weight: 800;
+}
+
+.places-to-play-copy {
+  min-width: 0;
+  flex: 1;
+}
+
+.places-to-play-copy h3 {
+  margin: 0.2rem 0 0.55rem;
+  overflow-wrap: anywhere;
+  color: var(--charcoal);
+  font-size: 1rem;
+}
+
+.places-to-play-venue {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+  margin: 0;
+  color: var(--text-secondary);
+  font-size: 0.78rem;
+}
+
+.places-to-play-venue strong {
+  color: var(--charcoal);
+}
+
+.places-to-play-card-footer {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.4rem 0.8rem;
+  margin-top: 0.85rem;
+  padding-top: 0.7rem;
+  border-top: 1px solid var(--border-light);
+  color: var(--text-secondary);
+  font-size: 0.75rem;
+  font-weight: 600;
+}
+
+.places-to-play-card-footer a {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  color: var(--amber-600);
+}
+
+.places-to-play-state {
+  margin: 0;
+  padding: 1rem;
+  border: 1px dashed var(--border);
+  border-radius: var(--radius-md);
+  color: var(--text-secondary);
+  text-align: center;
+}
+
+.places-to-play-state p {
+  margin: 0 0 0.75rem;
 }
 
 .home-agenda-header {
@@ -828,6 +955,7 @@
     grid-template-areas:
       "location"
       "weather"
+      "places"
       "agenda"
       "hourly";
   }
