@@ -10,12 +10,15 @@ import {
   type WeatherResponse,
 } from "../api";
 import {
-  ArrowRight,
-  Target,
+  Building2,
+  CalendarDays,
+  ClipboardList,
   Dumbbell,
   PlayCircle,
-  ClipboardList,
-  CalendarDays,
+  Target,
+  Trophy,
+  FileText,
+  ArrowRight,
 } from "lucide-react";
 import HomeLocationPanel from "../components/locations/HomeLocationPanel";
 import PlacesToPlay from "../components/home/PlacesToPlay";
@@ -116,6 +119,48 @@ const sections = [
     icon: CalendarDays,
     description:
       "See upcoming training sessions and plan your practice calendar.",
+  },
+  {
+    title: "Tournaments",
+    path: "/tournaments",
+    icon: Trophy,
+    description:
+      "Browse upcoming tournaments near you and across the country. Each tournament shows divisions, participants, and results.",
+  },
+  {
+    title: "Organisations",
+    path: "/organisations",
+    icon: Building2,
+    description:
+      "Browse volleyball organisations across Australia. View details, locations, and upcoming events for each club.",
+  },
+  {
+    title: "Analysis",
+    path: "/analyses",
+    icon: FileText,
+    description:
+      "Review past match and player analysis reports or order a new analysis for your team.",
+  },
+  {
+    title: "Assessment sessions",
+    path: "/assessment-sessions",
+    icon: CalendarDays,
+    description:
+      "Record and review player skill assessment sessions to track progress and identify areas for improvement.",
+  },
+  {
+    path: "/ranking-consolidations",
+    title: "Ranking consolidations",
+    icon: Trophy,
+    description:
+      "View consolidated player rankings compiled from tournament results and assessment sessions.",
+  },
+  {
+    path: "/assessment-definitions",
+    title: "Assessment definitions",
+    icon: ClipboardList,
+    description:
+      "Manage the assessment categories and weightings used to evaluate player skills consistently.",
   },
 ];
 
