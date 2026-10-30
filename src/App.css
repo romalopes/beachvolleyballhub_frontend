@@ -239,6 +239,10 @@
   height: 18px;
 }
 
+.sidebar-close-btn--mobile {
+  display: none;
+}
+
 /* Whole-menu collapse (desktop icon rail). The collapsed class is set on
    `.app` by Layout; it only takes effect above the mobile breakpoint so the
    <=900px off-canvas drawer behaviour is untouched. */
@@ -2239,6 +2243,14 @@
 
 /* Responsive */
 @media (max-width: 900px) {
+  .sidebar-collapse-btn--desktop {
+    display: none;
+  }
+
+  .sidebar-close-btn--mobile {
+    display: inline-flex;
+  }
+
   .sidebar {
     transform: translateX(-100%);
     transition: transform var(--transition);

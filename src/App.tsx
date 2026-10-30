@@ -6,7 +6,7 @@ import {
   Navigate,
 } from "react-router-dom";
 import { useState } from "react";
-import { ChevronsLeft, ChevronsRight } from "lucide-react";
+import { ChevronsLeft, ChevronsRight, X } from "lucide-react";
 import { AuthProvider } from "./auth/AuthProvider";
 import { useAuth } from "./auth/AuthContext";
 import { TestAccessProvider } from "./auth/TestAccessProvider";
@@ -187,14 +187,20 @@ function Layout({ children }: { children: React.ReactNode }) {
       return !previous;
     });
   const CollapseIcon = menuCollapsed ? ChevronsRight : ChevronsLeft;
+  // A persisted desktop icon-rail preference must not hide navigation groups
+  // inside the full-width mobile drawer.
+  const sidebarMenuCollapsed = menuCollapsed && !sidebarOpen;
 
   return (
     <div className={`app${menuCollapsed ? " sidebar-collapsed" : ""}`}>
       <div className="mobile-header">
         <button
+          type="button"
           className="mobile-menu-btn"
           onClick={() => setSidebarOpen(!sidebarOpen)}
-          aria-label="Toggle menu"
+          aria-expanded={sidebarOpen}
+          aria-controls="sidebar"
+          aria-label={sidebarOpen ? "Close menu" : "Open menu"}
         >
           <svg
             width="24"
@@ -220,7 +226,7 @@ function Layout({ children }: { children: React.ReactNode }) {
       >
         <button
           type="button"
-          className="sidebar-collapse-btn"
+          className="sidebar-collapse-btn sidebar-collapse-btn--desktop"
           onClick={toggleMenuCollapsed}
           aria-expanded={!menuCollapsed}
           aria-controls="sidebar"
@@ -229,10 +235,20 @@ function Layout({ children }: { children: React.ReactNode }) {
         >
           <CollapseIcon aria-hidden="true" />
         </button>
+        <button
+          type="button"
+          className="sidebar-collapse-btn sidebar-close-btn--mobile"
+          onClick={() => setSidebarOpen(false)}
+          aria-controls="sidebar"
+          aria-label="Close menu"
+          title="Close menu"
+        >
+          <X aria-hidden="true" />
+        </button>
         <Sidebar
-          menuCollapsed={menuCollapsed}
+          menuCollapsed={sidebarMenuCollapsed}
           onExpandMenu={() => {
-            if (menuCollapsed) toggleMenuCollapsed();
+            if (sidebarMenuCollapsed) toggleMenuCollapsed();
           }}
         />
       </aside>
