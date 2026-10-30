@@ -2046,6 +2046,8 @@ export interface AdminUser {
   last_name?: string | null;
   account_id?: number | null;
   account?: Account | null;
+  email_verified?: boolean;
+  invitation_accepted?: boolean;
   roles: { id: number; name: string }[];
 }
 

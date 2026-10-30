@@ -17,6 +17,8 @@ const addressLines = (account: Account) =>
     account.address.country,
   ].filter(Boolean);
 
+const validEmail = (email: string) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
+
 export default function AdminUserDetail() {
   const { id } = useParams<{ id: string }>();
   const userId = Number(id);
@@ -38,7 +40,10 @@ export default function AdminUserDetail() {
     api
       .adminUser(userId)
       .then((user) => {
-        if (!cancelled) setAdminUser(user);
+        if (!cancelled) {
+          setAdminUser(user);
+          setInviteEmail(user.account?.email || user.email_address);
+        }
       })
       .catch((reason: unknown) => {
         if (!cancelled) {
@@ -72,6 +77,10 @@ export default function AdminUserDetail() {
   if (!adminUser) return <div className="loading">Loading…</div>;
 
   const account = adminUser.account;
+  const normalizedInviteEmail = inviteEmail.trim().toLowerCase();
+  const showInvitation =
+    adminUser.email_verified === false &&
+    adminUser.invitation_accepted === false;
   const contactVisible = Boolean(
     account &&
       (account.email ||
@@ -85,17 +94,11 @@ export default function AdminUserDetail() {
     setInviteStatus({ message: "", type: "success" });
 
     try {
-      // Prefer the account's own email when one exists; otherwise use the
-      // typed-in address. `requestPasswordReset` only sends mail when a
-      // matching (verified) user exists, so non-existent addresses silently
-      // succeed — no account existence is leaked to the admin.
-      const targetEmail = (account?.email || inviteEmail.trim()).toLowerCase();
-      await api.requestPasswordReset(targetEmail);
+      await api.requestPasswordReset(normalizedInviteEmail);
       setInviteStatus({
-        message: `Invitation email sent to ${targetEmail}. The user can now set their password.`,
+        message: `Invitation email sent to ${normalizedInviteEmail}. The user can now set their password.`,
         type: "success",
       });
-      setInviteEmail("");
     } catch (err: unknown) {
       const message =
         err instanceof Error
@@ -193,9 +196,9 @@ export default function AdminUserDetail() {
             )}
           </section>
 
-          <section className="detail-section">
-            <h2>Invitation</h2>
-            {account ? (
+          {showInvitation && (
+            <section className="detail-section">
+              <h2>Invitation</h2>
               <div className="invitation-control">
                 <label className="label">
                   <span>Email address</span>
@@ -203,7 +206,7 @@ export default function AdminUserDetail() {
                     type="email"
                     className="input"
                     placeholder="user@example.com"
-                    defaultValue={inviteEmail}
+                    value={inviteEmail}
                     onChange={(e) => setInviteEmail(e.target.value)}
                     disabled={isSendingInvitation}
                   />
@@ -212,8 +215,7 @@ export default function AdminUserDetail() {
                   className="button button--primary"
                   disabled={
                     isSendingInvitation ||
-                    !account?.email &&
-                    !inviteEmail.trim()
+                    !validEmail(normalizedInviteEmail)
                   }
                   onClick={sendInvitation}
                 >
@@ -229,10 +231,8 @@ export default function AdminUserDetail() {
                   </p>
                 )}
               </div>
-            ) : (
-              <p>No account available for invitation.</p>
-            )}
-          </section>
+            </section>
+          )}
 
           <section className="detail-section">
             <h2>Player profiles</h2>
