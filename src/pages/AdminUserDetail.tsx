@@ -22,6 +22,12 @@ export default function AdminUserDetail() {
   const userId = Number(id);
   const [adminUser, setAdminUser] = useState<AdminUser | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [inviteEmail, setInviteEmail] = useState<string>("");
+  const [isSendingInvitation, setIsSendingInvitation] = useState<boolean>(false);
+  const [inviteStatus, setInviteStatus] = useState<{
+    message: string;
+    type: "error" | "success";
+  }>({ message: "", type: "success" });
 
   const invalidId = !Number.isInteger(userId) || userId < 1;
 
@@ -73,6 +79,33 @@ export default function AdminUserDetail() {
         account.date_of_birth ||
         addressLines(account).length),
   );
+
+  const sendInvitation = async () => {
+    setIsSendingInvitation(true);
+    setInviteStatus({ message: "", type: "success" });
+
+    try {
+      // Prefer the account's own email when one exists; otherwise use the
+      // typed-in address. `requestPasswordReset` only sends mail when a
+      // matching (verified) user exists, so non-existent addresses silently
+      // succeed — no account existence is leaked to the admin.
+      const targetEmail = (account?.email || inviteEmail.trim()).toLowerCase();
+      await api.requestPasswordReset(targetEmail);
+      setInviteStatus({
+        message: `Invitation email sent to ${targetEmail}. The user can now set their password.`,
+        type: "success",
+      });
+      setInviteEmail("");
+    } catch (err: unknown) {
+      const message =
+        err instanceof Error
+          ? err.message
+          : "Failed to send invitation. Please try again.";
+      setInviteStatus({ message, type: "error" });
+    } finally {
+      setIsSendingInvitation(false);
+    }
+  };
 
   return (
     <div className="page">
@@ -157,6 +190,47 @@ export default function AdminUserDetail() {
               </dl>
             ) : (
               <p>No contact details recorded.</p>
+            )}
+          </section>
+
+          <section className="detail-section">
+            <h2>Invitation</h2>
+            {account ? (
+              <div className="invitation-control">
+                <label className="label">
+                  <span>Email address</span>
+                  <input
+                    type="email"
+                    className="input"
+                    placeholder="user@example.com"
+                    defaultValue={inviteEmail}
+                    onChange={(e) => setInviteEmail(e.target.value)}
+                    disabled={isSendingInvitation}
+                  />
+                </label>
+                <button
+                  className="button button--primary"
+                  disabled={
+                    isSendingInvitation ||
+                    !account?.email &&
+                    !inviteEmail.trim()
+                  }
+                  onClick={sendInvitation}
+                >
+                  {isSendingInvitation ? (
+                    <span>Sending…</span>
+                  ) : (
+                    "Send invitation"
+                  )}
+                </button>
+                {inviteStatus.message && (
+                  <p className={`invitation-status ${inviteStatus.type}`}>
+                    {inviteStatus.message}
+                  </p>
+                )}
+              </div>
+            ) : (
+              <p>No account available for invitation.</p>
             )}
           </section>
 
