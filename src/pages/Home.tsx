@@ -179,7 +179,7 @@ export default function Home() {
   const [showMyTraining, setShowMyTraining] = useState(false);
   const [localEventRadius, setLocalEventRadius] =
     useState<LocalEventRadius>("all");
-  const [agendaRange, setAgendaRange] = useState<AgendaRange>("month");
+  const [agendaRange, setAgendaRange] = useState<AgendaRange>("week");
   const [agendaCursor, setAgendaCursor] = useState(() => new Date());
   const [detectedLocation, setDetectedLocation] =
     useState<DetectedLocation | null>(null);
