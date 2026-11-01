@@ -339,6 +339,17 @@ export interface Skill {
   video_references?: VideoReference[];
 }
 
+/** Drill visibility: who may see it. Only `shared` + `published` is public. */
+export type DrillVisibility = "shared" | "private" | "unlisted";
+
+/**
+ * Drill publication lifecycle. Only `published` drills with `shared`
+ * visibility are returned by the public endpoints; `draft`, `submitted`,
+ * `archived`, and `rejected` stay out of public queries. The API enforces
+ * this server-side — the frontend must never assume a drill is public.
+ */
+export type DrillStatus = "draft" | "submitted" | "published" | "archived" | "rejected";
+
 export interface Drill {
   id: number;
   title: string;
@@ -349,6 +360,14 @@ export interface Drill {
   min_players: number | null;
   max_players: number | null;
   ideal_num_players: number | null;
+  /** Who may see the drill. Defaults to `shared` on the API. */
+  visibility?: DrillVisibility;
+  /** Publication state. Defaults to `draft` on the API. */
+  status?: DrillStatus;
+  /** Set by the API when a drill transitions to `published`. */
+  published_at?: string | null;
+  /** Owner of the drill; drives the UI edit affordance (API re-checks). */
+  created_by_id?: number | null;
   definition?: DrillDefinition | null;
   /** Present on list payloads: true when a renderable visual definition exists. */
   has_definition?: boolean;
@@ -4055,6 +4074,8 @@ export const api = {
     min_players?: number | null;
     max_players?: number | null;
     ideal_num_players?: number | null;
+    visibility?: DrillVisibility;
+    status?: DrillStatus;
     definition?: DrillDefinition | null;
     skill_ids: number[];
   }) => postJSON<Drill>("/admin/drills", { drill: data }),
@@ -4068,6 +4089,8 @@ export const api = {
       min_players?: number | null;
       max_players?: number | null;
       ideal_num_players?: number | null;
+      visibility?: DrillVisibility;
+      status?: DrillStatus;
       definition?: DrillDefinition | null;
       skill_ids?: number[];
     },
