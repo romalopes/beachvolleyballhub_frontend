@@ -2,7 +2,7 @@ import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { MemoryRouter } from "react-router-dom";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { api, type Tournament, type TrainingSession, type WeatherResponse } from "../api";
+import { api, type Tournament, type WeatherResponse } from "../api";
 import Home from "./Home";
 
 vi.mock("../api", async (importOriginal) => {
@@ -78,19 +78,6 @@ beforeEach(() => {
       }),
     },
   });
-});
-
-const training = (overrides: Partial<TrainingSession> = {}): TrainingSession => ({
-  id: 1,
-  title: "Sunrise training",
-  description: null,
-  starts_at: futureIso(7, 8),
-  ends_at: futureIso(7, 9),
-  location: "Coogee Beach",
-  status: "scheduled",
-  visibility: "shared",
-  created_by_id: 1,
-  ...overrides,
 });
 
 const tournament = (overrides: Partial<Tournament> = {}): Tournament => ({
@@ -204,39 +191,16 @@ describe("Home location search", () => {
 });
 
 describe("Home upcoming agenda and weather layout", () => {
-  it("loads visible month events and renders the hourly forecast once", async () => {
-    mockedApi.trainingSessions.mockResolvedValue([training()]);
-    mockedApi.tournaments.mockResolvedValueOnce({
-      data: [tournament()],
-      meta: { page: 1, per_page: 100, total: 1, total_pages: 1 },
-    });
+  it("keeps hourly weather out of the Home layout", async () => {
     mockedApi.weather.mockResolvedValue(weatherWithHourly());
 
     renderHome();
 
-    expect(await screen.findByText("Future Sand Series")).toBeInTheDocument();
-    expect(screen.getByText("Sunrise training")).toBeInTheDocument();
-    expect(mockedApi.trainingSessions).toHaveBeenCalledWith(
-      expect.objectContaining({
-        status: "scheduled",
-        starts_at_from: "2026-09-27",
-        starts_at_to: "2026-11-08",
-      }),
-    );
-    expect(mockedApi.tournaments).toHaveBeenCalledWith(
-      expect.objectContaining({
-        publication_state: "active",
-        page: 1,
-        per_page: 100,
-        starts_at: "2026-09-27",
-        ends_at: "2026-11-08",
-      }),
-      expect.objectContaining({ signal: expect.any(AbortSignal) }),
-    );
+    expect(await screen.findByText("WeatherAPI.com")).toBeInTheDocument();
     expect(
-      await screen.findAllByRole("heading", { name: "Next 24 hours" }),
-    ).toHaveLength(1);
-    expect(screen.getByRole("heading", { name: "Beach volleyball weather" })).toBeInTheDocument();
+      screen.getByRole("heading", { name: "Beach volleyball weather" }),
+    ).toBeInTheDocument();
+    expect(screen.queryByRole("heading", { name: "Next 24 hours" })).not.toBeInTheDocument();
   });
 
   it("refetches the visible range for month and week navigation", async () => {

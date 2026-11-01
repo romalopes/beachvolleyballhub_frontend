@@ -25,7 +25,6 @@ import PlacesToPlay from "../components/home/PlacesToPlay";
 import UpcomingAgenda, {
   type LocalEventRadius,
 } from "../components/home/UpcomingAgenda";
-import ThreeHourlyConditions from "../components/weather/ThreeHourlyConditions";
 import WeatherWidget from "../components/weather/WeatherWidget";
 import {
   addDays,
@@ -582,16 +581,7 @@ export default function Home() {
                 : null
             }
             locationName={weatherLocationName}
-            showHourly={false}
           />
-          {weather && (
-            <div className="home-hourly">
-              <ThreeHourlyConditions
-                conditions={Array.isArray(weather.hourly) ? weather.hourly : []}
-                timezone={weather.location?.timezone ?? null}
-              />
-            </div>
-          )}
           {effectiveCoordinates && (
             <PlacesToPlay
               latitude={effectiveCoordinates.lat}

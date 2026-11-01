@@ -1,6 +1,7 @@
-import type { WeatherCurrent, WeatherResponse } from "../../api";
+import { useState } from "react";
+import type { WeatherResponse } from "../../api";
 import DailyForecast from "./DailyForecast";
-import ThreeHourlyConditions from "./ThreeHourlyConditions";
+import WeatherForecastModal from "./WeatherForecastModal";
 
 interface WeatherWidgetProps {
   weather: WeatherResponse | null;
@@ -9,7 +10,6 @@ interface WeatherWidgetProps {
   findingLocation?: boolean;
   searchError?: string | null;
   locationName: string;
-  showHourly?: boolean;
 }
 
 const BOM_WARNINGS_URL = "https://www.bom.gov.au/";
@@ -18,73 +18,12 @@ function metric(
   value: number | null | undefined,
   format: (value: number) => string,
 ): string {
-  if (value === null || value === undefined || !Number.isFinite(value))
-    return "–";
+  if (value === null || value === undefined || !Number.isFinite(value)) return "–";
   return format(value);
 }
 
 function severityClass(label: string): string {
   return `weather-advisor--${label.toLowerCase().replace(/\s+/g, "-")}`;
-}
-
-function CurrentConditions({ current }: { current: WeatherCurrent }) {
-  const gustGap =
-    current.wind_kph !== null &&
-    current.wind_gust_kph !== null &&
-    current.wind_gust_kph - current.wind_kph;
-
-  return (
-    <div className="weather-current">
-      {current.icon_url && (
-        <img src={current.icon_url} alt="" width={64} height={64} />
-      )}
-      <div className="weather-current-summary">
-        <span className="weather-current-temp">
-          {metric(current.temperature_c, (v) => `${Math.round(v)}°C`)}
-        </span>
-        <span>{current.condition ?? "Unknown conditions"}</span>
-        <span>
-          Feels like {metric(current.feels_like_c, (v) => `${Math.round(v)}°C`)}
-        </span>
-      </div>
-      <dl className="weather-metrics">
-        <div>
-          <dt>Wind</dt>
-          <dd>
-            {metric(current.wind_kph, (v) => `${Math.round(v)} km/h`)}
-            {current.wind_direction ? ` ${current.wind_direction}` : ""}
-          </dd>
-        </div>
-        <div>
-          <dt>Gusts</dt>
-          <dd>
-            {metric(current.wind_gust_kph, (v) => `${Math.round(v)} km/h`)}
-          </dd>
-        </div>
-        <div>
-          <dt>Humidity</dt>
-          <dd>
-            {metric(current.humidity_percent, (v) => `${Math.round(v)}%`)}
-          </dd>
-        </div>
-        <div>
-          <dt>UV</dt>
-          <dd>{metric(current.uv_index, (v) => v.toFixed(1))}</dd>
-        </div>
-        <div>
-          <dt>Precipitation</dt>
-          <dd>
-            {metric(current.precipitation_mm, (v) => `${v.toFixed(1)} mm`)}
-          </dd>
-        </div>
-      </dl>
-      {typeof gustGap === "number" && gustGap > 15 && (
-        <p className="weather-gust-note">
-          Gusty: gusts run about {Math.round(gustGap)} km/h above the mean wind.
-        </p>
-      )}
-    </div>
-  );
 }
 
 function Advisor({ weather }: { weather: WeatherResponse }) {
@@ -102,8 +41,7 @@ function Advisor({ weather }: { weather: WeatherResponse }) {
         </span>
       </div>
       <p className="weather-advisor-note">
-        Playing-suitability estimate for coaching — not an official safety
-        rating.
+        Playing-suitability estimate for coaching — not an official safety rating.
       </p>
       {volleyball.warnings.map((warning) => (
         <p className="weather-warning" role="alert" key={warning}>
@@ -112,9 +50,7 @@ function Advisor({ weather }: { weather: WeatherResponse }) {
       ))}
       {volleyball.advice.length > 0 && (
         <ul className="weather-advice">
-          {volleyball.advice.map((tip) => (
-            <li key={tip}>{tip}</li>
-          ))}
+          {volleyball.advice.map((tip) => <li key={tip}>{tip}</li>)}
         </ul>
       )}
     </div>
@@ -128,10 +64,11 @@ export default function WeatherWidget({
   findingLocation = false,
   searchError = null,
   locationName,
-  showHourly = true,
 }: WeatherWidgetProps) {
+  const [forecastDate, setForecastDate] = useState<string | null>(null);
   const forecast = Array.isArray(weather?.forecast) ? weather.forecast : [];
   const hourly = Array.isArray(weather?.hourly) ? weather.hourly : [];
+  const current = weather?.current ?? null;
   const attribution = weather?.attribution;
   const updated = weather?.updated_at
     ? new Intl.DateTimeFormat(undefined, {
@@ -140,22 +77,21 @@ export default function WeatherWidget({
       }).format(new Date(weather.updated_at))
     : null;
 
+  const openForecast = (date = forecast[0]?.date) => {
+    if (date) setForecastDate(date);
+  };
+
   return (
     <section className="home-weather" aria-labelledby="home-weather-title">
       <div className="home-weather-header">
-        <div>
-          <h3 id="home-weather-title">Beach volleyball weather</h3>
-          <p>{locationName}</p>
-        </div>
+        <h3 id="home-weather-title">Beach volleyball weather</h3>
         {updated && (
           <span className="home-weather-freshness">Updated {updated}</span>
         )}
       </div>
 
       {findingLocation && (
-        <p className="home-weather-status" role="status">
-          Finding that location…
-        </p>
+        <p className="home-weather-status" role="status">Finding that location…</p>
       )}
       {searchError && (
         <p className="home-weather-error" role="alert">
@@ -163,9 +99,7 @@ export default function WeatherWidget({
         </p>
       )}
       {loading && (
-        <p className="home-weather-status" role="status">
-          Loading weather…
-        </p>
+        <p className="home-weather-status" role="status">Loading weather…</p>
       )}
       {error && (
         <p className="home-weather-error" role="alert">
@@ -175,15 +109,80 @@ export default function WeatherWidget({
 
       {weather && (
         <>
-          {weather.current && <CurrentConditions current={weather.current} />}
-          {showHourly && (
-            <ThreeHourlyConditions
-              conditions={hourly}
-              timezone={weather.location?.timezone ?? null}
-            />
+          {current && (
+            <div className="weather-box">
+              <div className="weather-now">
+                <div className="weather-now-copy">
+                  <span>Today (Now)</span>
+                  <strong>
+                    {metric(current.temperature_c, (value) => `${Math.round(value)}°`)}
+                  </strong>
+                  <p>{current.condition ?? "Unknown conditions"}</p>
+                  <small>In {locationName}</small>
+                </div>
+                {current.icon_url && (
+                  <img src={current.icon_url} alt="" width="92" height="92" />
+                )}
+                <dl className="weather-now-metrics">
+                  <div>
+                    <dt>Wind</dt>
+                    <dd>
+                      {metric(current.wind_kph, (value) => `${Math.round(value)} km/h`)}
+                      {current.wind_direction ? ` ${current.wind_direction}` : ""}
+                    </dd>
+                  </div>
+                  <div>
+                    <dt>Gusts</dt>
+                    <dd>
+                      {metric(
+                        current.wind_gust_kph,
+                        (value) => `${Math.round(value)} km/h`,
+                      )}
+                    </dd>
+                  </div>
+                  <div>
+                    <dt>Humidity</dt>
+                    <dd>
+                      {metric(
+                        current.humidity_percent,
+                        (value) => `${Math.round(value)}%`,
+                      )}
+                    </dd>
+                  </div>
+                  <div>
+                    <dt>UV</dt>
+                    <dd>
+                      {metric(current.uv_index, (value) => value.toFixed(1))}
+                    </dd>
+                  </div>
+                  <div>
+                    <dt>Precipitation</dt>
+                    <dd>
+                      {metric(
+                        current.precipitation_mm,
+                        (value) => `${value.toFixed(1)} mm`,
+                      )}
+                    </dd>
+                  </div>
+                </dl>
+              </div>
+
+              <div className="weather-more">
+                <DailyForecast forecast={forecast} onSelectDay={openForecast} />
+                {forecast.length > 0 && (
+                  <button
+                    className="weather-view-forecast"
+                    type="button"
+                    onClick={() => openForecast()}
+                  >
+                    View forecast
+                  </button>
+                )}
+              </div>
+            </div>
           )}
+
           <Advisor weather={weather} />
-          <DailyForecast forecast={forecast} />
           {attribution?.url && attribution.name && (
             <p className="home-weather-attribution">
               Weather data provided by{" "}
@@ -195,6 +194,18 @@ export default function WeatherWidget({
                 Bureau of Meteorology
               </a>
             </p>
+          )}
+
+          {forecastDate && forecast.length > 0 && (
+            <WeatherForecastModal
+              current={current}
+              forecast={forecast}
+              hourly={hourly}
+              initialDate={forecastDate}
+              locationName={locationName}
+              timezone={weather.location?.timezone ?? null}
+              onClose={() => setForecastDate(null)}
+            />
           )}
         </>
       )}
