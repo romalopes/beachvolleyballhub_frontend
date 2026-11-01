@@ -16,6 +16,12 @@ interface AdminTableProps<T extends { id: number }> {
   emptyDescription?: string;
   onEdit: (row: T) => void;
   onDelete: (row: T) => void;
+  /**
+   * Optional extra action buttons rendered before Edit/Delete. Return `null`
+   * for rows where no extra action applies (e.g. an Approve button only on
+   * unpublished drills).
+   */
+  extraActions?: (row: T) => ReactNode;
 }
 
 export default function AdminTable<T extends { id: number }>({
@@ -26,6 +32,7 @@ export default function AdminTable<T extends { id: number }>({
   emptyDescription,
   onEdit,
   onDelete,
+  extraActions,
 }: AdminTableProps<T>) {
   if (loading) return <div className="loading">Loading...</div>;
 
@@ -56,6 +63,7 @@ export default function AdminTable<T extends { id: number }>({
               ))}
               <td className="admin-table-actions-col">
                 <div className="admin-table-actions">
+                  {extraActions?.(row)}
                   <button
                     type="button"
                     className="admin-btn admin-btn-add"

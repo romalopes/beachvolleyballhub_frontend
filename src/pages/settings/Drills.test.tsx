@@ -19,6 +19,7 @@ vi.mock("../../api", async (importOriginal) => {
       adminSkills: vi.fn(),
       adminCategories: vi.fn(),
       adminDestroyDrill: vi.fn(),
+      adminUpdateDrill: vi.fn(),
     },
   };
 });
@@ -146,5 +147,55 @@ describe("settings Drills — visual definition filter", () => {
     );
     expect(screen.getByText("Alpha Spike")).toBeInTheDocument();
     expect(screen.getByText("Beta Spike")).toBeInTheDocument();
+  });
+});
+
+describe("settings Drills — approve", () => {
+  it("shows Approve for unpublished drills and a Published marker otherwise", async () => {
+    const draft = makeDrill({ id: 1, title: "Draft Drill", slug: "draft-drill", status: "draft" });
+    const live = makeDrill({
+      id: 2,
+      title: "Live Drill",
+      slug: "live-drill",
+      status: "published",
+      visibility: "shared",
+    });
+    mockedApi.adminDrills.mockResolvedValue({
+      data: [draft, live],
+      meta: { ...meta, per_page: 2, total: 2 },
+    });
+
+    renderPage();
+    await screen.findByText("Draft Drill");
+
+    // Only the unpublished drill offers the action.
+    expect(screen.getAllByRole("button", { name: /^approve$/i })).toHaveLength(1);
+    expect(screen.getByText("Published")).toBeInTheDocument();
+  });
+
+  it("approves a drill by publishing it with shared visibility", async () => {
+    const user = userEvent.setup();
+    const draft = makeDrill({ id: 1, title: "Draft Drill", slug: "draft-drill", status: "draft" });
+    mockedApi.adminDrills.mockResolvedValue({
+      data: [draft],
+      meta: { ...meta, per_page: 1, total: 1 },
+    });
+    const update = mockedApi.adminUpdateDrill.mockResolvedValue({
+      ...draft,
+      status: "published",
+      visibility: "shared",
+    });
+
+    renderPage();
+    await screen.findByText("Draft Drill");
+
+    await user.click(screen.getByRole("button", { name: /^approve$/i }));
+
+    expect(update).toHaveBeenCalledWith(1, {
+      status: "published",
+      visibility: "shared",
+    });
+    // The row flips to the published marker once the update resolves.
+    expect(await screen.findByText("Published")).toBeInTheDocument();
   });
 });

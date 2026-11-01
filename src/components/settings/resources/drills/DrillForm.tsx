@@ -4,6 +4,8 @@ import {
   ApiValidationError,
   type Category,
   type Drill,
+  type DrillStatus,
+  type DrillVisibility,
   type Skill,
 } from "../../../../api";
 import { isDrillDefinition, type DrillDefinition } from "../../../drill/definition";
@@ -32,6 +34,10 @@ export interface DrillFormValues {
   min_players: string;
   max_players: string;
   ideal_num_players: string;
+  /** Publication state: draft, submitted, published, archived, rejected. */
+  status: string;
+  /** Catalogue visibility: shared, private, unlisted. */
+  visibility: string;
   /**
    * Raw JSON text for the definition column; `""` means "no definition".
    * The `DrillDefinition` model is derived from this text (see `definition`),
@@ -54,6 +60,9 @@ const EMPTY: DrillFormValues = {
   min_players: "",
   max_players: "",
   ideal_num_players: "",
+  // Admins authoring a drill publish it directly — no separate approval step.
+  status: "published",
+  visibility: "shared",
   jsonText: "",
 };
 
@@ -83,6 +92,8 @@ function initialValues(initial: Drill | null | undefined): DrillFormValues {
     max_players: initial.max_players == null ? "" : String(initial.max_players),
     ideal_num_players:
       initial.ideal_num_players == null ? "" : String(initial.ideal_num_players),
+    status: initial.status ?? "published",
+    visibility: initial.visibility ?? "shared",
     // The textarea shows the same draft the panes render, keeping the JSON "on
     // time"; a definition that cannot be rendered leaves the field blank.
     jsonText: model ? definitionToJsonText(model) : "",
@@ -221,11 +232,6 @@ export default function DrillForm({
     setServerFeedback(null);
     setSkillsError(null);
 
-    if (selectedSkillIds.length === 0) {
-      setSkillsError("Please select at least one skill.");
-      return;
-    }
-
     if (!values.title.trim()) {
       setError("Title is required.");
       return;
@@ -271,6 +277,8 @@ export default function DrillForm({
       min_players: min,
       max_players: max,
       ideal_num_players: ideal,
+      status: values.status as DrillStatus,
+      visibility: values.visibility as DrillVisibility,
       definition: parseResult.definition as DrillDefinition | null,
       skill_ids: selectedSkillIds,
     };
@@ -449,6 +457,37 @@ function DrillFormFields({
         </div>
       </div>
 
+      {/* Publication controls. This form is admin-only, so an admin may publish
+          a drill directly — no separate approval step. */}
+      <div className="admin-field-row">
+        <div className="admin-field">
+          <label htmlFor="drill-status">Status</label>
+          <select
+            id="drill-status"
+            value={values.status}
+            onChange={(e) => set("status", e.target.value)}
+          >
+            <option value="draft">Draft</option>
+            <option value="submitted">Submitted</option>
+            <option value="published">Published</option>
+            <option value="archived">Archived</option>
+            <option value="rejected">Rejected</option>
+          </select>
+        </div>
+        <div className="admin-field">
+          <label htmlFor="drill-visibility">Visibility</label>
+          <select
+            id="drill-visibility"
+            value={values.visibility}
+            onChange={(e) => set("visibility", e.target.value)}
+          >
+            <option value="shared">Shared</option>
+            <option value="private">Private</option>
+            <option value="unlisted">Unlisted</option>
+          </select>
+        </div>
+      </div>
+
       <div className="admin-field-row">
         <div className="admin-field">
           <label htmlFor="drill-min">Min Players</label>
@@ -483,7 +522,7 @@ function DrillFormFields({
       </div>
 
       <div className="admin-field">
-        <span id="drill-skills-label">Skills * (select at least one)</span>
+        <span id="drill-skills-label">Skills (optional)</span>
         <div className="filter-select-group drill-skills-category">
           <label htmlFor="drill-skill-category">Category:</label>
           <select

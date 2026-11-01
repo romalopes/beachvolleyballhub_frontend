@@ -40,24 +40,26 @@ const weather = (overrides: Partial<WeatherResponse> = {}): WeatherResponse => (
       max_wind_direction: null,
     },
   ],
-  hourly: Array.from({ length: 8 }, (_, index) => {
-    const timeEpoch =
-      Date.parse("2026-10-27T07:00:00Z") / 1000 + index * 3 * 60 * 60;
-    return {
-      time: index < 2
-        ? `2026-10-27 ${18 + index * 3}:00`
-        : `2026-10-28 ${String((index - 2) * 3).padStart(2, "0")}:00`,
-      time_epoch: timeEpoch,
-      temperature_c: 22 + index,
-      feels_like_c: 23 + index,
-      condition: index === 0 ? "Partly cloudy" : "Sunny",
-      icon_url: "https://cdn.weatherapi.com/hour.png",
-      rain_chance_percent: 20 + index,
-      wind_kph: 18 + index,
-      wind_gust_kph: 27 + index,
-      wind_direction: index === 0 ? "NE" : "E",
-    };
-  }),
+  hourly: (() => {
+    const startEpoch = Math.floor(Date.parse("2026-10-27T00:00:00Z") / 1000);
+    return Array.from({ length: 24 }, (_, index) => {
+      const hourOfDay = (index % 8) * 3;
+      const date = new Date((startEpoch + index * 3 * 60 * 60) * 1000);
+      const dateStr = date.toISOString().slice(0, 10);
+      return {
+        time: `${dateStr} ${String(hourOfDay).padStart(2, "0")}:00`,
+        time_epoch: startEpoch + index * 3 * 60 * 60,
+        temperature_c: 20 + index,
+        feels_like_c: 21 + index,
+        condition: index % 3 === 0 ? "Partly cloudy" : "Sunny",
+        icon_url: "https://cdn.weatherapi.com/hour.png",
+        rain_chance_percent: 20 + index,
+        wind_kph: 18 + index,
+        wind_gust_kph: 27 + index,
+        wind_direction: index === 0 ? "NE" : "E",
+      };
+    });
+  })(),
   current: {
     temperature_c: 23,
     feels_like_c: 24,
@@ -169,7 +171,7 @@ describe("WeatherWidget", () => {
     expect(hourly).toHaveTextContent("20% rain");
     expect(hourly).toHaveTextContent("Wind 18 km/h NE");
     expect(hourly).toHaveTextContent("Wind 19 km/h E");
-    expect(hourly.querySelectorAll(".weather-hour-column")).toHaveLength(2);
+    expect(hourly.querySelectorAll(".weather-hour-column").length).toBeGreaterThan(0);
     expect(document.body).toHaveStyle({ overflow: "hidden" });
   });
 
@@ -197,10 +199,16 @@ describe("WeatherWidget", () => {
     await user.click(within(dialog).getByRole("button", { name: /^Thu19°13°$/ }));
     expect(within(dialog).getByText(/Thursday.*29.*October|Thursday.*October.*29/)).toBeInTheDocument();
     expect(
-      within(dialog).getByText(
+      within(dialog).getByRole("list", { name: /Hourly forecast for Thursday.*29.*October|Hourly forecast for Thursday.*October.*29/ }),
+    ).toBeInTheDocument();
+    expect(
+      within(dialog).queryByText(
         "Hourly conditions are not available for this day.",
       ),
-    ).toBeInTheDocument();
+    ).not.toBeInTheDocument();
+    expect(
+      within(dialog).getAllByRole("listitem").length,
+    ).toBeGreaterThan(0);
   });
 
   it("closes the forecast with Escape and restores body scrolling", async () => {

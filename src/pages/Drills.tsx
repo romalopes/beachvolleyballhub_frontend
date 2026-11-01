@@ -59,10 +59,6 @@ export default function Drills() {
         setDrills(drs.filter(isValidDrillRange));
         setAllSkills(sks);
         setCategories(cats);
-        // Set first category as selected by default
-        if (cats.length > 0) {
-          setSelectedCategory(cats[0].name);
-        }
       })
       .catch(console.error)
       .finally(() => setLoading(false));
@@ -168,6 +164,19 @@ export default function Drills() {
         ),
     );
   }, [filteredDrills, sort]);
+
+  // Drills with no linked skills — rendered in their own section so they're
+  // always visible instead of being silently dropped by skill-based grouping.
+  const ungroupedDrills = useMemo(
+    () =>
+      [...filteredDrills]
+        .filter((d) => !d.skills || d.skills.length === 0)
+        .sort(
+          (a, b) =>
+            a.title.localeCompare(b.title, undefined, { sensitivity: "base" }),
+        ),
+    [filteredDrills],
+  );
 
   // Get drills for modal
   const modalDrills = useMemo(() => {
@@ -376,40 +385,66 @@ export default function Drills() {
           description="Try adjusting your search or filter."
         />
       ) : (
-        <div className="drills-by-skill">
-          {[...drillsBySkill.entries()].map(
-            ([skillId, { skill, drills: skillDrills }]) => (
-              <section key={skillId} className="category-section">
-                <div className="category-section-header">
-                  <h2 className="category-section-title">{skill.title}</h2>
-                  <span className="category-section-count">
-                    {skillDrills.length}{" "}
-                    {skillDrills.length === 1 ? "drill" : "drills"}
-                  </span>
-                </div>
-                <div className="grid">
-                  {skillDrills.slice(0, ITEMS_PER_SECTION).map((drill) => (
-                    <DrillCard
-                      key={drill.id}
-                      drill={drill}
-                      isAdmin={isAdmin}
-                      onClick={() => navigate(`/drills/${drill.slug}`)}
-                      onEdit={() => navigate(`/settings/drills/${drill.slug}/edit`)}
-                    />
-                  ))}
-                </div>
-                {skillDrills.length > ITEMS_PER_SECTION && (
-                  <button
-                    className="show-all-link"
-                    onClick={() => openModal(skillId)}
-                  >
-                    Show all {skillDrills.length} drills
-                  </button>
-                )}
-              </section>
-            ),
+        <>
+          <div className="drills-by-skill">
+            {[...drillsBySkill.entries()].map(
+              ([skillId, { skill, drills: skillDrills }]) => (
+                <section key={skillId} className="category-section">
+                  <div className="category-section-header">
+                    <h2 className="category-section-title">{skill.title}</h2>
+                    <span className="category-section-count">
+                      {skillDrills.length}{" "}
+                      {skillDrills.length === 1 ? "drill" : "drills"}
+                    </span>
+                  </div>
+                  <div className="grid">
+                    {skillDrills.slice(0, ITEMS_PER_SECTION).map((drill) => (
+                      <DrillCard
+                        key={drill.id}
+                        drill={drill}
+                        isAdmin={isAdmin}
+                        onClick={() => navigate(`/drills/${drill.slug}`)}
+                        onEdit={() =>
+                          navigate(`/settings/drills/${drill.slug}/edit`)}
+                      />
+                    ))}
+                  </div>
+                  {skillDrills.length > ITEMS_PER_SECTION && (
+                    <button
+                      className="show-all-link"
+                      onClick={() => openModal(skillId)}
+                    >
+                      Show all {skillDrills.length} drills
+                    </button>
+                  )}
+                </section>
+              ),
+            )}
+          </div>
+          {ungroupedDrills.length > 0 && (
+            <section className="category-section">
+              <div className="category-section-header">
+                <h2 className="category-section-title">Ungrouped drills</h2>
+                <span className="category-section-count">
+                  {ungroupedDrills.length}{" "}
+                  {ungroupedDrills.length === 1 ? "drill" : "drills"}
+                </span>
+              </div>
+              <div className="grid">
+                {ungroupedDrills.slice(0, ITEMS_PER_SECTION).map((drill) => (
+                  <DrillCard
+                    key={drill.id}
+                    drill={drill}
+                    isAdmin={isAdmin}
+                    onClick={() => navigate(`/drills/${drill.slug}`)}
+                    onEdit={() =>
+                      navigate(`/settings/drills/${drill.slug}/edit`)}
+                  />
+                ))}
+              </div>
+            </section>
           )}
-        </div>
+        </>
       )}
 
       {/* Modal for showing all drills for a skill */}

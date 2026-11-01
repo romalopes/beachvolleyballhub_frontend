@@ -276,6 +276,73 @@ describe("DrillForm — optional training attributes", () => {
     expect(await screen.findByText(/min ≤ ideal ≤ max/)).toBeInTheDocument();
     expect(create).not.toHaveBeenCalled();
   });
+
+  it("submits a drill with no linked skills", async () => {
+    const serve = category(10, "Serve");
+    vi.mocked(api.categories).mockResolvedValue([serve]);
+    vi.mocked(api.skills).mockResolvedValue([skill(1, "Float serve", serve)]);
+    const create = vi.mocked(api.adminCreateDrill);
+
+    renderForm();
+    await screen.findByLabelText("Category:");
+
+    // Only a title is required — no skill has to be selected.
+    fireEvent.change(screen.getByLabelText("Title *"), {
+      target: { value: "Skill-free drill" },
+    });
+    fireEvent.click(screen.getByRole("button", { name: "Create Drill" }));
+
+    await waitFor(() => expect(create).toHaveBeenCalledTimes(1));
+    expect(create.mock.calls[0][0]).toMatchObject({
+      title: "Skill-free drill",
+      skill_ids: [],
+    });
+    expect(screen.queryByText(/select at least one skill/i)).toBeNull();
+  });
+
+  it("publishes new drills by default (no approval step)", async () => {
+    const create = vi.mocked(api.adminCreateDrill);
+
+    renderForm();
+    await ready();
+
+    fireEvent.change(screen.getByLabelText("Title *"), {
+      target: { value: "Directly published" },
+    });
+    fireEvent.click(screen.getByRole("button", { name: "Create Drill" }));
+
+    await waitFor(() => expect(create).toHaveBeenCalledTimes(1));
+    expect(create.mock.calls[0][0]).toMatchObject({
+      title: "Directly published",
+      status: "published",
+      visibility: "shared",
+    });
+  });
+
+  it("lets an admin choose a non-published status and visibility", async () => {
+    const create = vi.mocked(api.adminCreateDrill);
+
+    renderForm();
+    await ready();
+
+    fireEvent.change(screen.getByLabelText("Title *"), {
+      target: { value: "Draft drill" },
+    });
+    fireEvent.change(screen.getByLabelText("Status"), {
+      target: { value: "draft" },
+    });
+    fireEvent.change(screen.getByLabelText("Visibility"), {
+      target: { value: "private" },
+    });
+    fireEvent.click(screen.getByRole("button", { name: "Create Drill" }));
+
+    await waitFor(() => expect(create).toHaveBeenCalledTimes(1));
+    expect(create.mock.calls[0][0]).toMatchObject({
+      title: "Draft drill",
+      status: "draft",
+      visibility: "private",
+    });
+  });
 });
 
 /**

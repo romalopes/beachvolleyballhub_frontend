@@ -57,6 +57,8 @@ export default function Drills() {
   const [pendingDelete, setPendingDelete] = useState<Drill | null>(null);
   const [deleting, setDeleting] = useState(false);
   const [deleteError, setDeleteError] = useState<string | null>(null);
+  const [approvingId, setApprovingId] = useState<number | null>(null);
+  const [approveError, setApproveError] = useState<string | null>(null);
 
   const [search, setSearch] = useState("");
   const [categoryFilter, setCategoryFilter] = useState<number | null>(null);
@@ -263,6 +265,35 @@ export default function Drills() {
     }
   };
 
+  /**
+   * Approve a drill: publish it with shared visibility so it appears in the
+   * public catalogue. The admin endpoint permits `status`/`visibility` directly,
+   * so this is a single PATCH — no separate review step.
+   */
+  const handleApprove = async (drill: Drill) => {
+    setApprovingId(drill.id);
+    setApproveError(null);
+    try {
+      const saved = await api.adminUpdateDrill(drill.id, {
+        status: "published",
+        visibility: "shared",
+      });
+      setDrills((prev) =>
+        prev.map((d) =>
+          d.id === drill.id
+            ? { ...d, status: saved.status ?? "published", visibility: saved.visibility ?? "shared" }
+            : d,
+        ),
+      );
+    } catch (e) {
+      setApproveError(
+        e instanceof Error ? e.message : "Failed to approve drill.",
+      );
+    } finally {
+      setApprovingId(null);
+    }
+  };
+
   return (
     <SettingsLayout
       title="Drills"
@@ -286,6 +317,9 @@ export default function Drills() {
       }
     >
       {error && <div className="auth-flash auth-flash-error">{error}</div>}
+      {approveError && (
+        <div className="auth-flash auth-flash-error">{approveError}</div>
+      )}
       {activeCategoryName && (
         <p className="settings-result-count">
           Showing drills in category &ldquo;{activeCategoryName}&rdquo;.
@@ -471,6 +505,22 @@ export default function Drills() {
           setPendingDelete(d);
           setDeleteError(null);
         }}
+        extraActions={(d) => {
+          const isPublished = d.status === "published" && d.visibility === "shared";
+          if (isPublished) {
+            return <span className="admin-table-status">Published</span>;
+          }
+          return (
+            <button
+              type="button"
+              className="admin-btn admin-btn-approve"
+              onClick={() => handleApprove(d)}
+              disabled={approvingId === d.id}
+            >
+              {approvingId === d.id ? "Approving…" : "Approve"}
+            </button>
+          );
+        }}
         columns={[
           {
             key: "title",
@@ -480,6 +530,11 @@ export default function Drills() {
                 {d.title}
               </Link>
             ),
+          },
+          {
+            key: "status",
+            label: "Status",
+            render: (d) => d.status ?? "—",
           },
           { key: "stage", label: "Stage", render: (d) => trainingStageLabel(d.training_stage) ?? "—" },
           { key: "difficulty", label: "Difficulty", render: (d) => d.difficulty_level ?? "—" },
