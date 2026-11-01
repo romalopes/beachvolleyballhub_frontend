@@ -4775,6 +4775,19 @@
   margin: 0.5rem 0 0;
 }
 
+/* Send-test-notification sandbox: reuses the email sandbox's field styling and
+   adds only the outcome hint (which explains what the bell just did, or why
+   nothing was created). */
+.health-notification-sandbox {
+  border-left: 3px solid var(--teal-500);
+}
+
+.health-notification-hint {
+  margin: 0.5rem 0 0;
+  font-size: 0.85rem;
+  color: var(--text-secondary);
+}
+
 .health-infra-panel {
   border: 1px solid var(--border);
   border-radius: var(--radius-md);
@@ -13423,3 +13436,356 @@
 .filter-toggle-btn[aria-pressed="true"] {
   transform: rotate(180deg);
 }
+
+/* Notifications (IDENTITY-249) -------------------------------------------------
+   The bell lives in the sidebar logo row (desktop) and the mobile header. The
+   dropdown is positioned relative to the bell so it opens under it in both
+   places, and the count badge is a small pill on the icon. */
+.notification-bell {
+  position: relative;
+  margin-left: auto;
+  display: flex;
+  align-items: center;
+}
+
+.notification-bell-button {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  border-radius: var(--radius-md);
+  color: var(--charcoal);
+  background: transparent;
+}
+
+.notification-bell-button:hover {
+  background: var(--sand-100);
+}
+
+.notification-bell-button:focus-visible {
+  outline: 2px solid var(--teal-500);
+  outline-offset: 2px;
+}
+
+.notification-bell-count {
+  position: absolute;
+  top: -2px;
+  right: -2px;
+  min-width: 18px;
+  height: 18px;
+  padding: 0 5px;
+  border-radius: 999px;
+  background: var(--amber-600);
+  color: var(--white);
+  font-size: 0.6875rem;
+  font-weight: 700;
+  line-height: 18px;
+  text-align: center;
+}
+
+.notification-dropdown {
+  position: absolute;
+  top: calc(100% + 0.5rem);
+  right: 0;
+  width: 22rem;
+  max-width: calc(100vw - 2rem);
+  background: var(--bg-secondary);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-md);
+  z-index: 200;
+  overflow: hidden;
+}
+
+/* Line the panel up with the bell's LEFT edge instead of its right one, so a
+   bell sitting near the left of the screen opens its panel rightwards into the
+   page rather than off the left edge. */
+.notification-dropdown--align-left {
+  right: auto;
+  left: 0;
+}
+
+.notification-dropdown-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  padding: 0.75rem 1rem;
+  border-bottom: 1px solid var(--border-light);
+  font-weight: 700;
+  color: var(--charcoal);
+}
+
+.notification-dropdown-mark-all {
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--teal-600);
+  background: transparent;
+}
+
+.notification-dropdown-mark-all:hover {
+  text-decoration: underline;
+}
+
+.notification-dropdown-status {
+  padding: 1.25rem 1rem;
+  margin: 0;
+  color: var(--text-secondary);
+  font-size: 0.875rem;
+}
+
+.notification-dropdown-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  /* Never let the panel grow past the viewport on a short window: the header
+     and footer add roughly 6rem around the list. */
+  max-height: min(24rem, calc(100vh - 12rem));
+  overflow-y: auto;
+}
+
+.notification-dropdown-item {
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+  width: 100%;
+  padding: 0.75rem 1rem;
+  text-align: left;
+  background: transparent;
+  border-bottom: 1px solid var(--border-light);
+}
+
+.notification-dropdown-item:hover {
+  background: var(--sand-50);
+}
+
+.notification-dropdown-item.unread {
+  background: var(--amber-50);
+}
+
+.notification-dropdown-title {
+  font-weight: 600;
+  color: var(--charcoal);
+  font-size: 0.875rem;
+}
+
+.notification-dropdown-message {
+  color: var(--text-secondary);
+  font-size: 0.8125rem;
+}
+
+.notification-dropdown-time {
+  color: var(--text-muted);
+  font-size: 0.75rem;
+}
+
+.notification-dropdown-footer {
+  display: block;
+  padding: 0.75rem 1rem;
+  text-align: center;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  color: var(--teal-600);
+}
+
+.notification-dropdown-footer:hover {
+  background: var(--sand-50);
+}
+
+/* In the collapsed desktop icon rail the logo row is only ~52px wide, so the
+   brand mark and the bell cannot share one line: let them wrap and centre
+   instead of overflowing the rail. */
+@media (min-width: 901px) {
+  .app.sidebar-collapsed .sidebar-logo {
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 0.5rem;
+  }
+
+  .app.sidebar-collapsed .notification-bell {
+    margin-left: 0;
+  }
+}
+
+/* Below the mobile breakpoint the sidebar becomes an off-canvas drawer while
+   the mobile header carries its own bell. The drawer's bell would be a
+   duplicate and, at the drawer's width, would open its panel past the right
+   edge — so it is hidden there and the header bell is the single entry point. */
+@media (max-width: 900px) {
+  .sidebar .notification-bell {
+    display: none;
+  }
+}
+
+
+/* Notifications inbox page */
+.notifications-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem 1.5rem;
+  margin-bottom: 1.5rem;
+}
+
+.notifications-filter {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.9375rem;
+  color: var(--text-primary);
+}
+
+.notifications-mark-all {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.5rem 0.9rem;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  background: var(--bg-secondary);
+  color: var(--charcoal);
+  font-weight: 600;
+  font-size: 0.875rem;
+}
+
+.notifications-mark-all:hover:not(:disabled) {
+  background: var(--sand-100);
+}
+
+.notification-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.notification-row {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 1rem 1.25rem;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  background: var(--bg-secondary);
+}
+
+.notification-row.unread {
+  border-color: var(--amber-400);
+  background: var(--amber-50);
+}
+
+.notification-row-body {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  min-width: 0;
+}
+
+.notification-row-heading {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  color: var(--charcoal);
+}
+
+.notification-row-title {
+  font-weight: 700;
+}
+
+.notification-row-badge {
+  padding: 0.1rem 0.45rem;
+  border-radius: 999px;
+  background: var(--amber-600);
+  color: var(--white);
+  font-size: 0.6875rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.02em;
+}
+
+.notification-row-message {
+  margin: 0;
+  color: var(--text-secondary);
+}
+
+.notification-row-meta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.75rem;
+  font-size: 0.8125rem;
+  color: var(--text-muted);
+}
+
+.notification-row-link {
+  color: var(--teal-600);
+  font-weight: 600;
+}
+
+.notification-row-action {
+  flex-shrink: 0;
+  padding: 0.4rem 0.75rem;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  background: var(--bg-secondary);
+  color: var(--charcoal);
+  font-weight: 600;
+  font-size: 0.8125rem;
+}
+
+.notification-row-action:hover:not(:disabled) {
+  background: var(--sand-100);
+}
+
+/* Notification preferences (Account page) */
+.notification-preferences {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.notification-preference-row {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  font-size: 0.9375rem;
+  color: var(--text-primary);
+}
+
+.notification-preference-row select {
+  margin-left: auto;
+  padding: 0.35rem 0.5rem;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--bg-secondary);
+  color: var(--charcoal);
+}
+
+.notification-preference-mutes {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  border: 1px solid var(--border-light);
+  border-radius: var(--radius-md);
+  padding: 0.85rem 1rem;
+}
+
+.notification-preference-mutes legend {
+  padding: 0 0.4rem;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  color: var(--text-secondary);
+}
+
+@media (max-width: 768px) {
+  .notification-row {
+    flex-direction: column;
+  }
+}
+

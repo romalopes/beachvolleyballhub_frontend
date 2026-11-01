@@ -29,6 +29,7 @@ import {
 } from "lucide-react";
 import { useAuth } from "../auth/AuthContext";
 import { useTestAccess } from "../auth/TestAccessContext";
+import NotificationBell from "./NotificationBell";
 
 type SidebarLink = {
   path: string;
@@ -256,6 +257,7 @@ export default function Sidebar({
         <NavLink to="/" className="logo-text">
           BVB Hub
         </NavLink>
+        <NotificationBell collapsed={menuCollapsed} align="left" />
       </div>
       <nav className="sidebar-nav" aria-label="Main">
         <SidebarNavLink link={homeLink} menuCollapsed={menuCollapsed} />

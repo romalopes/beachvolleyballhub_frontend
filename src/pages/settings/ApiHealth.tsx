@@ -6,6 +6,7 @@ import { useAuth } from "../../auth/AuthContext";
 import SettingsLayout from "../../components/settings/SettingsLayout";
 import ResponseInspector from "../../components/settings/apiHealth/ResponseInspector";
 import EmailSendSandbox from "../../components/settings/apiHealth/EmailSendSandbox";
+import NotificationSendSandbox from "../../components/settings/apiHealth/NotificationSendSandbox";
 import WriteSandbox from "../../components/settings/apiHealth/WriteSandbox";
 import {
   API_CHECKS,
@@ -13,7 +14,12 @@ import {
   type ApiCheck,
   type CheckResult,
 } from "../../services/apiHealth/apiHealthConfig";
-import { runCheck, runEmailSendFlow, runWriteFlow } from "../../services/apiHealth/healthRunner";
+import {
+  runCheck,
+  runEmailSendFlow,
+  runNotificationSendFlow,
+  runWriteFlow,
+} from "../../services/apiHealth/healthRunner";
 
 const methodClass: Record<string, string> = {
   GET: "health-method-get",
@@ -263,6 +269,21 @@ export default function ApiHealth() {
     }
   }
 
+  async function runNotificationSendSingle(
+    check: ApiCheck,
+    input: { title: string; message: string }
+  ) {
+    setRunning((prev) => ({ ...prev, [check.id]: true }));
+    try {
+      const result = await runNotificationSendFlow(check, { getAuthToken }, input);
+      setResults((prev) => ({ ...prev, [check.id]: result }));
+      // Returned so the sandbox can emit the bell-refresh signal only on success.
+      return result;
+    } finally {
+      setRunning((prev) => ({ ...prev, [check.id]: false }));
+    }
+  }
+
   function toggleCategory(name: string) {
     setOpenCategories((prev) => ({ ...prev, [name]: !prev[name] }));
   }
@@ -442,6 +463,14 @@ export default function ApiHealth() {
             running={running[check.id]}
             getAuthToken={getAuthToken}
             onRun={(input) => runEmailSendSingle(check, input)}
+          />
+        ) : check.id === "send-test-notification" ? (
+          <NotificationSendSandbox
+            key={check.id}
+            check={check}
+            result={results[check.id]}
+            running={running[check.id]}
+            onRun={(input) => runNotificationSendSingle(check, input)}
           />
         ) : (
           <WriteSandbox

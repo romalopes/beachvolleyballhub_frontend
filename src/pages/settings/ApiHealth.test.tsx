@@ -65,6 +65,17 @@ function stubHealthyApi(backendVersion: string = "0.0.21") {
         endpoint: { path: "/api/v1/health/detailed" },
         counts: { categories: 2, drills: 1 },
       });
+    if (url.endsWith("/health/notifications/test"))
+      return jsonResponse(
+        {
+          status: "created",
+          notification_id: 1,
+          event_type: "system.test",
+          unread_count: 1,
+          target_path: "/notifications",
+        },
+        201
+      );
     if (url.endsWith("/me")) {
       return jsonResponse(adminUser);
     }
@@ -170,6 +181,25 @@ describe("ApiHealth page", () => {
       expect(screen.getByText("Infrastructure")).toBeInTheDocument(),
     );
     expect(screen.getByText("Record counts")).toBeInTheDocument();
+  });
+  it("sends a test notification and reports PASS with the bell's unread count", async () => {
+    vi.mocked(api.me).mockResolvedValue(adminUser);
+    vi.stubGlobal("fetch", stubHealthyApi());
+    const user = userEvent.setup();
+    renderPage();
+    await screen.findByRole("button", { name: "Run All Checks" });
+
+    // The diagnostic lives in the manual Write Operations section.
+    expect(screen.getByText("Send Test Notification")).toBeInTheDocument();
+
+    await user.click(
+      screen.getByRole("button", { name: "Send test notification" }),
+    );
+
+    await waitFor(() =>
+      expect(screen.getByText(/Bell now shows 1 unread/)).toBeInTheDocument(),
+    );
+    expect(screen.getByText("PASS")).toBeInTheDocument();
   });
 });
 

@@ -13,6 +13,8 @@ import { TestAccessProvider } from "./auth/TestAccessProvider";
 import { useTestAccess } from "./auth/TestAccessContext";
 import Sidebar from "./components/Sidebar";
 import Footer from "./components/Footer";
+import NotificationBell from "./components/NotificationBell";
+import NotificationsPage from "./pages/Notifications";
 import Home from "./pages/Home";
 import Skills from "./pages/Skills";
 import SkillDetail from "./pages/SkillDetail";
@@ -218,7 +220,7 @@ function Layout({ children }: { children: React.ReactNode }) {
           </svg>
         </button>
         <span className="mobile-logo">BVB Hub</span>
-        <div style={{ width: 24 }} />
+        <NotificationBell />
       </div>
       <aside
         className={`sidebar${sidebarOpen ? " open" : ""}`}
@@ -720,6 +722,14 @@ export default function App() {
                   }
                 />
                 <Route path="/account" element={<AccountPage />} />
+                <Route
+                  path="/notifications"
+                  element={
+                    <AuthenticatedRoute>
+                      <NotificationsPage />
+                    </AuthenticatedRoute>
+                  }
+                />
                 <Route path="/accounts/:id" element={<AccountDetail />} />
                 <Route path="/identity" element={<IdentityPage />} />
                 <Route path="/analysis" element={<AnalysisListPage />} />

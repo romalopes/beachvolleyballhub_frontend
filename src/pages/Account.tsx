@@ -5,6 +5,7 @@ import { api, type Account } from "../api";
 import { useAuth } from "../auth/AuthContext";
 import LibraryHero from "../components/LibraryHero";
 import LocationMap from "../components/locations/LocationMap";
+import NotificationPreferencesPanel from "../components/NotificationPreferencesPanel";
 
 const emptyAccount: Account = {
   id: null, first_name: null, last_name: null, email: null, phone: null, date_of_birth: null,
@@ -249,6 +250,12 @@ export default function AccountPage() {
             </button>
           </form>
       </section>}
+
+      {!accountId && (
+        <section className="detail-section">
+          <NotificationPreferencesPanel />
+        </section>
+      )}
     </div>
   );
 }

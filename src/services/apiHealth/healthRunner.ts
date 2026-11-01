@@ -1,4 +1,4 @@
-import { API_BASE_URL } from "../../api";
+import { API_BASE_URL, getTestAccessToken } from "../../api";
 import {
   DEFAULT_THRESHOLDS,
   type ApiCheck,
@@ -324,6 +324,117 @@ export async function runWriteFlow(
     payload: { createdCategoryId: createdId, tempName: categoryName },
     requestHeaders: redactHeaders(headers),
     error,
+    retried: false,
+  };
+}
+
+
+// Notification-sandbox flow: create one real in-app notification for the
+// signed-in admin's own account (IDENTITY-249 diagnostic).
+//
+// Unlike the email flow this endpoint is not exempt from the private
+// test-access gate, so the signed token is attached when one is held — without
+// it the request would be rejected once TEST_ACCESS_PASSWORD is configured.
+//
+// 201 "created" is a PASS. A 200 "skipped" means the account's own notification
+// preferences blocked it; that is reported as a failure WITH the server's
+// reason, because "nothing appeared in the bell" is exactly what the operator
+// needs explained.
+export async function runNotificationSendFlow(
+  check: ApiCheck,
+  opts: { getAuthToken?: () => string | null; timeoutMs?: number } = {},
+  input: { title?: string; message?: string } = {}
+): Promise<CheckResult> {
+  const start = performance.now();
+  const timeout = check.timeoutMs || opts.timeoutMs || 5000;
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), timeout);
+
+  const headers: Record<string, string> = {
+    Accept: "application/json",
+    "Content-Type": "application/json",
+  };
+  if (opts.getAuthToken) {
+    const token = opts.getAuthToken();
+    if (token) headers.Authorization = `Bearer ${token}`;
+  }
+  const testAccessToken = getTestAccessToken();
+  if (testAccessToken) headers["X-Test-Access-Token"] = testAccessToken;
+
+  const body = JSON.stringify({
+    title: input.title?.trim() || undefined,
+    message: input.message?.trim() || undefined,
+  });
+
+  let status: number | null = null;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  let payload: any = null;
+  let error: unknown = null;
+
+  try {
+    const response = await fetch(`${API_BASE_URL}${check.url}`, {
+      method: "POST",
+      headers,
+      credentials: "same-origin",
+      body,
+      signal: controller.signal,
+    });
+    status = response.status;
+    const contentType = response.headers.get("content-type") || "";
+    if (contentType.includes("application/json")) {
+      payload = await response.json().catch(() => ({}));
+    } else {
+      payload = await response.text();
+    }
+  } catch (err) {
+    error = err;
+  } finally {
+    clearTimeout(timer);
+  }
+
+  const latencyMs = Math.round(performance.now() - start);
+
+  const skippedReason =
+    payload && typeof payload === "object" && typeof payload.reason === "string"
+      ? payload.reason
+      : null;
+
+  let passed = false;
+  let validationError: string | null = null;
+  if (error == null && status === check.expectedStatus) {
+    try {
+      passed = check.validate ? check.validate(payload) : true;
+      if (!passed) {
+        validationError =
+          (typeof check.describeFailure === "function" &&
+            check.describeFailure(payload)) ||
+          "Payload validation failed";
+      }
+    } catch (e) {
+      passed = false;
+      validationError = `Validation threw: ${e instanceof Error ? e.message : String(e)}`;
+    }
+  } else if (error == null) {
+    // A 200 means the request was understood but the account's own preferences
+    // suppressed the notification: surface the server's explanation, not just
+    // the status mismatch.
+    validationError = skippedReason
+      ? `Notification not created — ${skippedReason}`
+      : `Expected status ${check.expectedStatus}, got ${status}`;
+  }
+
+  return {
+    id: check.id,
+    name: check.name,
+    category: check.category,
+    passed,
+    status,
+    expectedStatus: check.expectedStatus,
+    latencyMs,
+    latencyRating: rateLatency(latencyMs, check.latencyThresholds),
+    payload,
+    requestHeaders: redactHeaders(headers),
+    error: error ? classifyError(error) : validationError,
     retried: false,
   };
 }

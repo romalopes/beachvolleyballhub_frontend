@@ -277,6 +277,33 @@ export const API_CHECKS: ApiCheck[] = [
     describeFailure: (data) =>
       `Expected { configured_transport, effective_transport, status: "delivered" } but got ${JSON.stringify(data)}`,
   },
+  {
+    id: "send-test-notification",
+    category: API_CATEGORIES.WRITE_SANDBOX,
+    name: "Send Test Notification",
+    method: "POST",
+    url: "/health/notifications/test",
+    expectedStatus: 201,
+    requiresAuth: true,
+    requiresManualTrigger: true,
+    description:
+      "Creates one real in-app notification for YOUR account, so the header bell gains a row and its unread badge moves. The second click creates a second row.",
+    validate: (data) => {
+      if (!data || typeof data !== "object") return false;
+      const payload = data as {
+        status?: unknown;
+        notification_id?: unknown;
+        unread_count?: unknown;
+      };
+      return (
+        payload.status === "created" &&
+        typeof payload.notification_id === "number" &&
+        typeof payload.unread_count === "number"
+      );
+    },
+    describeFailure: (data) =>
+      `Expected { status: "created", notification_id, unread_count } but got ${JSON.stringify(data)}`,
+  },
 ];
 
 // A tiny helper to keep the config self-documenting.

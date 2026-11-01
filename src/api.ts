@@ -2486,6 +2486,38 @@ export interface AnalysisDetail extends AnalysisSummary {
 
 // ===== End Analysis API Types =====
 
+// ===== Notifications (IDENTITY-249) =====
+
+/**
+ * One in-app notification as returned by `/api/v1/notifications`.
+ *
+ * `event_type` is the stable machine-readable kind (e.g. `training.cancelled`);
+ * the UI groups and labels on it. `target_path` is an internal SPA route, never
+ * an absolute URL.
+ */
+export interface AppNotification {
+  id: number;
+  event_type: string;
+  title: string;
+  message: string;
+  target_path: string | null;
+  target_label: string | null;
+  metadata: Record<string, unknown>;
+  read: boolean;
+  read_at: string | null;
+  created_at: string;
+  actor: { id: number; name: string } | null;
+}
+
+export type NotificationEmailCadence = "immediate" | "daily" | "weekly" | "none";
+
+export interface NotificationPreference {
+  in_app_enabled: boolean;
+  email_enabled: boolean;
+  email_cadence: NotificationEmailCadence;
+  muted_event_types: string[];
+}
+
 export const api = {
   weather: (lat: number, lon: number, signal?: AbortSignal) =>
     fetchAPI<WeatherResponse>(
@@ -4567,4 +4599,28 @@ export const api = {
 
   // ===== End Analysis API Methods =====
 
+  // ===== Notifications (IDENTITY-249) =====
+  notifications: (params: { page?: number; per_page?: number; unread?: boolean; event_type?: string } = {}) => {
+    const query = new URLSearchParams();
+    if (params.page) query.set("page", String(params.page));
+    if (params.per_page) query.set("per_page", String(params.per_page));
+    if (params.unread) query.set("unread", "true");
+    if (params.event_type) query.set("event_type", params.event_type);
+    const suffix = query.toString() ? `?${query.toString()}` : "";
+    return fetchAPI<PaginatedResponse<AppNotification>>(`/notifications${suffix}`);
+  },
+  unreadNotificationCount: () =>
+    fetchAPI<{ unread_count: number }>("/notifications/unread_count"),
+  markNotificationRead: (id: number) =>
+    postJSON<AppNotification>(`/notifications/${id}/mark_read`, {}, "PATCH"),
+  markAllNotificationsRead: () =>
+    postJSON<{ marked: number }>("/notifications/mark_all_read", {}, "PATCH"),
+  notificationPreferences: () =>
+    fetchAPI<NotificationPreference>("/notification_preferences"),
+  updateNotificationPreferences: (data: Partial<NotificationPreference>) =>
+    postJSON<NotificationPreference>(
+      "/notification_preferences",
+      { notification_preference: data },
+      "PATCH",
+    ),
 };
