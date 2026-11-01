@@ -336,8 +336,24 @@ export interface Skill {
   description: string | null;
   category_id: number;
   category?: Category;
+  /** Who may see the skill. Defaults to `shared` on the API. */
+  visibility?: ContentVisibility;
+  /** Publication state. Defaults to `published` on the API. */
+  status?: CatalogueStatus;
+  /** Owner of the skill; drives the UI edit affordance (API re-checks). */
+  created_by_id?: number | null;
   video_references?: VideoReference[];
 }
+
+/** Content visibility: who may see a record. Only `shared` is public. */
+export type ContentVisibility = "shared" | "private" | "unlisted";
+
+/**
+ * Catalogue/media publication state. Only `published` records are returned by
+ * the public endpoints; `draft` and `archived` stay out of public queries.
+ * The API enforces this server-side.
+ */
+export type CatalogueStatus = "draft" | "published" | "archived";
 
 /** Drill visibility: who may see it. Only `shared` + `published` is public. */
 export type DrillVisibility = "shared" | "private" | "unlisted";
@@ -387,6 +403,10 @@ export interface Video {
   provider_label: string;
   /** Owner of the Video row; drives who may edit/delete it in the UI. */
   created_by_id?: number | null;
+  /** Who may see the video. Defaults to `shared` on the API. */
+  visibility?: ContentVisibility;
+  /** Publication state. Defaults to `published` on the API. */
+  status?: CatalogueStatus;
   /** Videos belong to at most one category; null means "Uncategorized". */
   video_category?: VideoCategory | null;
   video_tags?: VideoTag[];
