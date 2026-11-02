@@ -1,5 +1,7 @@
-import { useState } from "react";
+import { useContext, useState } from "react";
+import { Link } from "react-router-dom";
 import type { WeatherResponse } from "../../api";
+import { AuthContext } from "../../auth/AuthContext";
 import DailyForecast from "./DailyForecast";
 import WeatherForecastModal from "./WeatherForecastModal";
 
@@ -10,6 +12,7 @@ interface WeatherWidgetProps {
   findingLocation?: boolean;
   searchError?: string | null;
   locationName: string;
+  showHourly?: boolean;
 }
 
 const BOM_WARNINGS_URL = "https://www.bom.gov.au/";
@@ -18,7 +21,8 @@ function metric(
   value: number | null | undefined,
   format: (value: number) => string,
 ): string {
-  if (value === null || value === undefined || !Number.isFinite(value)) return "–";
+  if (value === null || value === undefined || !Number.isFinite(value))
+    return "–";
   return format(value);
 }
 
@@ -27,6 +31,7 @@ function severityClass(label: string): string {
 }
 
 function Advisor({ weather }: { weather: WeatherResponse }) {
+  const user = useContext(AuthContext)?.user ?? null;
   const volleyball = weather.volleyball;
   if (!volleyball) return null;
 
@@ -41,8 +46,17 @@ function Advisor({ weather }: { weather: WeatherResponse }) {
         </span>
       </div>
       <p className="weather-advisor-note">
-        Playing-suitability estimate for coaching — not an official safety rating.
+        Playing-suitability estimate for coaching — not an official safety
+        rating.
       </p>
+      {user && (
+        <Link
+          to="/account#weather-advisor-preferences"
+          className="weather-advisor-configure"
+        >
+          Configure Weather Preferences
+        </Link>
+      )}
       {volleyball.warnings.map((warning) => (
         <p className="weather-warning" role="alert" key={warning}>
           {warning}
@@ -50,7 +64,9 @@ function Advisor({ weather }: { weather: WeatherResponse }) {
       ))}
       {volleyball.advice.length > 0 && (
         <ul className="weather-advice">
-          {volleyball.advice.map((tip) => <li key={tip}>{tip}</li>)}
+          {volleyball.advice.map((tip) => (
+            <li key={tip}>{tip}</li>
+          ))}
         </ul>
       )}
     </div>
@@ -91,7 +107,9 @@ export default function WeatherWidget({
       </div>
 
       {findingLocation && (
-        <p className="home-weather-status" role="status">Finding that location…</p>
+        <p className="home-weather-status" role="status">
+          Finding that location…
+        </p>
       )}
       {searchError && (
         <p className="home-weather-error" role="alert">
@@ -99,7 +117,9 @@ export default function WeatherWidget({
         </p>
       )}
       {loading && (
-        <p className="home-weather-status" role="status">Loading weather…</p>
+        <p className="home-weather-status" role="status">
+          Loading weather…
+        </p>
       )}
       {error && (
         <p className="home-weather-error" role="alert">
@@ -115,7 +135,10 @@ export default function WeatherWidget({
                 <div className="weather-now-copy">
                   <span>Today (Now)</span>
                   <strong>
-                    {metric(current.temperature_c, (value) => `${Math.round(value)}°`)}
+                    {metric(
+                      current.temperature_c,
+                      (value) => `${Math.round(value)}°`,
+                    )}
                   </strong>
                   <p>{current.condition ?? "Unknown conditions"}</p>
                   <small>In {locationName}</small>
@@ -127,8 +150,13 @@ export default function WeatherWidget({
                   <div>
                     <dt>Wind</dt>
                     <dd>
-                      {metric(current.wind_kph, (value) => `${Math.round(value)} km/h`)}
-                      {current.wind_direction ? ` ${current.wind_direction}` : ""}
+                      {metric(
+                        current.wind_kph,
+                        (value) => `${Math.round(value)} km/h`,
+                      )}
+                      {current.wind_direction
+                        ? ` ${current.wind_direction}`
+                        : ""}
                     </dd>
                   </div>
                   <div>

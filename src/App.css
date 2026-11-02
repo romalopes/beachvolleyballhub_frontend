@@ -1188,6 +1188,14 @@
   font-size: 0.8rem;
 }
 
+.weather-advisor-configure {
+  display: inline-flex;
+  margin-top: 0.65rem;
+  color: var(--teal-600);
+  font-size: 0.875rem;
+  font-weight: 700;
+}
+
 .weather-advisor--unsuitable {
   border-left-color: #b3261e;
 }
@@ -14093,9 +14101,162 @@
   color: var(--text-secondary);
 }
 
+/* Weather Advisor preferences (Account page) */
+.weather-advisor-preferences {
+  scroll-margin-top: 2rem;
+}
+
+.weather-advisor-preferences h2:focus {
+  outline: 3px solid var(--amber-400);
+  outline-offset: 4px;
+}
+
+.weather-preference-warning {
+  padding: 0.85rem 1rem;
+  border-left: 4px solid var(--amber-600);
+  border-radius: var(--radius-sm);
+  background: var(--amber-50);
+}
+
+.weather-scoring-details {
+  max-width: 760px;
+  margin: 1rem 0 1.5rem;
+  padding: 0.85rem 1rem;
+  border: 1px solid var(--border-light);
+  border-radius: var(--radius-md);
+}
+
+.weather-scoring-details summary {
+  color: var(--charcoal);
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.weather-scoring-details ul {
+  margin: 0.75rem 0 0;
+  padding-left: 1.25rem;
+}
+
+.weather-weight-list {
+  display: grid;
+  gap: 1.25rem;
+  max-width: 760px;
+}
+
+.weather-weight-control {
+  padding: 1rem;
+  border: 1px solid var(--border-light);
+  border-radius: var(--radius-md);
+  background: var(--bg-secondary);
+}
+
+.weather-weight-label-row,
+.weather-weight-inputs,
+.weather-preference-actions {
+  display: flex;
+  align-items: center;
+}
+
+.weather-weight-label-row {
+  justify-content: space-between;
+  margin-bottom: 0.8rem;
+  font-weight: 700;
+}
+
+.weather-weight-inputs {
+  gap: 1.25rem;
+}
+
+.weather-weight-slider {
+  flex: 1;
+  margin: 0 0.55rem;
+}
+
+.weather-weight-slider.noUi-target {
+  height: 10px;
+  border: 1px solid var(--border);
+  box-shadow: none;
+}
+
+.weather-weight-slider .noUi-connect {
+  background: var(--teal-600);
+}
+
+.weather-weight-slider .noUi-handle {
+  top: -9px;
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  cursor: grab;
+}
+
+.weather-weight-slider .noUi-handle::before,
+.weather-weight-slider .noUi-handle::after {
+  display: none;
+}
+
+.weather-weight-number {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+}
+
+.weather-weight-number input {
+  width: 5rem;
+  padding: 0.5rem;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--bg-secondary);
+  color: var(--charcoal);
+  font: inherit;
+}
+
+.weather-weight-total {
+  margin: 1rem 0;
+}
+
+.weather-preference-actions {
+  flex-wrap: wrap;
+  gap: 0.75rem;
+}
+
+.weather-preference-actions .auth-submit {
+  width: auto;
+  margin: 0;
+}
+
+.secondary-button {
+  padding: 0.7rem 1rem;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  background: var(--bg-secondary);
+  color: var(--charcoal);
+  font: inherit;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.secondary-button:hover:not(:disabled) {
+  background: var(--sand-100);
+}
+
+.secondary-button:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
 @media (max-width: 768px) {
   .notification-row {
     flex-direction: column;
+  }
+
+  .weather-weight-inputs {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .weather-weight-slider {
+    margin: 0.5rem 0.55rem 0.8rem;
   }
 }
 

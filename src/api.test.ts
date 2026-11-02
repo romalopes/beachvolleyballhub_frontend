@@ -127,6 +127,40 @@ describe("fetchAPI (GET helpers)", () => {
   });
 });
 
+describe("weather advisor preference helpers", () => {
+  const preference = {
+    wind_weight: 40,
+    temperature_weight: 20,
+    rain_weight: 25,
+    uv_weight: 5,
+    humidity_weight: 10,
+  };
+
+  it("gets the authenticated preference", async () => {
+    const fetchMock = mockFetchOnce({ ok: true, status: 200, body: preference });
+    await expect(api.weatherAdvisorPreference()).resolves.toEqual(preference);
+    expect(fetchMock.mock.calls[0][0]).toBe("/api/v1/weather_advisor_preference");
+  });
+
+  it("patches all five weights in the expected envelope", async () => {
+    const fetchMock = mockFetchOnce({ ok: true, status: 200, body: preference });
+    await api.updateWeatherAdvisorPreference(preference);
+    const [url, init] = fetchMock.mock.calls[0] as [string, RequestInit];
+    expect(url).toBe("/api/v1/weather_advisor_preference");
+    expect(init.method).toBe("PATCH");
+    expect(JSON.parse(init.body as string)).toEqual({
+      weather_advisor_preference: preference,
+    });
+  });
+
+  it("deletes the override to reset defaults", async () => {
+    const fetchMock = mockFetchOnce({ ok: true, status: 200, body: preference });
+    await api.resetWeatherAdvisorPreference();
+    const [, init] = fetchMock.mock.calls[0] as [string, RequestInit];
+    expect(init.method).toBe("DELETE");
+  });
+});
+
 describe("location API", () => {
   const location = {
     id: 7,

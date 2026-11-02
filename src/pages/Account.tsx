@@ -6,6 +6,7 @@ import { useAuth } from "../auth/AuthContext";
 import LibraryHero from "../components/LibraryHero";
 import LocationMap from "../components/locations/LocationMap";
 import NotificationPreferencesPanel from "../components/NotificationPreferencesPanel";
+import WeatherAdvisorPreferences from "../components/weather/WeatherAdvisorPreferences";
 
 const emptyAccount: Account = {
   id: null, first_name: null, last_name: null, email: null, phone: null, date_of_birth: null,
@@ -256,6 +257,7 @@ export default function AccountPage() {
           <NotificationPreferencesPanel />
         </section>
       )}
+      {!accountId && <WeatherAdvisorPreferences />}
     </div>
   );
 }

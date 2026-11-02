@@ -2518,6 +2518,14 @@ export interface NotificationPreference {
   muted_event_types: string[];
 }
 
+export interface WeatherAdvisorPreference {
+  wind_weight: number;
+  temperature_weight: number;
+  rain_weight: number;
+  uv_weight: number;
+  humidity_weight: number;
+}
+
 export const api = {
   weather: (lat: number, lon: number, signal?: AbortSignal) =>
     fetchAPI<WeatherResponse>(
@@ -4622,5 +4630,19 @@ export const api = {
       "/notification_preferences",
       { notification_preference: data },
       "PATCH",
+    ),
+  weatherAdvisorPreference: () =>
+    fetchAPI<WeatherAdvisorPreference>("/weather_advisor_preference"),
+  updateWeatherAdvisorPreference: (data: WeatherAdvisorPreference) =>
+    postJSON<WeatherAdvisorPreference>(
+      "/weather_advisor_preference",
+      { weather_advisor_preference: data },
+      "PATCH",
+    ),
+  resetWeatherAdvisorPreference: () =>
+    postJSON<WeatherAdvisorPreference>(
+      "/weather_advisor_preference",
+      {},
+      "DELETE",
     ),
 };

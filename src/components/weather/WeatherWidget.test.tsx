@@ -1,8 +1,32 @@
-import { render, screen, within } from "@testing-library/react";
+import { render as rtlRender, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { describe, expect, it } from "vitest";
-import type { WeatherResponse } from "../../api";
+import { MemoryRouter } from "react-router-dom";
+import { describe, expect, it, vi } from "vitest";
+import type { User, WeatherResponse } from "../../api";
+import { AuthContext, type AuthContextValue } from "../../auth/AuthContext";
 import WeatherWidget from "./WeatherWidget";
+
+function auth(user: User | null): AuthContextValue {
+  return {
+    user,
+    loading: false,
+    login: vi.fn(),
+    register: vi.fn(),
+    resetPassword: vi.fn(),
+    logout: vi.fn(),
+    impersonation: { active: false, realAdmin: null },
+    startImpersonating: vi.fn(),
+    stopImpersonating: vi.fn(),
+  };
+}
+
+function render(ui: React.ReactNode, user: User | null = null) {
+  return rtlRender(
+    <AuthContext.Provider value={auth(user)}>
+      <MemoryRouter>{ui}</MemoryRouter>
+    </AuthContext.Provider>,
+  );
+}
 
 const weather = (overrides: Partial<WeatherResponse> = {}): WeatherResponse => ({
   forecast: [
@@ -288,6 +312,27 @@ describe("WeatherWidget", () => {
 
     expect(screen.getByText("WeatherAPI.com")).toBeInTheDocument();
     expect(screen.getByText("Bureau of Meteorology")).toBeInTheDocument();
+  });
+
+  it("shows the preferences link only to authenticated users", () => {
+    const user = { id: 7, name: "Player", roles: [] } as unknown as User;
+    const { rerender } = render(
+      <WeatherWidget weather={weather()} loading={false} error={null} locationName="Coogee" />,
+      user,
+    );
+
+    expect(screen.getByRole("link", { name: "Configure Weather Preferences" }))
+      .toHaveAttribute("href", "/account#weather-advisor-preferences");
+
+    rerender(
+      <AuthContext.Provider value={auth(null)}>
+        <MemoryRouter>
+          <WeatherWidget weather={weather()} loading={false} error={null} locationName="Coogee" />
+        </MemoryRouter>
+      </AuthContext.Provider>,
+    );
+    expect(screen.queryByRole("link", { name: "Configure Weather Preferences" }))
+      .not.toBeInTheDocument();
   });
 
   it("handles loading, error and finding-location states", () => {

@@ -34,6 +34,7 @@ import {
   weekGridDays,
 } from "../utils/calendar";
 import { fetchAllTournamentPages, isAbortError } from "../utils/tournaments";
+import { WEATHER_PREFERENCE_CHANGED_EVENT } from "../utils/weatherAdvisorPreferences";
 
 interface IpLocation {
   status: string;
@@ -187,6 +188,7 @@ export default function Home() {
   const [weatherRequest, setWeatherRequest] = useState<WeatherRequest | null>(
     null,
   );
+  const [weatherPreferenceRevision, setWeatherPreferenceRevision] = useState(0);
   const [locationSearch, setLocationSearch] = useState("");
   const [searchedLocation, setSearchedLocation] = useState<string | null>(null);
   const [searchedCoords, setSearchedCoords] = useState<{
@@ -207,6 +209,14 @@ export default function Home() {
   const agendaRangeEnd = toISODate(
     addDays(agendaDays[agendaDays.length - 1], 1),
   );
+
+  useEffect(() => {
+    const refreshAssessment = () =>
+      setWeatherPreferenceRevision((revision) => revision + 1);
+    window.addEventListener(WEATHER_PREFERENCE_CHANGED_EVENT, refreshAssessment);
+    return () =>
+      window.removeEventListener(WEATHER_PREFERENCE_CHANGED_EVENT, refreshAssessment);
+  }, []);
 
   useEffect(() => {
     Promise.all([api.categories(), api.skills(), api.drills()])
@@ -356,7 +366,7 @@ export default function Home() {
       });
 
     return () => controller.abort();
-  }, [detectedLocation, searchedLocation, searchedCoords]);
+  }, [detectedLocation, searchedLocation, searchedCoords, weatherPreferenceRevision]);
 
   useEffect(() => {
     let cancelled = false;
