@@ -14,6 +14,8 @@ import { useTestAccess } from "./auth/TestAccessContext";
 import Sidebar from "./components/Sidebar";
 import Footer from "./components/Footer";
 import NotificationBell from "./components/NotificationBell";
+import OfflineStatus from "./components/OfflineStatus";
+import MobileBottomNav from "./components/MobileBottomNav";
 import NotificationsPage from "./pages/Notifications";
 import Home from "./pages/Home";
 import Skills from "./pages/Skills";
@@ -220,6 +222,7 @@ function Layout({ children }: { children: React.ReactNode }) {
           </svg>
         </button>
         <span className="mobile-logo">BVB Hub</span>
+        <OfflineStatus />
         <NotificationBell />
       </div>
       <aside
@@ -264,6 +267,7 @@ function Layout({ children }: { children: React.ReactNode }) {
         {children}
         <Footer />
       </main>
+      <MobileBottomNav />
     </div>
   );
 }

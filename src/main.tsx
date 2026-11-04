@@ -4,6 +4,19 @@ import "./index.css";
 import App from "./App.tsx";
 import * as Sentry from "@sentry/react";
 import SentryFallback from "./components/SentryFallback";
+import { registerSW } from "virtual:pwa-register";
+
+const updateServiceWorker = registerSW({
+  immediate: true,
+  onOfflineReady() {
+    window.dispatchEvent(new CustomEvent("bvb-offline-ready"));
+  },
+  onNeedRefresh() {
+    window.dispatchEvent(new CustomEvent("bvb-update-available"));
+  },
+});
+
+void updateServiceWorker;
 
 if (import.meta.env.PROD && import.meta.env.VITE_SENTRY_DSN) {
   Sentry.init({

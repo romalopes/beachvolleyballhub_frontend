@@ -31,6 +31,7 @@ import {
   statusLabel,
   visibilityLabel,
 } from "../utils/training";
+import { queueTrainingParticipantStatus } from "../offline/domainMutations";
 
 function formatDuration(minutes: number | null): string {
   if (minutes == null) return "Duration not set";
@@ -117,6 +118,17 @@ export default function TrainingDetail() {
       });
       setSession(updated);
     } catch (e) {
+      if (!navigator.onLine && user?.id != null) {
+        await queueTrainingParticipantStatus(user.id, session.id, participantId, status);
+        setSession({
+          ...session,
+          training_session_participants: session.training_session_participants?.map((participant) =>
+            participant.id === participantId ? { ...participant, status } : participant,
+          ),
+        });
+        setRosterError("Attendance saved offline. It will synchronize when you reconnect.");
+        return;
+      }
       setRosterError(
         e instanceof Error ? e.message : "Failed to update the participant.",
       );
