@@ -213,9 +213,15 @@ export default function Home() {
   useEffect(() => {
     const refreshAssessment = () =>
       setWeatherPreferenceRevision((revision) => revision + 1);
-    window.addEventListener(WEATHER_PREFERENCE_CHANGED_EVENT, refreshAssessment);
+    window.addEventListener(
+      WEATHER_PREFERENCE_CHANGED_EVENT,
+      refreshAssessment,
+    );
     return () =>
-      window.removeEventListener(WEATHER_PREFERENCE_CHANGED_EVENT, refreshAssessment);
+      window.removeEventListener(
+        WEATHER_PREFERENCE_CHANGED_EVENT,
+        refreshAssessment,
+      );
   }, []);
 
   useEffect(() => {
@@ -366,7 +372,12 @@ export default function Home() {
       });
 
     return () => controller.abort();
-  }, [detectedLocation, searchedLocation, searchedCoords, weatherPreferenceRevision]);
+  }, [
+    detectedLocation,
+    searchedLocation,
+    searchedCoords,
+    weatherPreferenceRevision,
+  ]);
 
   useEffect(() => {
     let cancelled = false;
@@ -550,10 +561,6 @@ export default function Home() {
   return (
     <div className="page">
       <section className="home-hero">
-        <div className="home-hero-badge">
-          <Target size={14} />
-          Beach Volleyball Knowledge System
-        </div>
         <h1>BEACH VOLLEYBALL HUB</h1>
         <p className="home-hero-tagline">
           Organise the skills. Understand the game. Train with purpose.
