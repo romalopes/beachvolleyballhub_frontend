@@ -10,7 +10,7 @@ interface HomeLocationPanelProps {
   showUseMyLocation: boolean;
   onUseMyLocation: () => void;
   loading: boolean;
-  error: string | null;
+  error?: string | null;
   description: string;
   mapName: string;
   mapLatitude: number | null;
@@ -26,7 +26,7 @@ export default function HomeLocationPanel({
   showUseMyLocation,
   onUseMyLocation,
   loading,
-  error,
+  error = null,
   description,
   mapName,
   mapLatitude,

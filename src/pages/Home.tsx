@@ -184,7 +184,6 @@ export default function Home() {
   const [detectedLocation, setDetectedLocation] =
     useState<DetectedLocation | null>(null);
   const [locationLoading, setLocationLoading] = useState(true);
-  const [locationError, setLocationError] = useState<string | null>(null);
   const [weatherRequest, setWeatherRequest] = useState<WeatherRequest | null>(
     null,
   );
@@ -449,12 +448,12 @@ export default function Home() {
             setDetectedLocation(loc);
           }
         } catch (ipError) {
+          // IP lookup failed — silently fall back to featured venue (Coogee Beach).
+          // The feature venue is used as the default location when both browser
+          // geolocation and IP lookup are unavailable (e.g., blocked by ad blocker,
+          // network restriction, etc.).
           if (!cancelled) {
-            setLocationError(
-              ipError instanceof Error
-                ? ipError.message
-                : "Unable to detect your location.",
-            );
+            console.debug("IP geolocation failed, using featured venue:", ipError);
           }
         }
       } finally {
@@ -576,11 +575,6 @@ export default function Home() {
             showUseMyLocation={showingSearchedLocation}
             onUseMyLocation={useDetectedLocation}
             loading={locationLoading && !showingSearchedLocation}
-            error={
-              locationError && !detectedLocation && !showingSearchedLocation
-                ? locationError
-                : null
-            }
             description={locationDescription}
             mapName={searchedLocation ?? detectedLocationName}
             mapLatitude={showingSearchedLocation ? null : venue.lat}
