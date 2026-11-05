@@ -1,48 +1,82 @@
-import { useRouteError } from "react-router-dom";
-import * as Sentry from "@sentry/react";
 import { useEffect } from "react";
+import * as Sentry from "@sentry/react";
 
-export default function SentryFallback() {
-  // Get error from Sentry boundary (for component errors)
-  const sentryModule = Sentry as unknown as {
-    useSentryError?: () => { message?: string; stack?: string };
-  };
-  const sentryError = sentryModule.useSentryError?.() ?? null;
+type SentryFallbackProps = {
+  /** The error caught by `<Sentry.ErrorBoundary>` (typed `unknown` by Sentry). */
+  error?: unknown;
+  /** Resets the boundary so the tree can render again. */
+  resetError?: () => void;
+};
 
-  // Get error from React Router (for loader/action errors)
-  const routerError = useRouteError() as { message?: string; stack?: string } | null;
+/**
+ * Normalises whatever the error boundary caught into displayable strings.
+ * Sentry types the caught value as `unknown`, so it may not be an `Error`.
+ */
+function describeError(error: unknown): { message: string; stack?: string } {
+  if (error instanceof Error) {
+    return { message: error.message, stack: error.stack };
+  }
 
-  // Determine which error to display
-  const error = sentryError || routerError;
+  if (typeof error === "string") {
+    return { message: error };
+  }
 
-  // Add route context to Sentry scope for better filtering
+  if (error === null || error === undefined) {
+    return { message: "" };
+  }
+
+  try {
+    return { message: JSON.stringify(error) };
+  } catch {
+    return { message: String(error) };
+  }
+}
+
+/**
+ * Fallback rendered by `<Sentry.ErrorBoundary>` when a render error escapes.
+ *
+ * The boundary already reports the error to Sentry, so this component only
+ * presents it and attaches the current route to the scope for filtering.
+ * It deliberately does not use `useRouteError()`: this renders *instead of*
+ * `<App />`, i.e. outside the router, where that hook would throw.
+ */
+export default function SentryFallback({ error, resetError }: SentryFallbackProps) {
+  const { message, stack } = describeError(error);
+
+  // Add route context to the Sentry scope for better filtering.
   useEffect(() => {
-    if (error) {
-      const scope = Sentry.getCurrentScope();
-      if (scope) {
-        scope.setTag("route", window.location.pathname);
-        scope.setExtra("routerError", routerError);
-      }
+    if (!error) return;
+
+    const scope = Sentry.getCurrentScope();
+    scope?.setTag("route", window.location.pathname);
+  }, [error]);
+
+  const handleRetry = () => {
+    if (resetError) {
+      resetError();
+      return;
     }
-  }, [error, routerError]);
+
+    window.location.reload();
+  };
 
   return (
     <div style={styles.container}>
       <h1 style={styles.title}>Something went wrong</h1>
-      {error && (
+      {message && (
         <div style={styles.errorDetails}>
           <h2>Error:</h2>
-          <pre style={styles.errorText}>{error.message || String(error)}</pre>
-          {/* Optional: Show stack trace in development */}
-          {import.meta.env.DEV && error.stack && (
+          <pre style={styles.errorText}>{message}</pre>
+          {/* Show stack trace only in development */}
+          {import.meta.env.DEV && stack && (
             <>
               <div style={styles.stackLabel}>Stack Trace:</div>
-              <pre style={styles.stackText}>{error.stack}</pre>
+              <pre style={styles.stackText}>{stack}</pre>
             </>
           )}
         </div>
       )}
-      <button onClick={() => window.location.reload()} style={styles.button}>
+      <button onClick={handleRetry} style={styles.button}>
         Try Again
       </button>
     </div>

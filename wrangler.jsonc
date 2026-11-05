@@ -1,0 +1,24 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "beachvolleyballhub",
+  "compatibility_date": "2025-11-01",
+  // `vite build` writes the SPA to ./dist (see vite.config.ts).
+  "assets": {
+    "directory": "./dist",
+    // Client-side routing: unknown paths must fall back to index.html,
+    // matching the rewrite rules in vercel.json.
+    "not_found_handling": "single-page-application"
+  },
+  // `wrangler preview` (run by the Cloudflare Pages deploy command) refuses to
+  // start without a `previews` block.
+  //
+  // NOTE: VITE_* values are inlined by Vite at BUILD time via import.meta.env,
+  // so this block only satisfies the Wrangler tooling. The API URL that ships in
+  // the bundle comes from the Cloudflare Pages build environment
+  // (Settings -> Environment variables -> VITE_API_BASE_URL).
+  "previews": {
+    "vars": {
+      "VITE_API_BASE_URL": "https://beachvolleyballproject-dev.onrender.com/api/v1"
+    }
+  }
+}
