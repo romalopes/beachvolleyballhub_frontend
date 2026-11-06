@@ -2610,6 +2610,8 @@ export const api = {
     /** mine=true narrows the calendar to the current player's own sessions. */
     mine?: boolean;
     training_series_id?: number;
+    /** Text search on the owning organisation's name. */
+    organisation?: string;
     /**
      * Radius filter: keep only sessions whose canonical venue lies within
      * `radius_km` of (latitude, longitude). All three travel together.
@@ -2625,6 +2627,7 @@ export const api = {
     if (params?.mine) qs.set("mine", "1");
     if (params?.training_series_id)
       qs.set("training_series_id", String(params.training_series_id));
+    if (params?.organisation) qs.set("organisation", params.organisation);
     if (params?.latitude !== undefined) qs.set("latitude", String(params.latitude));
     if (params?.longitude !== undefined) qs.set("longitude", String(params.longitude));
     if (params?.radius_km !== undefined) qs.set("radius_km", String(params.radius_km));

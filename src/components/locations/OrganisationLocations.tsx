@@ -42,7 +42,7 @@ export default function OrganisationLocations({
   const load = useCallback(async () => {
     try {
       const result = await api.organisationLocations(organisation.id);
-      setAttached(result.locations);
+      setAttached(result.locations ?? []);
       setError(null);
     } catch (reason) {
       setError(
@@ -74,7 +74,7 @@ export default function OrganisationLocations({
         per_page: 100,
       })
       .then((result) => {
-        if (!cancelled) setCandidates(result.data);
+        if (!cancelled) setCandidates(result.data ?? []);
       })
       .catch(() => {
         if (!cancelled) setCandidates([]);

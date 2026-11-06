@@ -1,16 +1,16 @@
-import { cleanup, render, screen, within } from "@testing-library/react";
+import { cleanup, render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { MemoryRouter, Route, Routes } from "react-router-dom";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { AuthProvider } from "../auth/AuthProvider";
-import { api, type TrainingSession } from "../api";
+import { api, type TrainingSeries, type TrainingSession } from "../api";
 import Training from "./Training";
 
 vi.mock("../api", async (importOriginal) => {
   const actual = await importOriginal<typeof import("../api")>();
   return {
     ...actual,
-    api: { me: vi.fn(), trainingSessions: vi.fn() },
+    api: { me: vi.fn(), trainingSessions: vi.fn(), trainingSeriesList: vi.fn() },
   };
 });
 
@@ -48,6 +48,18 @@ const session = (overrides: Partial<TrainingSession> = {}): TrainingSession =>
     ...overrides,
   }) as TrainingSession;
 
+const series = (
+  id: number,
+  templateName: string,
+  status: "active" | "stopped" = "active",
+): TrainingSeries =>
+  ({
+    id,
+    training_template_id: 1,
+    status,
+    training_template: { id: 1, name: templateName },
+  }) as TrainingSeries;
+
 const renderPage = (entry = "/training") =>
   render(
     <MemoryRouter initialEntries={[entry]}>
@@ -67,6 +79,10 @@ beforeEach(() => {
     session({}),
     session({ id: 2, title: "Cancelled Session", status: "cancelled", status_label: "Cancelled" }),
   ]);
+  mockedApi.trainingSeriesList.mockResolvedValue({
+    data: [series(3, "Monday Skills"), series(4, "Beach Camp", "stopped")],
+    meta: { page: 1, per_page: 100, total: 2, total_pages: 1 },
+  });
 });
 
 afterEach(cleanup);
@@ -221,6 +237,85 @@ describe("Training page", () => {
 
     expect(mockedApi.trainingSessions).toHaveBeenCalledWith(
       expect.objectContaining({ status: "scheduled" }),
+    );
+  });
+
+  it("filters by organisation text through the filter form", async () => {
+    const user = userEvent.setup();
+    renderPage();
+    await screen.findByText("Morning Session");
+
+    await user.type(screen.getByLabelText("Organisation"), "FIVB");
+
+    await waitFor(() =>
+      expect(mockedApi.trainingSessions).toHaveBeenLastCalledWith(
+        expect.objectContaining({ organisation: "FIVB" }),
+      ),
+    );
+  });
+
+  it("keeps the organisation search when another filter changes", async () => {
+    const user = userEvent.setup();
+    renderPage();
+    await screen.findByText("Morning Session");
+
+    await user.type(screen.getByLabelText("Organisation"), "FIVB");
+    await waitFor(() =>
+      expect(mockedApi.trainingSessions).toHaveBeenLastCalledWith(
+        expect.objectContaining({ organisation: "FIVB" }),
+      ),
+    );
+
+    await user.selectOptions(screen.getByLabelText("Status"), "scheduled");
+
+    await waitFor(() =>
+      expect(mockedApi.trainingSessions).toHaveBeenLastCalledWith(
+        expect.objectContaining({ organisation: "FIVB", status: "scheduled" }),
+      ),
+    );
+  });
+
+  it("offers the training series in the filter dropdown", async () => {
+    renderPage();
+    await screen.findByText("Morning Session");
+
+    const select = screen.getByLabelText("Training series");
+    expect(
+      within(select).getByRole("option", { name: "Any series" }),
+    ).toBeInTheDocument();
+    expect(
+      within(select).getByRole("option", { name: "Monday Skills" }),
+    ).toBeInTheDocument();
+    expect(
+      within(select).getByRole("option", { name: "Beach Camp (stopped)" }),
+    ).toBeInTheDocument();
+  });
+
+  it("filters by a training series from the dropdown", async () => {
+    const user = userEvent.setup();
+    renderPage();
+    await screen.findByText("Morning Session");
+
+    await user.selectOptions(screen.getByLabelText("Training series"), "3");
+
+    await waitFor(() =>
+      expect(mockedApi.trainingSessions).toHaveBeenLastCalledWith(
+        expect.objectContaining({ training_series_id: 3 }),
+      ),
+    );
+  });
+
+  it("reflects a linked series filter even when the series is not in the catalogue", async () => {
+    renderPage("/training?training_series_id=9");
+    await screen.findByText("Morning Session");
+
+    const select = screen.getByLabelText("Training series") as HTMLSelectElement;
+    expect(select.value).toBe("9");
+    expect(
+      within(select).getByRole("option", { name: "Series #9" }),
+    ).toBeInTheDocument();
+    expect(mockedApi.trainingSessions).toHaveBeenCalledWith(
+      expect.objectContaining({ training_series_id: 9 }),
     );
   });
 });

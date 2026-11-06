@@ -419,16 +419,18 @@ export default function TrainingDetail() {
         )}
       </section>
 
-      <section className="detail-section">
-        <h2>Videos</h2>
-        <VideoList
-          references={session.video_references}
-          target="training_sessions"
-          targetId={session.id}
-          canManage={canManage}
-          onChanged={() => setVideosReloadKey((key) => key + 1)}
-        />
-      </section>
+      {(canManage || (session.video_references?.length ?? 0) > 0) && (
+        <section className="detail-section">
+          <h2>Videos</h2>
+          <VideoList
+            references={session.video_references}
+            target="training_sessions"
+            targetId={session.id}
+            canManage={canManage}
+            onChanged={() => setVideosReloadKey((key) => key + 1)}
+          />
+        </section>
+      )}
     </div>
   );
 }

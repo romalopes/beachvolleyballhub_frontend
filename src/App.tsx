@@ -358,14 +358,7 @@ export default function App() {
                     </ManagerRoute>
                   }
                 />
-                <Route
-                  path="/training/:id"
-                  element={
-                    <ManagerRoute>
-                      <TrainingDetail />
-                    </ManagerRoute>
-                  }
-                />
+                <Route path="/training/:id" element={<TrainingDetail />} />
                 <Route
                   path="/calendar"
                   element={<Navigate to="/training?view=calendar" replace />}
@@ -477,22 +470,8 @@ export default function App() {
                     </AuthenticatedRoute>
                   }
                 />
-                <Route
-                  path="/organisations"
-                  element={
-                    <ManagerRoute>
-                      <Organisations />
-                    </ManagerRoute>
-                  }
-                />
-                <Route
-                  path="/organisations/:id"
-                  element={
-                    <AuthenticatedRoute>
-                      <OrganisationDetail />
-                    </AuthenticatedRoute>
-                  }
-                />
+                <Route path="/organisations" element={<Organisations />} />
+                <Route path="/organisations/:id" element={<OrganisationDetail />} />
                 <Route
                   path="/assessment-definitions"
                   element={
