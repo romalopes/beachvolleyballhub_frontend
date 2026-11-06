@@ -41,7 +41,7 @@ describe("App", () => {
       expect(document.querySelector("footer.app-footer")).toBeInTheDocument();
     });
     expect(screen.getByText(`Version ${APP_VERSION}`)).toBeInTheDocument();
-    expect(screen.getByText("Version 0.0.21")).toBeInTheDocument();
+    expect(screen.getByText("Version 0.0.22")).toBeInTheDocument();
   });
 
   it("opens and closes the mobile sidebar without changing the desktop collapse preference", async () => {
@@ -97,9 +97,9 @@ describe("App", () => {
 
     await user.click(await screen.findByRole("button", { name: "Open menu" }));
 
-    expect(document.getElementById("sidebar-group-development")).not.toHaveAttribute(
-      "hidden",
-    );
+    expect(
+      document.getElementById("sidebar-group-development"),
+    ).not.toHaveAttribute("hidden");
     expect(window.localStorage.getItem("bvb.sidebar.collapsed")).toBe("true");
   });
 
@@ -184,7 +184,10 @@ describe("App", () => {
       }
       if (url.includes("/members")) {
         return Promise.resolve(
-          okJson({ organisation: { id: 1, name: "FIVB", slug: "fivb" }, data: [] }),
+          okJson({
+            organisation: { id: 1, name: "FIVB", slug: "fivb" },
+            data: [],
+          }),
         );
       }
       if (url.includes("/organisations/") && url.includes("/locations")) {
@@ -192,7 +195,10 @@ describe("App", () => {
       }
       if (url.includes("/organisations?")) {
         return Promise.resolve(
-          okJson({ data: [], meta: { page: 1, per_page: 20, total: 0, total_pages: 0 } }),
+          okJson({
+            data: [],
+            meta: { page: 1, per_page: 20, total: 0, total_pages: 0 },
+          }),
         );
       }
       if (url.includes("/organisations/")) {
@@ -201,7 +207,10 @@ describe("App", () => {
       if (url.includes("/locations")) {
         // The venue-candidates picker asks for a page of locations.
         return Promise.resolve(
-          okJson({ data: [], meta: { page: 1, per_page: 20, total: 0, total_pages: 0 } }),
+          okJson({
+            data: [],
+            meta: { page: 1, per_page: 20, total: 0, total_pages: 0 },
+          }),
         );
       }
       return Promise.resolve(okJson([]));
@@ -209,7 +218,9 @@ describe("App", () => {
 
     render(<App />);
 
-    expect(await screen.findByRole("heading", { name: "FIVB" })).toBeInTheDocument();
+    expect(
+      await screen.findByRole("heading", { name: "FIVB" }),
+    ).toBeInTheDocument();
   });
 
   it("shows a training session detail page to a signed-out visitor", async () => {

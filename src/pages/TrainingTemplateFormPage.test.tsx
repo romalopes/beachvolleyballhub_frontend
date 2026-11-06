@@ -18,6 +18,8 @@ vi.mock("../api", async (importOriginal) => {
       organisations: vi.fn(),
       groups: vi.fn(),
       coaches: vi.fn(),
+      organisationCoaches: vi.fn(),
+      organisationLocations: vi.fn(),
       trainingTemplate: vi.fn(),
       createTrainingTemplate: vi.fn(),
       updateTrainingTemplate: vi.fn(),
@@ -71,6 +73,16 @@ beforeEach(() => {
     data: [],
     meta: { page: 1, per_page: 100, total: 0, total_pages: 0 },
   });
+  mockedApi.organisationCoaches.mockResolvedValue([]);
+  mockedApi.organisationLocations.mockResolvedValue({
+    locations: [
+      {
+        id: 11,
+        name: "Coogee Beach",
+        locality: "Sydney",
+      },
+    ],
+  } as never);
   mockedApi.createTrainingTemplate.mockResolvedValue(saved);
 });
 
@@ -80,12 +92,15 @@ describe("TrainingTemplateFormPage", () => {
     renderPage();
 
     await waitFor(() =>
-      expect(screen.getByLabelText("Organisation (optional)")).toBeInTheDocument(),
+      expect(screen.getByLabelText("Organisation")).toBeInTheDocument(),
     );
 
     await user.type(screen.getByLabelText("Name"), "Sunrise Skills");
-    await user.selectOptions(screen.getByLabelText("Organisation (optional)"), "1");
-    await user.type(screen.getByLabelText("Location"), "Coogee Beach");
+    await user.selectOptions(screen.getByLabelText("Organisation"), "1");
+    await waitFor(() =>
+      expect(screen.getByRole("option", { name: /Coogee Beach/ })).toBeInTheDocument(),
+    );
+    await user.selectOptions(screen.getByLabelText("Location"), "11");
     await user.click(screen.getByRole("button", { name: "Create template" }));
 
     await waitFor(() => expect(screen.getByText("Templates list")).toBeInTheDocument());
@@ -95,6 +110,7 @@ describe("TrainingTemplateFormPage", () => {
         name: "Sunrise Skills",
         organisation_id: 1,
         location: "Coogee Beach",
+        location_id: 11,
         duration_minutes: 90,
         visibility: "shared",
       }),
@@ -112,6 +128,11 @@ describe("TrainingTemplateFormPage", () => {
       expect(screen.getByLabelText("Name")).toBeInTheDocument(),
     );
     await user.type(screen.getByLabelText("Name"), "Duplicate");
+    await user.selectOptions(screen.getByLabelText("Organisation"), "1");
+    await waitFor(() =>
+      expect(screen.getByRole("option", { name: /Coogee Beach/ })).toBeInTheDocument(),
+    );
+    await user.selectOptions(screen.getByLabelText("Location"), "11");
     await user.click(screen.getByRole("button", { name: "Create template" }));
 
     expect(await screen.findByText("Name has already been taken")).toBeInTheDocument();

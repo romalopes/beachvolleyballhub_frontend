@@ -591,6 +591,12 @@ export interface LocationInput {
   timezone?: string | null;
   latitude?: number | null;
   longitude?: number | null;
+  /**
+   * When set, the new venue is linked to this organisation at creation — its
+   * members can see and schedule it while it awaits verification. Only
+   * officers (owner/administrator) of the organisation may propose for it.
+   */
+  organisation_id?: number | null;
 }
 
 /**
@@ -1088,6 +1094,18 @@ export interface Organisation {
   updated_at: string;
 }
 
+/**
+ * The identity slice of a coach who may run sessions for an organisation —
+ * its active coach members. Returned by the organisation-scoped coach picker
+ * endpoint the training forms use after selecting an organisation.
+ */
+export interface OrganisationCoach {
+  id: number;
+  display_name: string | null;
+  full_name: string | null;
+  account: { id: number; full_name: string } | null;
+}
+
 /** Public organisation card returned by the nearby discovery endpoint. */
 export interface NearbyOrganisation {
   id: number;
@@ -1453,6 +1471,8 @@ export interface TrainingSessionInput {
   organisation_id?: number | null;
   group_id?: number | null;
   coach_profile_id?: number | null;
+  /** The series this session belongs to, if any; must match the organisation. */
+  training_series_id?: number | null;
   status?: TrainingSessionStatus;
   visibility?: TrainingSessionVisibility;
   training_focuses_attributes?: TrainingFocusInput[];
@@ -1472,6 +1492,8 @@ export interface TrainingTemplateInput {
   group_id?: number | null;
   coach_profile_id?: number | null;
   location?: string | null;
+  /** Canonical venue, picked from the organisation's own locations. */
+  location_id?: number | null;
   location_detail?: string | null;
   level?: string | null;
   capacity?: number | null;
@@ -3331,12 +3353,14 @@ export const api = {
     type?: string,
     tree = false,
     mine = false,
+    roles?: string,
   ) => {
     const params = new URLSearchParams();
     if (status) params.set("status", status);
     if (type) params.set("organisation_type", type);
     if (tree) params.set("tree", "1");
     if (mine) params.set("mine", "1");
+    if (roles) params.set("roles", roles);
     const query = params.toString();
     return fetchAPI<PaginatedResponse<Organisation>>(
       `/organisations${query ? `?${query}` : ""}`,
@@ -3365,6 +3389,10 @@ export const api = {
   },
   organisation: (identifier: number | string) =>
     fetchAPI<Organisation>(`/organisations/${identifier}`),
+  organisationCoaches: (id: number) =>
+    fetchAPI<{ coaches: OrganisationCoach[] }>(
+      `/organisations/${id}/coaches`,
+    ).then((response) => response.coaches),
   createOrganisation: (data: OrganisationInput) =>
     postJSON<Organisation>("/organisations", { organisation: data }),
   updateOrganisation: (id: number, data: Partial<OrganisationInput>) =>
