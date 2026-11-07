@@ -1,13 +1,18 @@
 /// <reference types="vitest/config" />
 import react from "@vitejs/plugin-react";
-import { defineConfig } from "vite";
+import { defineConfig, loadEnv } from "vite";
 import { VitePWA } from "vite-plugin-pwa";
 
 // https://vite.dev/config/
-export default defineConfig({
-  plugins: [
-    react(),
-    VitePWA({
+export default defineConfig(({ mode }) => {
+  const env = loadEnv(mode, process.cwd(), "");
+  const pwaEnabled = env.VITE_PWA_ENABLED?.trim().toLowerCase() === "true";
+
+  return {
+    plugins: [
+      react(),
+      VitePWA({
+        disable: !pwaEnabled,
       registerType: "autoUpdate",
       includeAssets: ["ball.png", "favicon.svg", "icons.svg"],
       manifest: {
@@ -29,8 +34,8 @@ export default defineConfig({
         globPatterns: ["**/*.{js,css,html,ico,png,svg,woff2}"],
         cleanupOutdatedCaches: true,
       },
-    }),
-  ],
+      }),
+    ],
   server: {
     proxy: {
       "/api": {
@@ -48,14 +53,20 @@ export default defineConfig({
       },
     },
   },
-  test: {
+    test: {
     environment: "jsdom",
     setupFiles: ["./src/test/setup.ts"],
     // Tests assert relative API URLs ("/api/v1/..."), the same default the
     // build uses behind the Vercel proxy. A developer's .env.local pointing at
     // http://localhost:3001/api/v1 (absolute, for direct dev access) must not
     // leak into the suite — force the empty default here.
-    env: { VITE_API_BASE_URL: "" },
+    env: {
+      VITE_API_BASE_URL: "",
+        VITE_GOOGLE_MAPS_EMBED_API_KEY: "",
+      VITE_MOBILE_LAYOUT_ENABLED: "true",
+      VITE_PWA_ENABLED: "true",
+      VITE_OFFLINE_ENABLED: "true",
+    },
     coverage: {
       provider: "v8",
       include: ["src/**/*.{ts,tsx}"],
@@ -76,4 +87,5 @@ export default defineConfig({
       },
     },
   },
+  };
 });

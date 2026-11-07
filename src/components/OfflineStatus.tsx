@@ -4,6 +4,7 @@ import { currentUserScope } from "../offline/db";
 import { pendingOfflineOperationCount, syncPendingOperations } from "../offline/sync";
 import { sendOfflineOperation } from "../offline/transport";
 import { useAuth } from "../auth/AuthContext";
+import { featureFlags } from "../config/featureFlags";
 
 export default function OfflineStatus() {
   const { user } = useAuth();
@@ -39,6 +40,8 @@ export default function OfflineStatus() {
     await syncPendingOperations(scope, sendOfflineOperation);
     setPending(await pendingOfflineOperationCount(scope));
   };
+
+  if (!featureFlags.offlineEnabled) return null;
 
   return (
     <div className={`offline-status ${online ? "offline-status--online" : "offline-status--offline"}`} role="status">

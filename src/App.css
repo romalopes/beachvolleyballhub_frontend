@@ -2753,6 +2753,16 @@
 
 /* Responsive */
 @media (max-width: 900px) {
+  .app.mobile-layout-disabled .sidebar {
+    transform: none;
+  }
+
+  .app.mobile-layout-disabled .main {
+    margin-left: var(--sidebar-width);
+    margin-top: 0;
+    padding-bottom: 2rem;
+  }
+
   .sidebar-collapse-btn--desktop {
     display: none;
   }
