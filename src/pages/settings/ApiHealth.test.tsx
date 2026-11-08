@@ -48,7 +48,7 @@ const playerUser = {
 // Default: every endpoint the runner can hit returns a healthy payload.
 // `backendVersion` simulates what the Rails /health/detailed endpoint reports,
 // so version display can be tested independently of APP_VERSION.
-function stubHealthyApi(backendVersion: string = "0.0.21") {
+function stubHealthyApi(backendVersion: string = "0.0.22") {
   return vi.fn(async (input: RequestInfo | URL) => {
     const url = String(input);
     if (url.endsWith("/health")) return jsonResponse({ status: "ok" });
@@ -74,7 +74,7 @@ function stubHealthyApi(backendVersion: string = "0.0.21") {
           unread_count: 1,
           target_path: "/notifications",
         },
-        201
+        201,
       );
     if (url.endsWith("/me")) {
       return jsonResponse(adminUser);
@@ -204,10 +204,10 @@ describe("ApiHealth page", () => {
 });
 
 describe("ApiHealth version display", () => {
-  it("shows a version match when the backend reports APP_VERSION (0.0.21)", async () => {
-    expect(APP_VERSION).toBe("0.0.21");
+  it("shows a version match when the backend reports APP_VERSION (0.0.22)", async () => {
+    expect(APP_VERSION).toBe("0.0.22");
     vi.mocked(api.me).mockResolvedValue(adminUser);
-    vi.stubGlobal("fetch", stubHealthyApi("0.0.21"));
+    vi.stubGlobal("fetch", stubHealthyApi("0.0.22"));
     const user = userEvent.setup();
     renderPage();
     await user.click(
@@ -216,13 +216,13 @@ describe("ApiHealth version display", () => {
 
     // The displayed version comes from the backend API response.
     expect(
-      await screen.findByText("✓ Version match: backend 0.0.21"),
+      await screen.findByText("✓ Version match: backend 0.0.22"),
     ).toBeInTheDocument();
   });
 
-  it("shows backend 0.0.19 from the API even though the React version is 0.0.21", async () => {
+  it("shows backend 0.0.21 from the API even though the React version is 0.0.22", async () => {
     vi.mocked(api.me).mockResolvedValue(adminUser);
-    vi.stubGlobal("fetch", stubHealthyApi("0.0.20"));
+    vi.stubGlobal("fetch", stubHealthyApi("0.0.21"));
     const user = userEvent.setup();
     renderPage();
     await user.click(
@@ -231,7 +231,7 @@ describe("ApiHealth version display", () => {
 
     expect(
       await screen.findByText(
-        `⚠ Version mismatch: backend reports 0.0.20 but frontend expects ${APP_VERSION}`,
+        `⚠ Version mismatch: backend reports 0.0.21 but frontend expects ${APP_VERSION}`,
       ),
     ).toBeInTheDocument();
     expect(screen.queryByText(/✓ Version match/)).not.toBeInTheDocument();

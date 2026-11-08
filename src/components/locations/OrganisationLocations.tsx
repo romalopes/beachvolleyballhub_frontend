@@ -6,6 +6,7 @@ import {
   type Organisation,
   type OrganisationLocation,
 } from "../../api";
+import LocationCreateForm from "./LocationCreateForm";
 
 interface OrganisationLocationsProps {
   organisation: Organisation;
@@ -42,7 +43,7 @@ export default function OrganisationLocations({
   const load = useCallback(async () => {
     try {
       const result = await api.organisationLocations(organisation.id);
-      setAttached(result.locations);
+      setAttached(result.locations ?? []);
       setError(null);
     } catch (reason) {
       setError(
@@ -74,7 +75,7 @@ export default function OrganisationLocations({
         per_page: 100,
       })
       .then((result) => {
-        if (!cancelled) setCandidates(result.data);
+        if (!cancelled) setCandidates(result.data ?? []);
       })
       .catch(() => {
         if (!cancelled) setCandidates([]);
@@ -186,6 +187,11 @@ return (
                 {row.default && (
                   <span className="organisations-roster-tag">Default venue</span>
                 )}
+                {row.verification_status === "proposed" && (
+                  <span className="organisations-roster-tag">
+                    Awaiting verification — visible to members only
+                  </span>
+                )}
               </span>
               <span className="organisations-roster-role">
                 {row.locality ?? row.formatted_address ?? "—"}
@@ -223,6 +229,19 @@ return (
 
       {canEdit && (
         <div className="organisations-add">
+          <LocationCreateForm
+            idPrefix="organisation-location-proposal"
+            organisationId={organisation.id}
+            onCreated={async (created) => {
+              // The proposal is attached to the organisation at creation, so
+              // reloading the list is all it takes to show it with its
+              // awaiting-verification tag.
+              await load();
+              setNotice(
+                `${created.name} proposed and attached to ${organisation.name}. Members can schedule it while it awaits verification.`,
+              );
+            }}
+          />
           <div className="form-row">
             <label htmlFor="organisation-location-search">Attach a location</label>
             <input

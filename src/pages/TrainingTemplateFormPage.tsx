@@ -3,9 +3,10 @@ import { useNavigate, useParams } from "react-router-dom";
 import {
   api,
   ApiValidationError,
-  type Coach,
   type Group as GroupRecord,
   type Organisation,
+  type OrganisationCoach,
+  type OrganisationLocation,
   type TrainingSessionVisibility,
   type TrainingTemplateInput,
 } from "../api";
@@ -28,7 +29,9 @@ export default function TrainingTemplateFormPage() {
 
   const [organisations, setOrganisations] = useState<Organisation[]>([]);
   const [groups, setGroups] = useState<GroupRecord[]>([]);
-  const [coaches, setCoaches] = useState<Coach[]>([]);
+  const [coaches, setCoaches] = useState<OrganisationCoach[]>([]);
+  const [locations, setLocations] = useState<OrganisationLocation[]>([]);
+  const [locationsLoading, setLocationsLoading] = useState(false);
   const [loading, setLoading] = useState(true);
 
   const [name, setName] = useState("");
@@ -36,11 +39,13 @@ export default function TrainingTemplateFormPage() {
   const [organisationId, setOrganisationId] = useState<number | "">("");
   const [groupId, setGroupId] = useState<number | "">("");
   const [coachProfileId, setCoachProfileId] = useState<number | "">("");
-  const [location, setLocation] = useState("");
+  const [locationId, setLocationId] = useState<number | "">("");
   const [locationDetail, setLocationDetail] = useState("");
   const [level, setLevel] = useState("");
   const [capacity, setCapacity] = useState("");
-  const [durationMinutes, setDurationMinutes] = useState(DEFAULT_TRAINING_DURATION_MINUTES);
+  const [durationMinutes, setDurationMinutes] = useState(
+    DEFAULT_TRAINING_DURATION_MINUTES,
+  );
   const [visibility, setVisibility] =
     useState<TrainingSessionVisibility>("shared");
   const [status, setStatus] = useState<"active" | "archived">("active");
@@ -51,17 +56,22 @@ export default function TrainingTemplateFormPage() {
   useEffect(() => {
     let active = true;
     const references = Promise.all([
-      api.organisations("active"),
+      api.organisations(
+        "active",
+        undefined,
+        undefined,
+        true,
+        "owner,administrator",
+      ),
+
       api.groups({ include_private: true, status: "active" }),
-      api.coaches({ status: "active", include_private: true, per_page: 100 }),
     ]);
 
     references
-      .then(([organisationPage, groupPage, coachPage]) => {
+      .then(([organisationPage, groupPage]) => {
         if (!active) return;
         setOrganisations(organisationPage.data);
         setGroups(groupPage.data);
-        setCoaches(coachPage.data);
       })
       .catch((err: Error) => setErrors([err.message]));
 
@@ -75,7 +85,7 @@ export default function TrainingTemplateFormPage() {
           setOrganisationId(template.organisation_id ?? "");
           setGroupId(template.group_id ?? "");
           setCoachProfileId(template.coach_profile_id ?? "");
-          setLocation(template.location ?? "");
+          setLocationId(template.location_id ?? "");
           setLocationDetail(template.location_detail ?? "");
           setLevel(template.level ?? "");
           setCapacity(template.capacity ? String(template.capacity) : "");
@@ -92,6 +102,80 @@ export default function TrainingTemplateFormPage() {
       active = false;
     };
   }, [templateId]);
+
+  useEffect(() => {
+    let active = true;
+
+    if (organisationId === "") {
+      setCoaches([]);
+      setCoachProfileId("");
+      return () => {
+        active = false;
+      };
+    }
+
+    api
+      .organisationCoaches(organisationId)
+      .then((nextCoaches) => {
+        if (!active) return;
+        setCoaches(nextCoaches ?? []);
+        setCoachProfileId((current) =>
+          current !== "" && nextCoaches.some((coach) => coach.id === current)
+            ? current
+            : "",
+        );
+      })
+      .catch((err: Error) => {
+        if (!active) return;
+        setCoaches([]);
+        setCoachProfileId("");
+        setErrors((current) => [...current, err.message]);
+      });
+
+    return () => {
+      active = false;
+    };
+  }, [organisationId]);
+
+  useEffect(() => {
+    let active = true;
+
+    if (organisationId === "") {
+      setLocations([]);
+      setLocationsLoading(false);
+      setLocationId("");
+      return () => {
+        active = false;
+      };
+    }
+
+    setLocationsLoading(true);
+    api
+      .organisationLocations(organisationId)
+      .then((response) => {
+        if (!active) return;
+        const nextLocations = response.locations ?? [];
+        setLocations(nextLocations);
+        setLocationId((current) =>
+          current !== "" && nextLocations.some((item) => item.id === current)
+            ? current
+            : "",
+        );
+      })
+      .catch((err: Error) => {
+        if (!active) return;
+        setLocations([]);
+        setLocationId("");
+        setErrors((current) => [...current, err.message]);
+      })
+      .finally(() => {
+        if (active) setLocationsLoading(false);
+      });
+
+    return () => {
+      active = false;
+    };
+  }, [organisationId]);
 
   const groupChoices = useMemo(() => {
     if (organisationId === "") return groups;
@@ -117,7 +201,11 @@ export default function TrainingTemplateFormPage() {
       organisation_id: organisationId === "" ? null : organisationId,
       group_id: groupId === "" ? null : groupId,
       coach_profile_id: coachProfileId === "" ? null : coachProfileId,
-      location: location.trim() || null,
+      location:
+        locationId === ""
+          ? null
+          : locations.find((item) => item.id === locationId)?.name ?? null,
+      location_id: locationId === "" ? null : locationId,
       location_detail: locationDetail.trim() || null,
       level: level.trim() || null,
       capacity: capacity.trim() ? Number(capacity) : null,
@@ -181,7 +269,7 @@ export default function TrainingTemplateFormPage() {
 
         <div className="admin-field-row">
           <div className="admin-field">
-            <label htmlFor="template-organisation">Organisation (optional)</label>
+            <label htmlFor="template-organisation">Organisation</label>
             <select
               id="template-organisation"
               value={organisationId}
@@ -189,9 +277,12 @@ export default function TrainingTemplateFormPage() {
                 const value = event.target.value;
                 setOrganisationId(value === "" ? "" : Number(value));
                 setGroupId("");
+                setCoachProfileId("");
+                setLocationId("");
               }}
+              required
             >
-              <option value="">No organisation</option>
+              <option value="">Select an organisation</option>
               {organisations.map((organisation) => (
                 <option key={organisation.id} value={organisation.id}>
                   {organisation.name}
@@ -205,7 +296,9 @@ export default function TrainingTemplateFormPage() {
               id="template-group"
               value={groupId}
               onChange={(event) =>
-                setGroupId(event.target.value === "" ? "" : Number(event.target.value))
+                setGroupId(
+                  event.target.value === "" ? "" : Number(event.target.value),
+                )
               }
             >
               <option value="">No group</option>
@@ -224,13 +317,18 @@ export default function TrainingTemplateFormPage() {
             id="template-coach"
             value={coachProfileId}
             onChange={(event) =>
-              setCoachProfileId(event.target.value === "" ? "" : Number(event.target.value))
+              setCoachProfileId(
+                event.target.value === "" ? "" : Number(event.target.value),
+              )
             }
           >
             <option value="">No coach selected</option>
             {coaches.map((coach) => (
               <option key={coach.id} value={coach.id}>
-                {accountDisplayName(coach.account?.full_name, coach.display_name || coach.full_name || `Coach #${coach.id}`)}
+                {accountDisplayName(
+                  coach.account?.full_name,
+                  coach.display_name || coach.full_name || `Coach #${coach.id}`,
+                )}
               </option>
             ))}
           </select>
@@ -239,12 +337,33 @@ export default function TrainingTemplateFormPage() {
         <div className="admin-field-row">
           <div className="admin-field">
             <label htmlFor="template-location">Location</label>
-            <input
+            <select
               id="template-location"
-              value={location}
-              onChange={(event) => setLocation(event.target.value)}
-              placeholder="Coogee Beach"
-            />
+              value={locationId}
+              onChange={(event) => {
+                const value = event.target.value;
+                const selectedId = value === "" ? "" : Number(value);
+                setLocationId(selectedId);
+              }}
+              required
+              disabled={organisationId === "" || locationsLoading}
+            >
+              <option value="">
+                {locationsLoading
+                  ? "Loading locations…"
+                  : organisationId === ""
+                    ? "Select an organisation first"
+                    : locations.length === 0
+                      ? "No locations linked"
+                      : "Select a location"}
+              </option>
+              {locations.map((item) => (
+                <option key={item.id} value={item.id}>
+                  {item.name}
+                  {item.locality ? ` — ${item.locality}` : ""}
+                </option>
+              ))}
+            </select>
           </div>
           <div className="admin-field">
             <label htmlFor="template-location-detail">Location detail</label>
@@ -285,12 +404,15 @@ export default function TrainingTemplateFormPage() {
             <select
               id="template-duration"
               value={durationMinutes}
-              onChange={(event) => setDurationMinutes(Number(event.target.value))}
+              onChange={(event) =>
+                setDurationMinutes(Number(event.target.value))
+              }
             >
               {durations.map((minutes) => (
                 <option key={minutes} value={minutes}>
-                  {TRAINING_DURATION_OPTIONS.find((option) => option.value === minutes)?.label ??
-                    `${minutes} min`}
+                  {TRAINING_DURATION_OPTIONS.find(
+                    (option) => option.value === minutes,
+                  )?.label ?? `${minutes} min`}
                 </option>
               ))}
             </select>
@@ -319,7 +441,9 @@ export default function TrainingTemplateFormPage() {
             <select
               id="template-status"
               value={status}
-              onChange={(event) => setStatus(event.target.value as "active" | "archived")}
+              onChange={(event) =>
+                setStatus(event.target.value as "active" | "archived")
+              }
             >
               <option value="active">Active</option>
               <option value="archived">Archived</option>
@@ -338,10 +462,18 @@ export default function TrainingTemplateFormPage() {
         )}
 
         <div className="training-form-actions">
-          <button type="button" className="admin-btn" onClick={() => navigate("/training/templates")}>
+          <button
+            type="button"
+            className="admin-btn"
+            onClick={() => navigate("/training/templates")}
+          >
             Cancel
           </button>
-          <button type="submit" className="admin-btn admin-btn-add" disabled={saving}>
+          <button
+            type="submit"
+            className="admin-btn admin-btn-add"
+            disabled={saving}
+          >
             {saving ? "Saving…" : isNew ? "Create template" : "Save changes"}
           </button>
         </div>

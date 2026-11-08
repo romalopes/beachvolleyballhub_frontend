@@ -184,7 +184,6 @@ export default function Home() {
   const [detectedLocation, setDetectedLocation] =
     useState<DetectedLocation | null>(null);
   const [locationLoading, setLocationLoading] = useState(true);
-  const [locationError, setLocationError] = useState<string | null>(null);
   const [weatherRequest, setWeatherRequest] = useState<WeatherRequest | null>(
     null,
   );
@@ -213,9 +212,15 @@ export default function Home() {
   useEffect(() => {
     const refreshAssessment = () =>
       setWeatherPreferenceRevision((revision) => revision + 1);
-    window.addEventListener(WEATHER_PREFERENCE_CHANGED_EVENT, refreshAssessment);
+    window.addEventListener(
+      WEATHER_PREFERENCE_CHANGED_EVENT,
+      refreshAssessment,
+    );
     return () =>
-      window.removeEventListener(WEATHER_PREFERENCE_CHANGED_EVENT, refreshAssessment);
+      window.removeEventListener(
+        WEATHER_PREFERENCE_CHANGED_EVENT,
+        refreshAssessment,
+      );
   }, []);
 
   useEffect(() => {
@@ -366,7 +371,12 @@ export default function Home() {
       });
 
     return () => controller.abort();
-  }, [detectedLocation, searchedLocation, searchedCoords, weatherPreferenceRevision]);
+  }, [
+    detectedLocation,
+    searchedLocation,
+    searchedCoords,
+    weatherPreferenceRevision,
+  ]);
 
   useEffect(() => {
     let cancelled = false;
@@ -438,12 +448,12 @@ export default function Home() {
             setDetectedLocation(loc);
           }
         } catch (ipError) {
+          // IP lookup failed — silently fall back to featured venue (Coogee Beach).
+          // The feature venue is used as the default location when both browser
+          // geolocation and IP lookup are unavailable (e.g., blocked by ad blocker,
+          // network restriction, etc.).
           if (!cancelled) {
-            setLocationError(
-              ipError instanceof Error
-                ? ipError.message
-                : "Unable to detect your location.",
-            );
+            console.debug("IP geolocation failed, using featured venue:", ipError);
           }
         }
       } finally {
@@ -550,10 +560,6 @@ export default function Home() {
   return (
     <div className="page">
       <section className="home-hero">
-        <div className="home-hero-badge">
-          <Target size={14} />
-          Beach Volleyball Knowledge System
-        </div>
         <h1>BEACH VOLLEYBALL HUB</h1>
         <p className="home-hero-tagline">
           Organise the skills. Understand the game. Train with purpose.
@@ -569,11 +575,6 @@ export default function Home() {
             showUseMyLocation={showingSearchedLocation}
             onUseMyLocation={useDetectedLocation}
             loading={locationLoading && !showingSearchedLocation}
-            error={
-              locationError && !detectedLocation && !showingSearchedLocation
-                ? locationError
-                : null
-            }
             description={locationDescription}
             mapName={searchedLocation ?? detectedLocationName}
             mapLatitude={showingSearchedLocation ? null : venue.lat}

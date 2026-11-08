@@ -139,6 +139,11 @@ const tournamentsLink: SidebarLink = {
   label: "Tournaments",
   icon: Trophy,
 };
+const organisationsLink: SidebarLink = {
+  path: "/organisations",
+  label: "Organisations",
+  icon: Building2,
+};
 
 const analysisLink: SidebarLink = {
   path: "/analyses",
@@ -262,6 +267,10 @@ export default function Sidebar({
       <nav className="sidebar-nav" aria-label="Main">
         <SidebarNavLink link={homeLink} menuCollapsed={menuCollapsed} />
         <SidebarNavLink link={tournamentsLink} menuCollapsed={menuCollapsed} />
+        <SidebarNavLink
+          link={organisationsLink}
+          menuCollapsed={menuCollapsed}
+        />
         {visibleGroups.map((group) => {
           const GroupIcon = group.icon;
           const isCollapsed = collapsedGroups[group.id] === true;

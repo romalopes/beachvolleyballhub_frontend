@@ -61,7 +61,12 @@ export default function OrganisationDetail() {
       const detail = await api.organisation(id);
       const [page, groupsRes] = await Promise.all([
         api.organisations(undefined, undefined, true),
-        api.groups({ organisation_id: detail.id, status: "active" }),
+        // Groups are a training-management catalogue with their own access
+        // rules; the public detail page omits the section rather than failing
+        // the whole load on a request a visitor may not make.
+        user
+          ? api.groups({ organisation_id: detail.id, status: "active" })
+          : Promise.resolve({ data: [] as GroupRecord[] }),
       ]);
       setOrganisation(detail);
       setOrganisations(page.data);
@@ -70,7 +75,7 @@ export default function OrganisationDetail() {
     } catch (reason) {
       setError(reason instanceof Error ? reason.message : "Failed to load organisation.");
     }
-  }, [id]);
+  }, [id, user]);
 
   useEffect(() => {
     Promise.resolve().then(load);

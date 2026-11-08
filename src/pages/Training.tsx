@@ -12,7 +12,9 @@ import CalendarToolbar, {
   CalendarToolbarTabs,
 } from "../components/calendar/CalendarToolbar";
 import TrainingCalendarGrid from "../components/training/TrainingCalendarGrid";
-import TrainingFilterForm from "../components/training/TrainingFilterForm";
+import TrainingFilterForm, {
+  type TrainingSeriesOption,
+} from "../components/training/TrainingFilterForm";
 import TrainingSessionCard from "../components/training/TrainingSessionCard";
 import {
   addDays,
@@ -59,11 +61,37 @@ export default function Training() {
     | "";
   const mine = searchParams.get("mine") === "1";
   const seriesFilter = Number(searchParams.get("training_series_id")) || null;
+  const organisation = searchParams.get("organisation") ?? "";
 
   const [sessions, setSessions] = useState<TrainingSession[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [refreshKey, setRefreshKey] = useState(0);
+  const [seriesOptions, setSeriesOptions] = useState<TrainingSeriesOption[]>([]);
+
+  // The series catalogue feeds the series filter dropdown. If it is
+  // unavailable (feature flag off, offline) the dropdown simply offers its
+  // unfiltered option and the other filters keep working.
+  useEffect(() => {
+    let cancelled = false;
+    api
+      .trainingSeriesList({ per_page: 100 })
+      .then((page) => {
+        if (cancelled) return;
+        setSeriesOptions(
+          page.data.map((series) => ({
+            value: series.id,
+            label: `${series.training_template?.name ?? `Series #${series.id}`}${series.status === "stopped" ? " (stopped)" : ""}`,
+          })),
+        );
+      })
+      .catch(() => {
+        if (!cancelled) setSeriesOptions([]);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   const days = useMemo(
     () => (range === "month" ? monthGridDays(cursor) : weekGridDays(cursor)),
@@ -75,11 +103,28 @@ export default function Training() {
   // The list view groups sessions into calendar weeks (Monday–Sunday).
   const weekGroups = useMemo(() => sessionsByWeek(sessions), [sessions]);
 
+  // A linked series that is not in the loaded catalogue (stale link, feature
+  // flag off) must still show as the selection rather than silently clearing
+  // the filter.
+  const seriesSelectOptions = useMemo(() => {
+    if (
+      !seriesFilter ||
+      seriesOptions.some((option) => option.value === seriesFilter)
+    ) {
+      return seriesOptions;
+    }
+    return [
+      { value: seriesFilter, label: `Series #${seriesFilter}` },
+      ...seriesOptions,
+    ];
+  }, [seriesOptions, seriesFilter]);
+
   useEffect(() => {
     const filters = {
       status: status || undefined,
       mine: mine || undefined,
       training_series_id: seriesFilter ?? undefined,
+      organisation: organisation || undefined,
     };
     const requestRange =
       view === "calendar"
@@ -100,7 +145,7 @@ export default function Training() {
       })
       .catch((err: Error) => setError(err.message))
       .finally(() => setLoading(false));
-  }, [view, days, listRange, status, mine, seriesFilter, refreshKey]);
+  }, [view, days, listRange, status, mine, seriesFilter, organisation, refreshKey]);
 
   const updateParams = (patch: Record<string, string | undefined>) => {
     const next = new URLSearchParams(searchParams);
@@ -187,26 +232,36 @@ export default function Training() {
           <TrainingFilterForm
             status={status}
             mine={mine}
+            organisation={organisation}
+            seriesOptions={seriesSelectOptions}
+            seriesFilter={seriesFilter}
             onChange={(patch) =>
               updateParams({
-                status: patch.status ?? undefined,
-                mine: patch.mine ? "1" : undefined,
+                status: "status" in patch ? patch.status || undefined : status || undefined,
+                mine: "mine" in patch ? (patch.mine ? "1" : undefined) : mine ? "1" : undefined,
+                organisation:
+                  "organisation" in patch
+                    ? patch.organisation || undefined
+                    : organisation || undefined,
+                training_series_id:
+                  "training_series_id" in patch
+                    ? patch.training_series_id != null
+                      ? String(patch.training_series_id)
+                      : undefined
+                    : seriesFilter != null
+                      ? String(seriesFilter)
+                      : undefined,
               })
             }
-            onReset={() => updateParams({ status: undefined, mine: undefined })}
+            onReset={() =>
+              updateParams({
+                status: undefined,
+                mine: undefined,
+                organisation: undefined,
+                training_series_id: undefined,
+              })
+            }
           />
-          {seriesFilter && (
-            <div className="admin-info series-filter-banner">
-              Showing occurrences of series #{seriesFilter}.{" "}
-              <button
-                type="button"
-                className="link-button"
-                onClick={() => updateParams({ training_series_id: undefined })}
-              >
-                Clear filter
-              </button>
-            </div>
-          )}
         </aside>
 
         <main className="training-list-panel">

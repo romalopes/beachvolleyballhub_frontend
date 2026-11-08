@@ -11,6 +11,13 @@ interface LocationCreateFormProps {
   idPrefix: string;
   onCreated: (location: Location) => void | Promise<void>;
   defaultExpanded?: boolean;
+  /**
+   * When set, the proposal is linked to this organisation at creation: its
+   * members can see and schedule the venue while it awaits verification.
+   * Only officers (owner/administrator) of the organisation may propose for
+   * it, so this prop is only passed by organisation-scoped forms.
+   */
+  organisationId?: number | null;
 }
 
 const LOCATION_TYPES: Array<{ value: LocationType; label: string }> = [
@@ -38,6 +45,7 @@ export default function LocationCreateForm({
   idPrefix,
   onCreated,
   defaultExpanded = false,
+  organisationId = null,
 }: LocationCreateFormProps) {
   const [expanded, setExpanded] = useState(defaultExpanded);
   const [input, setInput] = useState<LocationInput>(initialInput);
@@ -60,6 +68,7 @@ export default function LocationCreateForm({
         ...input,
         name: input.name.trim(),
         country_code: input.country_code?.trim().toUpperCase() || null,
+        organisation_id: organisationId ?? null,
       });
       await onCreated(location);
       setInput(initialInput());
@@ -90,7 +99,10 @@ export default function LocationCreateForm({
       <h3>Propose a new venue</h3>
       <p className="field-hint">
         The venue can be selected immediately. Coordinates are resolved asynchronously
-        and the proposal remains awaiting verification.
+        and the proposal remains awaiting verification
+        {organisationId
+          ? " while only this organisation's members can see and schedule it."
+          : "."}
       </p>
       <div className="admin-field-row">
         <div className="admin-field">

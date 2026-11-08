@@ -24,6 +24,7 @@ import SpreadsheetScoreGrid from "../components/assessments/SpreadsheetScoreGrid
 import SessionRankingTable from "../components/assessments/SessionRankingTable";
 import SessionConsolidations from "../components/assessments/SessionConsolidations";
 import { profileDisplayName } from "../utils/profileName";
+import { queueAssessmentScores } from "../offline/domainMutations";
 
 type SessionTab = "roster" | "scores" | "ranking" | "consolidated";
 
@@ -122,8 +123,17 @@ export default function AssessmentSessionDetail() {
   const handleSaveScores = async (scores: AssessmentSessionScoreInput[]) => {
     if (!session) return;
     setActionError(null);
-    const res = await api.saveAssessmentSessionScores(session.id, scores);
-    setSession(res.assessment_session);
+    try {
+      const res = await api.saveAssessmentSessionScores(session.id, scores);
+      setSession(res.assessment_session);
+    } catch (err) {
+      if (!navigator.onLine && user?.id != null) {
+        await queueAssessmentScores(user.id, session.id, scores);
+        setActionError("Scores saved offline. They will synchronize when you reconnect.");
+        return;
+      }
+      throw err;
+    }
   };
 
   const handlePublish = async () => {

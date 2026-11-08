@@ -14,6 +14,9 @@ import { useTestAccess } from "./auth/TestAccessContext";
 import Sidebar from "./components/Sidebar";
 import Footer from "./components/Footer";
 import NotificationBell from "./components/NotificationBell";
+import OfflineStatus from "./components/OfflineStatus";
+import MobileBottomNav from "./components/MobileBottomNav";
+import { featureFlags } from "./config/featureFlags";
 import NotificationsPage from "./pages/Notifications";
 import Home from "./pages/Home";
 import Skills from "./pages/Skills";
@@ -194,8 +197,12 @@ function Layout({ children }: { children: React.ReactNode }) {
   const sidebarMenuCollapsed = menuCollapsed && !sidebarOpen;
 
   return (
-    <div className={`app${menuCollapsed ? " sidebar-collapsed" : ""}`}>
-      <div className="mobile-header">
+    <div
+      className={`app${menuCollapsed ? " sidebar-collapsed" : ""}${
+        featureFlags.mobileLayoutEnabled ? "" : " mobile-layout-disabled"
+      }`}
+    >
+      {featureFlags.mobileLayoutEnabled && <div className="mobile-header">
         <button
           type="button"
           className="mobile-menu-btn"
@@ -220,8 +227,9 @@ function Layout({ children }: { children: React.ReactNode }) {
           </svg>
         </button>
         <span className="mobile-logo">BVB Hub</span>
+        <OfflineStatus />
         <NotificationBell />
-      </div>
+      </div>}
       <aside
         className={`sidebar${sidebarOpen ? " open" : ""}`}
         id="sidebar"
@@ -237,16 +245,18 @@ function Layout({ children }: { children: React.ReactNode }) {
         >
           <CollapseIcon aria-hidden="true" />
         </button>
-        <button
-          type="button"
-          className="sidebar-collapse-btn sidebar-close-btn--mobile"
-          onClick={() => setSidebarOpen(false)}
-          aria-controls="sidebar"
-          aria-label="Close menu"
-          title="Close menu"
-        >
-          <X aria-hidden="true" />
-        </button>
+        {featureFlags.mobileLayoutEnabled && (
+          <button
+            type="button"
+            className="sidebar-collapse-btn sidebar-close-btn--mobile"
+            onClick={() => setSidebarOpen(false)}
+            aria-controls="sidebar"
+            aria-label="Close menu"
+            title="Close menu"
+          >
+            <X aria-hidden="true" />
+          </button>
+        )}
         <Sidebar
           menuCollapsed={sidebarMenuCollapsed}
           onExpandMenu={() => {
@@ -254,7 +264,7 @@ function Layout({ children }: { children: React.ReactNode }) {
           }}
         />
       </aside>
-      {sidebarOpen && (
+      {featureFlags.mobileLayoutEnabled && sidebarOpen && (
         <div
           className="sidebar-overlay open"
           onClick={() => setSidebarOpen(false)}
@@ -264,6 +274,7 @@ function Layout({ children }: { children: React.ReactNode }) {
         {children}
         <Footer />
       </main>
+      {featureFlags.mobileLayoutEnabled && <MobileBottomNav />}
     </div>
   );
 }
@@ -354,14 +365,7 @@ export default function App() {
                     </ManagerRoute>
                   }
                 />
-                <Route
-                  path="/training/:id"
-                  element={
-                    <ManagerRoute>
-                      <TrainingDetail />
-                    </ManagerRoute>
-                  }
-                />
+                <Route path="/training/:id" element={<TrainingDetail />} />
                 <Route
                   path="/calendar"
                   element={<Navigate to="/training?view=calendar" replace />}
@@ -473,22 +477,8 @@ export default function App() {
                     </AuthenticatedRoute>
                   }
                 />
-                <Route
-                  path="/organisations"
-                  element={
-                    <ManagerRoute>
-                      <Organisations />
-                    </ManagerRoute>
-                  }
-                />
-                <Route
-                  path="/organisations/:id"
-                  element={
-                    <AuthenticatedRoute>
-                      <OrganisationDetail />
-                    </AuthenticatedRoute>
-                  }
-                />
+                <Route path="/organisations" element={<Organisations />} />
+                <Route path="/organisations/:id" element={<OrganisationDetail />} />
                 <Route
                   path="/assessment-definitions"
                   element={
