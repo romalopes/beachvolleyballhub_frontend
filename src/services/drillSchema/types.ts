@@ -4,7 +4,7 @@
  *
  * These are maintained to match that shared JSON Schema, which is the single
  * source of truth and is owned by the Rails app
- * (beachvolleyballproject_api/schemas/drill-definition-v1.schema.json).
+ * (beachvolleyballhub_api/schemas/drill-definition-v1.schema.json).
  *
  * The schemaConsistency.test.ts in this directory asserts that the frontend
  * schema *file* stays byte-identical to the Rails copy; this type layer should

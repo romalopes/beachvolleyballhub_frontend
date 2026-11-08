@@ -1,6 +1,6 @@
 # React + TypeScript + Vite
 
-For system architecture and backend model documentation, see [System architecture and backend model documentation](../beachvolleyballproject_api/docs/architecture/architecture.md).
+For system architecture and backend model documentation, see [System architecture and backend model documentation](../beachvolleyballhub_api/docs/architecture/architecture.md).
 
 ## Hosted frontend
 
@@ -25,9 +25,9 @@ If you are developing a production application, we recommend updating the config
 
 ```js
 export default defineConfig([
-  globalIgnores(['dist']),
+  globalIgnores(["dist"]),
   {
-    files: ['**/*.{ts,tsx}'],
+    files: ["**/*.{ts,tsx}"],
     extends: [
       // Other configs...
 
@@ -42,46 +42,45 @@ export default defineConfig([
     ],
     languageOptions: {
       parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
+        project: ["./tsconfig.node.json", "./tsconfig.app.json"],
         tsconfigRootDir: import.meta.dirname,
       },
       // other options...
     },
   },
-])
-
+]);
 ```
 
 You can also install [eslint-plugin-react-x](https://npmx.dev/package/eslint-plugin-react-x) and [eslint-plugin-react-dom](https://npmx.dev/package/eslint-plugin-react-dom) for React-specific lint rules:
 
 ```js
 // eslint.config.js
-import reactX from 'eslint-plugin-react-x'
-import reactDom from 'eslint-plugin-react-dom'
+import reactX from "eslint-plugin-react-x";
+import reactDom from "eslint-plugin-react-dom";
 
 export default defineConfig([
-  globalIgnores(['dist']),
+  globalIgnores(["dist"]),
   {
-    files: ['**/*.{ts,tsx}'],
+    files: ["**/*.{ts,tsx}"],
     extends: [
       // Other configs...
       // Enable lint rules for React
-      reactX.configs['recommended-typescript'],
+      reactX.configs["recommended-typescript"],
       // Enable lint rules for React DOM
       reactDom.configs.recommended,
     ],
     languageOptions: {
       parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
+        project: ["./tsconfig.node.json", "./tsconfig.app.json"],
         tsconfigRootDir: import.meta.dirname,
       },
       // other options...
     },
   },
-])
-
+]);
 ```
-# beachvolleyballproject
+
+# beachvolleyballhub
 
 # Videos on Drills and Skills
 
@@ -96,4 +95,3 @@ Timestamps are stored as integer seconds in the backend and entered/displayed
 as `MM:SS` / `HH:MM:SS` in the UI (`src/utils/videos.ts` handles conversion
 and validation; the backend remains the source of truth). See the API README
 for the domain model (Video vs VideoReference) and provider capabilities.
-
