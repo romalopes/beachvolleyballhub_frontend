@@ -100,11 +100,11 @@ export default function SkillDetail() {
           <ArrowLeft size={16} />
           Back
         </button>
-        <span className="section-label">{skill.category?.name}</span>
+        <span className="section-label">{skill.discipline?.name}</span>
         <h1>{skill.title}</h1>
         <div className="tags" style={{ marginTop: '1rem' }}>
           <Tag variant="primary">Skill</Tag>
-          {skill.category && <Tag>{skill.category.name}</Tag>}
+          {skill.discipline && <Tag>{skill.discipline.name}</Tag>}
         </div>
       </div>
 
@@ -180,13 +180,13 @@ export default function SkillDetail() {
                   ),
                 },
                 {
-                  key: "category",
-                  label: "Category",
+                  key: "discipline",
+                  label: "Discipline",
                   render: (d) => {
-                    const cat = d.skills?.[0]?.category;
+                    const cat = d.skills?.[0]?.discipline;
                     if (!cat) return <span className="admin-text-muted">-</span>;
                     return (
-                      <Link to={`/settings/categories/${cat.slug}`} className="admin-text-muted">
+                      <Link to={`/settings/disciplines/${cat.slug}`} className="admin-text-muted">
                         {cat.name}
                       </Link>
                     );

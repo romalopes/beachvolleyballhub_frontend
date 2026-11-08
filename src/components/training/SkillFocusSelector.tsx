@@ -1,6 +1,6 @@
 import { useMemo, useState } from "react";
 import { ArrowDown, ArrowUp, Trash2 } from "lucide-react";
-import type { Category, Skill } from "../../api";
+import type { Discipline, Skill } from "../../api";
 import {
   createCustomFocus,
   createSkillFocus,
@@ -9,7 +9,7 @@ import {
 } from "./focusDraft";
 
 interface SkillFocusSelectorProps {
-  categories: Category[];
+  disciplines: Discipline[];
   skills: Skill[];
   focuses: FocusDraft[];
   onChange: (focuses: FocusDraft[]) => void;
@@ -18,34 +18,34 @@ interface SkillFocusSelectorProps {
 type FocusType = "skill" | "custom";
 
 export default function SkillFocusSelector({
-  categories,
+  disciplines,
   skills,
   focuses,
   onChange,
 }: SkillFocusSelectorProps) {
   const [focusType, setFocusType] = useState<FocusType>("skill");
-  const [categoryId, setCategoryId] = useState<string>("");
+  const [disciplineId, setDisciplineId] = useState<string>("");
 
   const [skillId, setSkillId] = useState<string>("");
   const [customText, setCustomText] = useState("");
   const [description, setDescription] = useState("");
   const [error, setError] = useState<string | null>(null);
 
-  // The Category select has no placeholder option, so the browser always shows
-  // a value. Default to the first category to keep what is displayed in sync
+  // The Discipline select has no placeholder option, so the browser always shows
+  // a value. Default to the first discipline to keep what is displayed in sync
   // with the skill list below it (otherwise the UI would show "Defense" while
-  // listing skills from every category).
-  const effectiveCategoryId =
-    categoryId || (categories[0] ? String(categories[0].id) : "");
+  // listing skills from every discipline).
+  const effectiveDisciplineId =
+    disciplineId || (disciplines[0] ? String(disciplines[0].id) : "");
 
-  const categorySkills = useMemo(
+  const disciplineSkills = useMemo(
     () =>
       skills.filter((s) =>
-        effectiveCategoryId
-          ? s.category_id === Number(effectiveCategoryId)
+        effectiveDisciplineId
+          ? s.discipline_id === Number(effectiveDisciplineId)
           : true,
       ),
-    [skills, effectiveCategoryId],
+    [skills, effectiveDisciplineId],
   );
 
   const skillName = (id: number | null | undefined) =>
@@ -55,7 +55,7 @@ export default function SkillFocusSelector({
     setError(null);
     if (focusType === "skill") {
       if (!skillId) {
-        setError("Choose a category and skill.");
+        setError("Choose a discipline and skill.");
         return;
       }
       const id = Number(skillId);
@@ -170,19 +170,19 @@ export default function SkillFocusSelector({
         {focusType === "skill" ? (
           <>
             <label>
-              Category
+              Discipline
               <select
-                value={effectiveCategoryId}
+                value={effectiveDisciplineId}
                 onChange={(event) => {
-                  setCategoryId(event.target.value);
-                  // The previously chosen skill may belong to another category;
+                  setDisciplineId(event.target.value);
+                  // The previously chosen skill may belong to another discipline;
                   // clear it so a stale selection can never be submitted.
                   setSkillId("");
                 }}
               >
-                {categories.map((category) => (
-                  <option key={category.id} value={category.id}>
-                    {category.name}
+                {disciplines.map((discipline) => (
+                  <option key={discipline.id} value={discipline.id}>
+                    {discipline.name}
                   </option>
                 ))}
               </select>
@@ -194,7 +194,7 @@ export default function SkillFocusSelector({
                 onChange={(event) => setSkillId(event.target.value)}
               >
                 <option value="">Select a skill</option>
-                {categorySkills.map((skill) => (
+                {disciplineSkills.map((skill) => (
                   <option key={skill.id} value={skill.id}>
                     {skill.title}
                   </option>

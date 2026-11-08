@@ -696,7 +696,7 @@ export default function RankingConsolidationDetail() {
                 className="incomplete-player-item"
               >
                 <span className="player-name">{profileDisplayName(row.account_name, row.player_name)}</span>
-                <span className="incomplete-categories-badge">
+                <span className="incomplete-disciplines-badge">
                   Ranked by {row.coverage} of {sessionCount}
                 </span>
               </li>

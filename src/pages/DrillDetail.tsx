@@ -257,7 +257,7 @@ export default function DrillDetail() {
                   {skill.title}
                 </span>
                 <span className="related-item-meta">
-                  {skill.category?.name}
+                  {skill.discipline?.name}
                 </span>
               </Link>
             ))}

@@ -39,7 +39,7 @@ const drill: Drill = {
   max_players: 6,
   ideal_num_players: 6,
   definition: SAMPLE_DRILL_DEFINITION,
-  skills: [{ id: 5, title: "Serve Reception", slug: "serve-reception", description: null, category_id: 1 }],
+  skills: [{ id: 5, title: "Serve Reception", slug: "serve-reception", description: null, discipline_id: 1 }],
 };
 
 const fullSession: TrainingSession = {
@@ -61,7 +61,7 @@ const fullSession: TrainingSession = {
       custom_focus: null,
       description: "Focus on platform angle against float serves.",
       position: 0,
-      skill: { id: 5, title: "Serve Reception", slug: "serve-reception", description: null, category: { id: 1, name: "Defense", slug: "defense" } },
+      skill: { id: 5, title: "Serve Reception", slug: "serve-reception", description: null, discipline: { id: 1, name: "Defense", slug: "defense" } },
     },
     {
       id: 2,
@@ -218,13 +218,13 @@ describe("TrainingDetail", () => {
       ...fullSession,
       training_session_participants: [
         { ...participants[0], assessments: [{
-          id: 1, player_profile_id: 10, coach_profile_id: 7, category_id: 5, custom_category: null,
+          id: 1, player_profile_id: 10, coach_profile_id: 7, discipline_id: 5, custom_discipline: null,
           training_session_id: 1, score: 70, reported_value: 4, scale: "one_to_five",
           notes: null, status: "active", created_at: "2026-09-01T00:00:00.000Z",
-          updated_at: "2026-09-01T00:00:00.000Z", category_label: "Attack", ten_scale: 7,
+          updated_at: "2026-09-01T00:00:00.000Z", discipline_label: "Attack", ten_scale: 7,
           five_scale: 4, score_label: "70/100", status_label: "Published",
           created_by: { id: 2, name: "Coach Ana" },
-          category: { id: 5, name: "Attack", slug: "attack" },
+          discipline: { id: 5, name: "Attack", slug: "attack" },
         }] },
         participants[1],
       ],

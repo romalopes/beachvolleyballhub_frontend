@@ -315,8 +315,8 @@ export default function AssessmentSessionRoster({
                 )}
                 {participant.result && participant.result.status === "incomplete" && (
                   <span className="roster-badge incomplete">
-                    Missing {participant.result.missing_category_ids.length} category
-                    {participant.result.missing_category_ids.length === 1 ? "" : "s"}
+                    Missing {participant.result.missing_discipline_ids.length} discipline
+                    {participant.result.missing_discipline_ids.length === 1 ? "" : "s"}
                   </span>
                 )}
               </div>

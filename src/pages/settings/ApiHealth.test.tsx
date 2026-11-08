@@ -63,7 +63,7 @@ function stubHealthyApi(backendVersion: string = "0.0.22") {
         database_details: { adapter: "postgresql", pool: 5 },
         server: { rails_version: "8.1.3", pid: 1 },
         endpoint: { path: "/api/v1/health/detailed" },
-        counts: { categories: 2, drills: 1 },
+        counts: { disciplines: 2, drills: 1 },
       });
     if (url.endsWith("/health/notifications/test"))
       return jsonResponse(
@@ -81,11 +81,11 @@ function stubHealthyApi(backendVersion: string = "0.0.22") {
     }
     if (url.endsWith("/account"))
       return jsonResponse({ id: 1, first_name: "Bea", address: {} });
-    if (url.endsWith("/categories"))
+    if (url.endsWith("/disciplines"))
       return jsonResponse([{ id: 1, name: "Serving", slug: "serving" }]);
     if (url.endsWith("/skills"))
       return jsonResponse([
-        { id: 1, title: "Serve", slug: "serve", category_id: 1 },
+        { id: 1, title: "Serve", slug: "serve", discipline_id: 1 },
       ]);
     if (url.endsWith("/drills"))
       return jsonResponse([{ id: 1, title: "D1", slug: "d1", skills: [] }]);
@@ -152,7 +152,7 @@ describe("ApiHealth page", () => {
     expect(
       screen.getByText("Unauthenticated /me Rejection"),
     ).toBeInTheDocument();
-    expect(screen.getByText("Categories List")).toBeInTheDocument();
+    expect(screen.getByText("Disciplines List")).toBeInTheDocument();
     expect(
       screen.getByText("Drills List (definition excluded)"),
     ).toBeInTheDocument();

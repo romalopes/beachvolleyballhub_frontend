@@ -1,12 +1,12 @@
 import { render, screen } from "@testing-library/react";
 import { describe, expect, it } from "vitest";
 import type {
-  AssessmentSessionCategory,
+  AssessmentSessionDiscipline,
   AssessmentSessionRankingRow,
 } from "../../api";
 import SessionRankingTable from "./SessionRankingTable";
 
-const categories: AssessmentSessionCategory[] = [
+const disciplines: AssessmentSessionDiscipline[] = [
   { id: 1, label: "Attack", weight: 40, position: 0 },
   { id: 2, label: "Block", weight: 30, position: 1 },
 ];
@@ -19,7 +19,7 @@ const row = (
   assessment_id: 900,
   overall_score: 80,
   rank: 1,
-  missing_category_ids: [],
+  missing_discipline_ids: [],
   status: "complete",
   ...overrides,
 });
@@ -31,7 +31,7 @@ const renderTable = (payload: {
 }) =>
   render(
     <SessionRankingTable
-      categories={categories}
+      disciplines={disciplines}
       rankingPayload={{
         ranking: payload.ranking ?? [],
         incomplete: payload.incomplete ?? [],
@@ -73,7 +73,7 @@ describe("SessionRankingTable", () => {
     expect(screen.queryByText("#2")).not.toBeInTheDocument();
   });
 
-  it("names the missing categories for an incomplete player", () => {
+  it("names the missing disciplines for an incomplete player", () => {
     renderTable({
       incomplete: [
         row({
@@ -82,29 +82,29 @@ describe("SessionRankingTable", () => {
           overall_score: null,
           rank: null,
           status: "incomplete",
-          missing_category_ids: [1, 2],
+          missing_discipline_ids: [1, 2],
         }),
       ],
     });
 
     expect(
-      screen.getByText("Incomplete / Missing Categories (1)"),
+      screen.getByText("Incomplete / Missing Disciplines (1)"),
     ).toBeInTheDocument();
     expect(screen.getByText(/Missing: Attack, Block/)).toBeInTheDocument();
   });
 
-  it("falls back to a generic label for an unknown category id", () => {
+  it("falls back to a generic label for an unknown discipline id", () => {
     renderTable({
       incomplete: [
         row({
           player_name: "Dina Reis",
           status: "incomplete",
-          missing_category_ids: [99],
+          missing_discipline_ids: [99],
         }),
       ],
     });
 
-    expect(screen.getByText(/Missing: Category #99/)).toBeInTheDocument();
+    expect(screen.getByText(/Missing: Discipline #99/)).toBeInTheDocument();
   });
 
   it("keeps excluded players out of the ranking and shows the reason", () => {
@@ -139,7 +139,7 @@ describe("SessionRankingTable", () => {
           overall_score: null,
           rank: null,
           status: "incomplete",
-          missing_category_ids: [1],
+          missing_discipline_ids: [1],
         }),
       ],
     });
@@ -177,7 +177,7 @@ describe("SessionRankingTable account-linked names", () => {
           account_name: "Roma Lopes",
           overall_score: null,
           rank: null,
-          missing_category_ids: [1],
+          missing_discipline_ids: [1],
           status: "incomplete",
         }),
       ],

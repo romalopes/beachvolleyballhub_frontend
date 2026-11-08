@@ -171,7 +171,7 @@ export default function ApiHealth() {
   const [running, setRunning] = useState<Record<string, boolean>>({});
   const [runningAll, setRunningAll] = useState(false);
   const [history, setHistory] = useState<HistoryEntry[]>([]);
-  const [openCategories, setOpenCategories] = useState<Record<string, boolean>>({});
+  const [openDisciplines, setOpenDisciplines] = useState<Record<string, boolean>>({});
   const [expanded, setExpanded] = useState<Record<string, boolean>>({});
 
   const regularChecks = useMemo(
@@ -182,8 +182,8 @@ export default function ApiHealth() {
   const grouped = useMemo(() => {
     const map: Record<string, ApiCheck[]> = {};
     regularChecks.forEach((check) => {
-      if (!map[check.category]) map[check.category] = [];
-      map[check.category].push(check);
+      if (!map[check.discipline]) map[check.discipline] = [];
+      map[check.discipline].push(check);
     });
     return map;
   }, [regularChecks]);
@@ -284,8 +284,8 @@ export default function ApiHealth() {
     }
   }
 
-  function toggleCategory(name: string) {
-    setOpenCategories((prev) => ({ ...prev, [name]: !prev[name] }));
+  function toggleDiscipline(name: string) {
+    setOpenDisciplines((prev) => ({ ...prev, [name]: !prev[name] }));
   }
 
   function toggleInspector(id: string) {
@@ -374,29 +374,29 @@ export default function ApiHealth() {
       )}
 
 
-      {Object.entries(grouped).map(([category, checks]) => {
-        const open = openCategories[category] !== false;
+      {Object.entries(grouped).map(([discipline, checks]) => {
+        const open = openDisciplines[discipline] !== false;
         const passed = checks.filter((c) => results[c.id]?.passed).length;
         return (
-          <section key={category} className="health-category">
+          <section key={discipline} className="health-discipline">
             <button
               type="button"
-              className="health-category-header"
-              onClick={() => toggleCategory(category)}
+              className="health-discipline-header"
+              onClick={() => toggleDiscipline(discipline)}
             >
               <span>
-                {category}
+                {discipline}
                 {allResults.length > 0 && (
-                  <span className="health-category-summary">
+                  <span className="health-discipline-summary">
                     {" "}
                     · {passed}/{checks.length} passed
                   </span>
                 )}
               </span>
-              <span className="health-category-summary">{open ? "▲" : "▼"}</span>
+              <span className="health-discipline-summary">{open ? "▲" : "▼"}</span>
             </button>
             {open && (
-              <div className="health-category-body">
+              <div className="health-discipline-body">
                 {checks.map((check) => {
                   const result = results[check.id];
                   const isRunning = running[check.id];

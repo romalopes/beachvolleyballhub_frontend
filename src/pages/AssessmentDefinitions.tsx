@@ -1,11 +1,11 @@
 import { useEffect, useState } from "react";
 import { ListChecks, Repeat, Scale } from "lucide-react";
-import { api, type AssessmentCategory, type AssessmentDefinition, type AssessmentDefinitionInput, type Category } from "../api";
+import { api, type AssessmentCategory, type AssessmentDefinition, type AssessmentDefinitionInput, type Discipline } from "../api";
 import { useAuth } from "../auth/AuthContext";
 import LibraryHero from "../components/LibraryHero";
 
 type DraftRow = AssessmentCategory & { weight: number };
-const emptyRow = (position: number): DraftRow => ({ id: 0, category_id: null, category_custom_id: null, source_type: "category", label: "Select a category", weight: 0, position, category: null, category_custom: null });
+const emptyRow = (position: number): DraftRow => ({ id: 0, discipline_id: null, discipline_custom_id: null, source_type: "discipline", label: "Select a discipline", weight: 0, position, discipline: null, discipline_custom: null });
 
 export default function AssessmentDefinitions() {
   const { user } = useAuth();
@@ -13,8 +13,8 @@ export default function AssessmentDefinitions() {
   const [selectedId, setSelectedId] = useState<number | "new" | null>(null);
   const [name, setName] = useState(""); const [description, setDescription] = useState("");
   const [rows, setRows] = useState<DraftRow[]>([]);
-  const [categories, setCategories] = useState<Category[]>([]);
-  const [addType, setAddType] = useState<"category" | "custom_category">("category"); const [addId, setAddId] = useState("");
+  const [disciplines, setDisciplines] = useState<Discipline[]>([]);
+  const [addType, setAddType] = useState<"discipline" | "custom_discipline">("discipline"); const [addId, setAddId] = useState("");
   const [error, setError] = useState<string | null>(null); const [saving, setSaving] = useState(false);
   // Publishing gives no visible sign on its own — the button and the editor look
   // exactly the same afterwards — so the outcome is stated in words as well as by
@@ -34,36 +34,36 @@ export default function AssessmentDefinitions() {
     setError(null);
     setNotice(null);
   }
-  useEffect(() => { Promise.all([api.assessmentDefinitions(), api.categories(), api.categoryCustoms()]).then(([page, standard]) => { setDefinitions(page.data); setCategories(standard); if (page.data[0]) select(page.data[0]); }).catch((err: unknown) => setError(err instanceof Error ? err.message : "Failed to load assessment definitions.")); }, []);
+  useEffect(() => { Promise.all([api.assessmentDefinitions(), api.disciplines(), api.disciplineCustoms()]).then(([page, standard]) => { setDefinitions(page.data); setDisciplines(standard); if (page.data[0]) select(page.data[0]); }).catch((err: unknown) => setError(err instanceof Error ? err.message : "Failed to load assessment definitions.")); }, []);
 
   const total = rows.reduce((sum, row) => sum + (Number.isFinite(row.weight) ? row.weight : 0), 0);
   const remaining = 100 - total;
   const canPublish = total === 100 && rows.length > 0;
 
   async function addRow() {
-    if (addType === "custom_category") {
+    if (addType === "custom_discipline") {
       const customName = addId.trim();
-      if (!customName) { setError("Enter a custom category name."); return; }
-      if (rows.some((row) => row.label.toLowerCase() === customName.toLowerCase())) { setError("Choose a category that is not already in this assessment."); return; }
+      if (!customName) { setError("Enter a custom discipline name."); return; }
+      if (rows.some((row) => row.label.toLowerCase() === customName.toLowerCase())) { setError("Choose a discipline that is not already in this assessment."); return; }
       setSaving(true); setError(null);
       try {
-        const custom = await api.createCategoryCustom({ name: customName, visibility: "shared" });
-        const next: DraftRow = { ...emptyRow(rows.length), category_custom_id: custom.id, source_type: "custom_category", label: custom.name, category: null, category_custom: custom };
+        const custom = await api.createDisciplineCustom({ name: customName, visibility: "shared" });
+        const next: DraftRow = { ...emptyRow(rows.length), discipline_custom_id: custom.id, source_type: "custom_discipline", label: custom.name, discipline: null, discipline_custom: custom };
         setRows((current) => [...current, next]);
         setAddId("");
-      } catch (err) { setError(err instanceof Error ? err.message : "Failed to create custom category."); } finally { setSaving(false); }
+      } catch (err) { setError(err instanceof Error ? err.message : "Failed to create custom discipline."); } finally { setSaving(false); }
       return;
     }
-    const id = Number(addId); const duplicate = rows.some((row) => row.category_id === id);
-    if (!addId || duplicate) { setError("Choose a category that is not already in this assessment."); return; }
-    const source = categories.find((item) => item.id === id); if (!source) { setError("That category is no longer available."); return; }
-    const next: DraftRow = { ...emptyRow(rows.length), category_id: id, source_type: "category", label: source.name, category: source, category_custom: null };
+    const id = Number(addId); const duplicate = rows.some((row) => row.discipline_id === id);
+    if (!addId || duplicate) { setError("Choose a discipline that is not already in this assessment."); return; }
+    const source = disciplines.find((item) => item.id === id); if (!source) { setError("That discipline is no longer available."); return; }
+    const next: DraftRow = { ...emptyRow(rows.length), discipline_id: id, source_type: "discipline", label: source.name, discipline: source, discipline_custom: null };
     setRows([...rows, next]); setAddId(""); setError(null);
   }
   function move(index: number, direction: -1 | 1) { const next = [...rows]; const target = index + direction; if (target < 0 || target >= next.length) return; [next[index], next[target]] = [next[target], next[index]]; setRows(next.map((row, position) => ({ ...row, position }))); }
   async function save(nextStatus: "draft" | "active") {
     if (!name.trim()) { setError("Give the assessment a name."); return; } if (nextStatus === "active" && !canPublish) { setError("Weights must total 100% before publishing."); return; }
-    const input: AssessmentDefinitionInput = { name: name.trim(), description: description.trim() || null, status: nextStatus, assessment_categories_attributes: rows.map((row) => ({ id: row.id || undefined, category_id: row.category_id, category_custom_id: row.category_custom_id, weight: row.weight, position: row.position })) };
+    const input: AssessmentDefinitionInput = { name: name.trim(), description: description.trim() || null, status: nextStatus, assessment_categories_attributes: rows.map((row) => ({ id: row.id || undefined, discipline_id: row.discipline_id, discipline_custom_id: row.discipline_custom_id, weight: row.weight, position: row.position })) };
     setSaving(true); setError(null);
     try {
       const saved = selectedId && selectedId !== "new" ? await api.updateAssessmentDefinition(selectedId, input) : await api.createAssessmentDefinition(input);
@@ -110,7 +110,7 @@ export default function AssessmentDefinitions() {
   }
 
   // The one irreversible action, so it names what is destroyed — the definition
-  // and its category weighting, which nothing can be recovered from afterwards.
+  // and its discipline weighting, which nothing can be recovered from afterwards.
   async function deleteSelected() {
     if (selectedId === null || selectedId === "new") return;
     if (!window.confirm(`Permanently delete "${name}"? This removes the definition and its ${rows.length} categor${rows.length === 1 ? "y" : "ies"} and cannot be undone. Archiving is reversible.`)) return;
@@ -132,7 +132,7 @@ export default function AssessmentDefinitions() {
         title="Assessment definitions"
         description="Build reusable weighted assessments."
         highlights={[
-          { icon: ListChecks, label: "Define categories" },
+          { icon: ListChecks, label: "Define disciplines" },
           { icon: Scale, label: "Weight what matters" },
           { icon: Repeat, label: "Reuse across sessions" },
         ]}
@@ -181,9 +181,9 @@ export default function AssessmentDefinitions() {
 
         <div className="assessment-definition-section-heading">
           <div>
-            <h2>Categories</h2>
+            <h2>Disciplines</h2>
             <p className="assessment-definition-help">
-              Assign a positive weight to every category. Drafts may be incomplete.
+              Assign a positive weight to every discipline. Drafts may be incomplete.
             </p>
           </div>
           <span className={`assessment-definition-total ${total === 100 ? "balanced" : ""}`}>
@@ -192,12 +192,12 @@ export default function AssessmentDefinitions() {
           </span>
         </div>
 
-        <div className="assessment-definition-rows" aria-label="Selected categories">
-          {rows.length === 0 ? <p className="assessment-definition-empty">No categories selected yet.</p> : rows.map((row, index) => (
+        <div className="assessment-definition-rows" aria-label="Selected disciplines">
+          {rows.length === 0 ? <p className="assessment-definition-empty">No disciplines selected yet.</p> : rows.map((row, index) => (
             <div className="assessment-definition-row" key={row.id || `${row.source_type}-${index}`}>
               <div className="assessment-definition-label">
                 <strong>{index + 1}. {row.label}</strong>
-                <span>{row.source_type === "category" ? "Standard category" : "Custom category"}</span>
+                <span>{row.source_type === "discipline" ? "Standard discipline" : "Custom discipline"}</span>
               </div>
               <label className="assessment-definition-weight">
                 Weight
@@ -222,27 +222,27 @@ export default function AssessmentDefinitions() {
 
         <div className="assessment-definition-add">
           <label className="admin-field">
-            Category type
-            <select aria-label="Category type" value={addType} onChange={(event) => { setAddType(event.target.value as "category" | "custom_category"); setAddId(""); setError(null); }}>
-              <option value="category">Standard category</option>
-              <option value="custom_category">Custom category</option>
+            Discipline type
+            <select aria-label="Discipline type" value={addType} onChange={(event) => { setAddType(event.target.value as "discipline" | "custom_discipline"); setAddId(""); setError(null); }}>
+              <option value="discipline">Standard discipline</option>
+              <option value="custom_discipline">Custom discipline</option>
             </select>
           </label>
-          {addType === "category" ? (
+          {addType === "discipline" ? (
             <label className="admin-field">
-              Category
-              <select aria-label="Add category" value={addId} onChange={(event) => setAddId(event.target.value)}>
-                <option value="">Select a category</option>
-                {categories.map((item) => <option key={item.id} value={item.id}>{item.name}</option>)}
+              Discipline
+              <select aria-label="Add discipline" value={addId} onChange={(event) => setAddId(event.target.value)}>
+                <option value="">Select a discipline</option>
+                {disciplines.map((item) => <option key={item.id} value={item.id}>{item.name}</option>)}
               </select>
             </label>
           ) : (
             <label className="admin-field">
-              New custom category
-              <input aria-label="New custom category" value={addId} onChange={(event) => setAddId(event.target.value)} placeholder="Enter a custom category name" />
+              New custom discipline
+              <input aria-label="New custom discipline" value={addId} onChange={(event) => setAddId(event.target.value)} placeholder="Enter a custom discipline name" />
             </label>
           )}
-          <button type="button" className="admin-btn admin-btn-add" onClick={addRow}>Add category</button>
+          <button type="button" className="admin-btn admin-btn-add" onClick={addRow}>Add discipline</button>
         </div>
       </section>
 
@@ -325,7 +325,7 @@ export default function AssessmentDefinitions() {
                   Delete permanently
                 </button>
                 <p className="field-hint">
-                  Removes the definition and its categories for good. Only possible
+                  Removes the definition and its disciplines for good. Only possible
                   while nothing uses it.
                 </p>
               </>

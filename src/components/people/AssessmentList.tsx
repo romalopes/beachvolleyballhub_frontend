@@ -20,8 +20,8 @@ interface AssessmentListProps {
 
 function rubricKey(row: Assessment): string {
   if (row.assessment_definition_id != null) return `definition:${row.assessment_definition_id}`;
-  if (row.category_id != null) return `category:${row.category_id}`;
-  return `custom:${row.custom_category ?? "unspecified"}`;
+  if (row.discipline_id != null) return `discipline:${row.discipline_id}`;
+  return `custom:${row.custom_discipline ?? "unspecified"}`;
 }
 
 function assessmentDate(row: Assessment): string {

@@ -3,7 +3,7 @@ import { useNavigate, useParams } from "react-router-dom";
 import {
   api,
   ApiValidationError,
-  type Category,
+  type Discipline,
   type Drill,
   type Group as GroupRecord,
   type Location,
@@ -82,7 +82,7 @@ export default function TrainingFormPage() {
   const { user } = useAuth();
   const canManage = canManageTrainings(user);
 
-  const [categories, setCategories] = useState<Category[]>([]);
+  const [disciplines, setDisciplines] = useState<Discipline[]>([]);
   const [skills, setSkills] = useState<Skill[]>([]);
   const [drills, setDrills] = useState<Drill[]>([]);
   const [players, setPlayers] = useState<Player[]>([]);
@@ -174,7 +174,7 @@ export default function TrainingFormPage() {
     // The picker filters locally while a coach types, so it asks for a page
     // large enough to hold the roster (the API caps per_page at 100).
     Promise.all([
-      api.categories(),
+      api.disciplines(),
       api.skills(),
       api.drills(),
       api.players({ include_private: true, per_page: 100 }),
@@ -187,7 +187,7 @@ export default function TrainingFormPage() {
     ])
       .then(([cats, sks, drs, pageOfPlayers, groupsRes, locationsRes]) => {
         if (cancelled) return;
-        setCategories(cats);
+        setDisciplines(cats);
         setSkills(sks);
         setDrills(drs);
         setPlayers(pageOfPlayers.data);
@@ -462,8 +462,8 @@ export default function TrainingFormPage() {
             title: skill.title,
             slug: skill.slug,
             description: skill.description,
-            category: categories.find(
-              (category) => category.id === skill.category_id,
+            discipline: disciplines.find(
+              (discipline) => discipline.id === skill.discipline_id,
             ),
           };
         })(),
@@ -496,7 +496,7 @@ export default function TrainingFormPage() {
       focuses,
       selectedDrills,
       skills,
-      categories,
+      disciplines,
       fetchedDefinitions,
     ],
   );
@@ -778,7 +778,7 @@ export default function TrainingFormPage() {
         </div>
 
         <SkillFocusSelector
-          categories={categories}
+          disciplines={disciplines}
           skills={skills}
           focuses={focuses}
           onChange={setFocuses}

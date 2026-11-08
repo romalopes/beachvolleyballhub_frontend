@@ -38,7 +38,7 @@ describe("auth headers", () => {
   it("sends the bearer token when one is stored", async () => {
     setToken("secret-token");
     const fetchMock = mockFetchOnce({ ok: true, status: 200, body: [] });
-    await api.categories();
+    await api.disciplines();
     expect(fetchMock).toHaveBeenCalledOnce();
     const [, init] = fetchMock.mock.calls[0] as [string, RequestInit];
     expect(

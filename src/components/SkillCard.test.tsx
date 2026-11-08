@@ -8,25 +8,25 @@ const skill: Skill = {
   title: "Jump Serve",
   slug: "jump-serve",
   description: "Toss high and strike.",
-  category_id: 3,
-  category: { id: 3, name: "Serving", slug: "serving" },
+  discipline_id: 3,
+  discipline: { id: 3, name: "Serving", slug: "serving" },
 };
 
 describe("SkillCard", () => {
-  it("renders the category, title and description", () => {
+  it("renders the discipline, title and description", () => {
     render(<SkillCard skill={skill} />);
     expect(screen.getByText("Serving")).toBeInTheDocument();
     expect(screen.getByText("Jump Serve")).toBeInTheDocument();
     expect(screen.getByText("Toss high and strike.")).toBeInTheDocument();
   });
 
-  it("omits the category badge and description when absent", () => {
+  it("omits the discipline badge and description when absent", () => {
     const { container } = render(
       <SkillCard
-        skill={{ ...skill, category: undefined, description: null }}
+        skill={{ ...skill, discipline: undefined, description: null }}
       />
     );
-    expect(container.querySelector(".card-category")).toBeNull();
+    expect(container.querySelector(".card-discipline")).toBeNull();
     expect(container.querySelector(".card-description")).toBeNull();
     expect(screen.getByText("Jump Serve")).toBeInTheDocument();
   });

@@ -253,13 +253,13 @@ function normalizePaginatedResponse<T>(
   return response;
 }
 
-export interface Category {
+export interface Discipline {
   id: number;
   name: string;
   slug: string;
 }
 
-export interface CategoryCustom {
+export interface DisciplineCustom {
   id: number;
   name: string;
   visibility: "shared" | "private";
@@ -267,18 +267,18 @@ export interface CategoryCustom {
 }
 
 export type AssessmentDefinitionStatus = "draft" | "active" | "archived";
-export type AssessmentCategorySource = "category" | "custom_category";
+export type AssessmentCategorySource = "discipline" | "custom_discipline";
 
 export interface AssessmentCategory {
   id: number;
-  category_id: number | null;
-  category_custom_id: number | null;
+  discipline_id: number | null;
+  discipline_custom_id: number | null;
   source_type: AssessmentCategorySource;
   label: string;
   weight: number;
   position: number;
-  category?: Category | null;
-  category_custom?: { id: number; name: string; visibility: string } | null;
+  discipline?: Discipline | null;
+  discipline_custom?: { id: number; name: string; visibility: string } | null;
 }
 
 export interface AssessmentDefinition {
@@ -321,8 +321,8 @@ export interface AssessmentDefinitionInput {
   status: AssessmentDefinitionStatus;
   assessment_categories_attributes: Array<{
     id?: number;
-    category_id?: number | null;
-    category_custom_id?: number | null;
+    discipline_id?: number | null;
+    discipline_custom_id?: number | null;
     weight: number;
     position: number;
     _destroy?: boolean;
@@ -334,8 +334,8 @@ export interface Skill {
   title: string;
   slug: string;
   description: string | null;
-  category_id: number;
-  category?: Category;
+  discipline_id: number;
+  discipline?: Discipline;
   /** Who may see the skill. Defaults to `shared` on the API. */
   visibility?: ContentVisibility;
   /** Publication state. Defaults to `published` on the API. */
@@ -407,7 +407,7 @@ export interface Video {
   visibility?: ContentVisibility;
   /** Publication state. Defaults to `published` on the API. */
   status?: CatalogueStatus;
-  /** Videos belong to at most one category; null means "Uncategorized". */
+  /** Videos belong to at most one discipline; null means "Uncategorized". */
   video_category?: VideoCategory | null;
   video_tags?: VideoTag[];
 }
@@ -497,7 +497,7 @@ export interface TrainingFocusSkill {
   title: string;
   slug: string;
   description: string | null;
-  category?: Category;
+  discipline?: Discipline;
 }
 
 export interface TrainingFocus {
@@ -670,7 +670,7 @@ export interface AssessmentCategoryScore {
   id: number;
   assessment_category_id: number;
   label: string;
-  source_type: "category" | "custom_category";
+  source_type: "discipline" | "custom_discipline";
   weight: number;
   score: number | null;
   reported_value: number | null;
@@ -711,9 +711,9 @@ export interface Assessment {
   assessment_session_name?: string | null;
   assessment_session_scheduled_on?: string | null;
   assessment_category_scores?: AssessmentCategoryScore[];
-  category_scores?: AssessmentCategoryScore[];
-  category_id: number | null;
-  custom_category: string | null;
+  discipline_scores?: AssessmentCategoryScore[];
+  discipline_id: number | null;
+  custom_discipline: string | null;
   training_session_id: number | null;
   score: number | null;
   reported_value: number | null;
@@ -722,21 +722,21 @@ export interface Assessment {
   status: AssessmentStatus;
   created_at: string;
   updated_at: string;
-  category_label: string;
+  discipline_label: string;
   ten_scale: number | null;
   five_scale: number | null;
   score_label: string;
   status_label: string;
   created_by: ProfileOwner | null;
-  category: Category | null;
+  discipline: Discipline | null;
 }
 
 export interface AssessmentInput {
   player_profile_id: number;
   coach_profile_id?: number | null;
   assessment_definition_id?: number | null;
-  category_id?: number | null;
-  custom_category?: string | null;
+  discipline_id?: number | null;
+  custom_discipline?: string | null;
   training_session_id?: number | null;
   value?: number | null;
   scale?: AssessmentScale;
@@ -757,7 +757,7 @@ export type AssessmentUpdateInput = Partial<
 export interface AssessmentFilters {
   player_id?: number;
   coach_id?: number;
-  category_id?: number;
+  discipline_id?: number;
   training_session_id?: number;
   status?: AssessmentStatus;
   mine?: boolean;
@@ -768,7 +768,7 @@ export interface AssessmentFilters {
 export type AssessmentSessionStatus = "draft" | "published" | "withdrawn";
 export type AssessmentSessionInclusion = "included" | "excluded";
 
-export interface AssessmentSessionCategory {
+export interface AssessmentSessionDiscipline {
   id: number;
   label: string;
   weight: number;
@@ -779,10 +779,10 @@ export interface AssessmentSessionDefinition {
   id: number;
   name: string;
   status: AssessmentDefinitionStatus;
-  assessment_categories: AssessmentSessionCategory[];
+  assessment_categories: AssessmentSessionDiscipline[];
 }
 
-export interface AssessmentSessionCategoryScore {
+export interface AssessmentSessionDisciplineScore {
   assessment_category_id: number;
   /** The coach's own typed entry, on `scale`. Null when the cell was left blank. */
   reported_value: number | null;
@@ -910,9 +910,9 @@ export interface AssessmentSessionRankingRow {
   assessment_id?: number | null;
   overall_score: number | null;
   rank: number | null;
-  missing_category_ids: number[];
-  /** The per-category entries behind `overall_score`; empty when unscored. */
-  category_scores?: AssessmentSessionCategoryScore[];
+  missing_discipline_ids: number[];
+  /** The per-discipline entries behind `overall_score`; empty when unscored. */
+  discipline_scores?: AssessmentSessionDisciplineScore[];
   status?: string;
   missing_reason?: string | null;
 }
@@ -1214,7 +1214,7 @@ export interface AssessmentSessionPlayerInput {
   };
 }
 
-export interface AssessmentSessionCategoryScoreInput {
+export interface AssessmentSessionDisciplineScoreInput {
   assessment_category_id: number;
   scale?: AssessmentScale;
   value?: number | null;
@@ -1225,7 +1225,7 @@ export interface AssessmentSessionCategoryScoreInput {
 
 export interface AssessmentSessionScoreInput {
   player_profile_id: number;
-  category_scores: AssessmentSessionCategoryScoreInput[];
+  discipline_scores: AssessmentSessionDisciplineScoreInput[];
 }
 
 // ---------- Ranking consolidation (Phase 4) ----------
@@ -2559,7 +2559,7 @@ export const api = {
       `/geocode?${new URLSearchParams({ q: query })}`,
       { signal },
     ),
-  categories: () => fetchAPI<Category[]>("/categories"),
+  disciplines: () => fetchAPI<Discipline[]>("/disciplines"),
   skills: () => fetchAPI<Skill[]>("/skills"),
   skill: (slugOrId: string) =>
     fetchAPI<Skill>(`/skills/${encodeURIComponent(slugOrId)}`),
@@ -3216,8 +3216,8 @@ export const api = {
     if (filters.player_id != null)
       qs.set("player_id", String(filters.player_id));
     if (filters.coach_id != null) qs.set("coach_id", String(filters.coach_id));
-    if (filters.category_id != null)
-      qs.set("category_id", String(filters.category_id));
+    if (filters.discipline_id != null)
+      qs.set("discipline_id", String(filters.discipline_id));
     if (filters.training_session_id != null)
       qs.set("training_session_id", String(filters.training_session_id));
     if (filters.status) qs.set("status", filters.status);
@@ -3982,12 +3982,12 @@ export const api = {
       "DELETE",
     ),
 
-  categoryCustoms: () => fetchAPI<CategoryCustom[]>("/category_customs"),
-  createCategoryCustom: (data: {
+  disciplineCustoms: () => fetchAPI<DisciplineCustom[]>("/discipline_customs"),
+  createDisciplineCustom: (data: {
     name: string;
     visibility?: "shared" | "private";
   }) =>
-    postJSON<CategoryCustom>("/category_customs", { category_custom: data }),
+    postJSON<DisciplineCustom>("/discipline_customs", { discipline_custom: data }),
 
   // Admin
   adminUsers: async (params?: {
@@ -4040,12 +4040,12 @@ export const api = {
     fetchAPI<Skill>(`/admin/skills/${encodeURIComponent(String(id))}`),
   adminCreateSkill: (data: {
     title: string;
-    category_id: number;
+    discipline_id: number;
     description?: string | null;
   }) => postJSON<Skill>("/admin/skills", { skill: data }),
   adminUpdateSkill: (
     id: string | number,
-    data: { title?: string; category_id?: number; description?: string | null },
+    data: { title?: string; discipline_id?: number; description?: string | null },
   ) =>
     postJSON<Skill>(
       `/admin/skills/${encodeURIComponent(String(id))}`,
@@ -4059,30 +4059,30 @@ export const api = {
       "DELETE",
     ),
 
-  // Admin Settings — Categories
-  adminCategories: async (params?: { page?: number; per_page?: number }) => {
+  // Admin Settings — Disciplines
+  adminDisciplines: async (params?: { page?: number; per_page?: number }) => {
     const qs = new URLSearchParams();
     if (params?.page) qs.set("page", String(params.page));
     if (params?.per_page) qs.set("per_page", String(params.per_page));
     const query = qs.toString();
-    const response = await fetchAPI<Category[] | PaginatedResponse<Category>>(
-      `/admin/categories${query ? `?${query}` : ""}`,
+    const response = await fetchAPI<Discipline[] | PaginatedResponse<Discipline>>(
+      `/admin/disciplines${query ? `?${query}` : ""}`,
     );
     return normalizePaginatedResponse(response);
   },
-  adminCategory: (id: string | number) =>
-    fetchAPI<Category>(`/admin/categories/${encodeURIComponent(String(id))}`),
-  adminCreateCategory: (data: { name: string }) =>
-    postJSON<Category>("/admin/categories", { category: data }),
-  adminUpdateCategory: (id: string | number, data: { name?: string }) =>
-    postJSON<Category>(
-      `/admin/categories/${encodeURIComponent(String(id))}`,
-      { category: data },
+  adminDiscipline: (id: string | number) =>
+    fetchAPI<Discipline>(`/admin/disciplines/${encodeURIComponent(String(id))}`),
+  adminCreateDiscipline: (data: { name: string }) =>
+    postJSON<Discipline>("/admin/disciplines", { discipline: data }),
+  adminUpdateDiscipline: (id: string | number, data: { name?: string }) =>
+    postJSON<Discipline>(
+      `/admin/disciplines/${encodeURIComponent(String(id))}`,
+      { discipline: data },
       "PATCH",
     ),
-  adminDestroyCategory: (id: string | number, confirmDestroy = false) =>
+  adminDestroyDiscipline: (id: string | number, confirmDestroy = false) =>
     postJSON<void>(
-      `/admin/categories/${encodeURIComponent(String(id))}${
+      `/admin/disciplines/${encodeURIComponent(String(id))}${
         confirmDestroy
           ? `?confirm_destroy=${encodeURIComponent(String(id))}`
           : ""
@@ -4116,7 +4116,7 @@ export const api = {
       {},
       "DELETE",
     ),
-  /** Persists the drag-and-drop order; `ids` must list every category once. */
+  /** Persists the drag-and-drop order; `ids` must list every discipline once. */
   adminReorderVideoCategories: (ids: number[]) =>
     postJSON<VideoCategory[]>(
       "/admin/video_categories/reorder",

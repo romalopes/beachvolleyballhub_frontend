@@ -138,7 +138,7 @@ export async function runCheck(
   return {
     id: check.id,
     name: check.name,
-    category: check.category,
+    discipline: check.discipline,
     passed,
     status,
     expectedStatus: check.expectedStatus,
@@ -229,7 +229,7 @@ export async function runEmailSendFlow(
   return {
     id: check.id,
     name: check.name,
-    category: check.category,
+    discipline: check.discipline,
     passed,
     status,
     expectedStatus: check.expectedStatus,
@@ -242,7 +242,7 @@ export async function runEmailSendFlow(
   };
 }
 
-// Write-sandbox flow: create a temporary category, then delete it.
+// Write-sandbox flow: create a temporary discipline, then delete it.
 // Returns a result object describing the whole flow.
 export async function runWriteFlow(
   check: ApiCheck,
@@ -251,8 +251,8 @@ export async function runWriteFlow(
   const start = performance.now();
   const timeout = check.timeoutMs || opts.timeoutMs || 5000;
   const suffix = Date.now();
-  const categoryName = `Health Check Temp ${suffix}`;
-  const createBody = JSON.stringify({ category: { name: categoryName } });
+  const disciplineName = `Health Check Temp ${suffix}`;
+  const createBody = JSON.stringify({ discipline: { name: disciplineName } });
 
   const headers: Record<string, string> = {
     Accept: "application/json",
@@ -315,13 +315,13 @@ export async function runWriteFlow(
   return {
     id: check.id,
     name: check.name,
-    category: check.category,
+    discipline: check.discipline,
     passed: !error && createStatus === 201,
     status: createStatus,
     expectedStatus: 201,
     latencyMs,
     latencyRating: rateLatency(latencyMs, check.latencyThresholds),
-    payload: { createdCategoryId: createdId, tempName: categoryName },
+    payload: { createdDisciplineId: createdId, tempName: disciplineName },
     requestHeaders: redactHeaders(headers),
     error,
     retried: false,
@@ -426,7 +426,7 @@ export async function runNotificationSendFlow(
   return {
     id: check.id,
     name: check.name,
-    category: check.category,
+    discipline: check.discipline,
     passed,
     status,
     expectedStatus: check.expectedStatus,

@@ -2,14 +2,14 @@ import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi } from "vitest";
 import type {
-  AssessmentSessionCategory,
+  AssessmentSessionDiscipline,
   AssessmentSessionParticipant,
 } from "../../api";
 import SpreadsheetScoreGrid from "./SpreadsheetScoreGrid";
 
 type ParticipantResult = NonNullable<AssessmentSessionParticipant["result"]>;
 
-const categories: AssessmentSessionCategory[] = [
+const disciplines: AssessmentSessionDiscipline[] = [
   { id: 1, label: "Attack", weight: 40, position: 0 },
   { id: 2, label: "Block", weight: 30, position: 1 },
 ];
@@ -26,23 +26,23 @@ const participant = (
 });
 
 const resultWith = (
-  categoryScores: NonNullable<ParticipantResult["category_scores"]>,
+  disciplineScores: NonNullable<ParticipantResult["discipline_scores"]>,
 ): ParticipantResult => ({
   player_profile_id: 1,
   player_name: "Ana Silva",
   assessment_id: 900,
   overall_score: 74,
   rank: 1,
-  missing_category_ids: [],
+  missing_discipline_ids: [],
   status: "complete",
-  category_scores: categoryScores,
+  discipline_scores: disciplineScores,
 });
 
 describe("SpreadsheetScoreGrid hydration", () => {
   it("shows the coach's saved values for a published (read-only) session", () => {
     render(
       <SpreadsheetScoreGrid
-        categories={categories}
+        disciplines={disciplines}
         participants={[
           participant(
             resultWith([
@@ -76,7 +76,7 @@ describe("SpreadsheetScoreGrid hydration", () => {
   it("labels a value that was entered on a different scale", () => {
     render(
       <SpreadsheetScoreGrid
-        categories={categories}
+        disciplines={disciplines}
         participants={[
           participant(
             resultWith([
@@ -108,7 +108,7 @@ describe("SpreadsheetScoreGrid hydration", () => {
   it("leaves cells blank when nothing was ever scored", () => {
     render(
       <SpreadsheetScoreGrid
-        categories={categories}
+        disciplines={disciplines}
         participants={[participant()]}
         isDraft
         onSaveScores={vi.fn()}
@@ -136,7 +136,7 @@ describe("SpreadsheetScoreGrid editing", () => {
     const user = userEvent.setup();
     render(
       <SpreadsheetScoreGrid
-        categories={categories}
+        disciplines={disciplines}
         participants={twoPlayers}
         isDraft
         onSaveScores={vi.fn()}
@@ -147,11 +147,11 @@ describe("SpreadsheetScoreGrid editing", () => {
     anaAttack.focus();
     expect(anaAttack).toHaveFocus();
 
-    // Down to the next player, same category.
+    // Down to the next player, same discipline.
     await user.keyboard("{ArrowDown}");
     expect(screen.getByLabelText("Bruno Alves Attack")).toHaveFocus();
 
-    // Back up, then right to the next category.
+    // Back up, then right to the next discipline.
     await user.keyboard("{ArrowUp}{ArrowRight}");
     expect(screen.getByLabelText("Ana Silva Block")).toHaveFocus();
   });
@@ -160,7 +160,7 @@ describe("SpreadsheetScoreGrid editing", () => {
     const user = userEvent.setup();
     render(
       <SpreadsheetScoreGrid
-        categories={categories}
+        disciplines={disciplines}
         participants={[participant()]}
         isDraft
         onSaveScores={vi.fn()}
@@ -182,7 +182,7 @@ describe("SpreadsheetScoreGrid editing", () => {
     const onSaveScores = vi.fn().mockResolvedValue(undefined);
     render(
       <SpreadsheetScoreGrid
-        categories={categories}
+        disciplines={disciplines}
         participants={[participant()]}
         isDraft
         onSaveScores={onSaveScores}
@@ -198,7 +198,7 @@ describe("SpreadsheetScoreGrid editing", () => {
     expect(onSaveScores).toHaveBeenCalledWith([
       {
         player_profile_id: 1,
-        category_scores: [
+        discipline_scores: [
           { assessment_category_id: 1, scale: "one_to_ten", value: 8 },
           { assessment_category_id: 2, scale: "one_to_ten", value: 6 },
         ],
@@ -211,7 +211,7 @@ describe("SpreadsheetScoreGrid editing", () => {
     const onSaveScores = vi.fn();
     render(
       <SpreadsheetScoreGrid
-        categories={categories}
+        disciplines={disciplines}
         participants={[participant()]}
         isDraft
         onSaveScores={onSaveScores}
@@ -238,7 +238,7 @@ describe("SpreadsheetScoreGrid editing", () => {
       .mockRejectedValue(new Error("Score every included player before publishing"));
     render(
       <SpreadsheetScoreGrid
-        categories={categories}
+        disciplines={disciplines}
         participants={[participant()]}
         isDraft
         onSaveScores={onSaveScores}
@@ -259,7 +259,7 @@ describe("SpreadsheetScoreGrid editing", () => {
   it("keeps Save disabled until something is typed", () => {
     render(
       <SpreadsheetScoreGrid
-        categories={categories}
+        disciplines={disciplines}
         participants={[participant()]}
         isDraft
         onSaveScores={vi.fn()}
@@ -274,7 +274,7 @@ describe("SpreadsheetScoreGrid editing", () => {
     const onSaveScores = vi.fn();
     render(
       <SpreadsheetScoreGrid
-        categories={categories}
+        disciplines={disciplines}
         participants={[participant()]}
         isDraft
         onSaveScores={onSaveScores}
@@ -296,7 +296,7 @@ describe("SpreadsheetScoreGrid editing", () => {
   it("tells the coach when there is nobody to score", () => {
     render(
       <SpreadsheetScoreGrid
-        categories={categories}
+        disciplines={disciplines}
         participants={[
           {
             id: 9,
@@ -319,7 +319,7 @@ describe("SpreadsheetScoreGrid editing", () => {
   it("locks editing when the session is published", () => {
     render(
       <SpreadsheetScoreGrid
-        categories={categories}
+        disciplines={disciplines}
         participants={[participant()]}
         isDraft={false}
         onSaveScores={vi.fn()}
@@ -335,7 +335,7 @@ describe("SpreadsheetScoreGrid account-linked names", () => {
   it("shows the account name with the profile name in parentheses", () => {
     render(
       <SpreadsheetScoreGrid
-        categories={categories}
+        disciplines={disciplines}
         participants={[{ ...participant(), account_name: "Roma Lopes" }]}
         isDraft
         onSaveScores={vi.fn()}
@@ -349,7 +349,7 @@ describe("SpreadsheetScoreGrid account-linked names", () => {
   it("shows only the profile name when no account is linked", () => {
     render(
       <SpreadsheetScoreGrid
-        categories={categories}
+        disciplines={disciplines}
         participants={[participant()]}
         isDraft
         onSaveScores={vi.fn()}

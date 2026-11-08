@@ -1,17 +1,17 @@
 import { useEffect, useMemo, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
-import { api, type Category, type Skill } from "../../api";
+import { api, type Discipline, type Skill } from "../../api";
 import { useAuth } from "../../auth/AuthContext";
 import SettingsLayout from "../../components/settings/SettingsLayout";
 import DeleteConfirm from "../../components/settings/DeleteConfirm";
 import EmptyState from "../../components/EmptyState";
 import ResourceTable from "../../components/settings/ResourceTable";
 
-export default function CategoryDetail() {
+export default function DisciplineDetail() {
   const { slug } = useParams<{ slug: string }>();
   const { user } = useAuth();
   const navigate = useNavigate();
-  const [category, setCategory] = useState<Category | null>(null);
+  const [discipline, setDiscipline] = useState<Discipline | null>(null);
   const [skills, setSkills] = useState<Skill[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -22,22 +22,22 @@ export default function CategoryDetail() {
   useEffect(() => {
     if (!slug) return;
     Promise.all([
-      api.adminCategory(slug),
+      api.adminDiscipline(slug),
       api.adminSkills({ per_page: 1000 }).catch(() => {
         return { data: [] as Skill[], meta: { page: 1, per_page: 1000, total: 0, total_pages: 1 } };
       }),
     ])
       .then(([cat, skRes]) => {
-        setCategory(cat);
+        setDiscipline(cat);
         setSkills(skRes.data);
       })
       .catch((e: Error) => setError(e.message))
       .finally(() => setLoading(false));
   }, [slug]);
 
-  const categorySkills = useMemo(
-    () => skills.filter((s) => s.category_id === category?.id),
-    [skills, category]
+  const disciplineSkills = useMemo(
+    () => skills.filter((s) => s.discipline_id === discipline?.id),
+    [skills, discipline]
   );
 
   if (!user?.roles?.includes("admin")) {
@@ -51,15 +51,15 @@ export default function CategoryDetail() {
   if (loading) return <div className="loading">Loading...</div>;
   if (error) {
     return (
-      <SettingsLayout title="Category" backTo="/settings/categories" backLabel="Back to Categories">
+      <SettingsLayout title="Discipline" backTo="/settings/disciplines" backLabel="Back to Disciplines">
         <div className="auth-flash auth-flash-error">{error}</div>
       </SettingsLayout>
     );
   }
-  if (!category) {
+  if (!discipline) {
     return (
-      <SettingsLayout title="Category" backTo="/settings/categories" backLabel="Back to Categories">
-        <EmptyState title="Category not found" />
+      <SettingsLayout title="Discipline" backTo="/settings/disciplines" backLabel="Back to Disciplines">
+        <EmptyState title="Discipline not found" />
       </SettingsLayout>
     );
   }
@@ -68,10 +68,10 @@ export default function CategoryDetail() {
     setDeleting(true);
     setDeleteError(null);
     try {
-      await api.adminDestroyCategory(category.id);
-      navigate("/settings/categories");
+      await api.adminDestroyDiscipline(discipline.id);
+      navigate("/settings/disciplines");
     } catch (e) {
-      setDeleteError(e instanceof Error ? e.message : "Failed to delete category.");
+      setDeleteError(e instanceof Error ? e.message : "Failed to delete discipline.");
     } finally {
       setDeleting(false);
     }
@@ -79,13 +79,13 @@ export default function CategoryDetail() {
 
   return (
     <SettingsLayout
-      title={category.name}
-      description="Category details."
-      backTo="/settings/categories"
-      backLabel="Back to Categories"
+      title={discipline.name}
+      description="Discipline details."
+      backTo="/settings/disciplines"
+      backLabel="Back to Disciplines"
       actions={
         <div className="admin-table-actions">
-          <button type="button" className="admin-btn admin-btn-add" onClick={() => navigate(`/settings/categories/${category.slug}/edit`)}>
+          <button type="button" className="admin-btn admin-btn-add" onClick={() => navigate(`/settings/disciplines/${discipline.slug}/edit`)}>
             Edit
           </button>
           <button type="button" className="admin-btn admin-btn-remove" onClick={() => setConfirming(true)}>
@@ -96,7 +96,7 @@ export default function CategoryDetail() {
     >
       {confirming && (
         <DeleteConfirm
-          entityName={category.name}
+          entityName={discipline.name}
           onCancel={() => {
             setConfirming(false);
             setDeleteError(null);
@@ -108,14 +108,14 @@ export default function CategoryDetail() {
       )}
       <div className="detail-section">
         <h2>Details</h2>
-        <p>Slug: {category.slug}</p>
+        <p>Slug: {discipline.slug}</p>
       </div>
       <div className="detail-section">
-        <h2>Skills in this category</h2>
+        <h2>Skills in this discipline</h2>
         <ResourceTable<Skill>
-          data={categorySkills}
-          emptyTitle="No skills in this category"
-          emptyDescription="Skills assigned to this category will appear here."
+          data={disciplineSkills}
+          emptyTitle="No skills in this discipline"
+          emptyDescription="Skills assigned to this discipline will appear here."
           columns={[
             {
               key: "title",
@@ -126,7 +126,7 @@ export default function CategoryDetail() {
                 </Link>
               ),
             },
-            { key: "category", label: "Category", render: (s) => s.category?.name ?? "—" },
+            { key: "discipline", label: "Discipline", render: (s) => s.discipline?.name ?? "—" },
             {
               key: "description",
               label: "Description",

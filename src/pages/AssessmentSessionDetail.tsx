@@ -270,7 +270,7 @@ export default function AssessmentSessionDetail() {
   // is admin-only, matching the server: a withdrawal must not be reversible by its
   // own author, and destroying published results is the narrowest power here.
   const canDelete = isDraft || isAdmin;
-  const categories = [
+  const disciplines = [
     ...(session.assessment_definition?.assessment_categories || []),
   ].sort((a, b) => a.position - b.position);
 
@@ -419,7 +419,7 @@ export default function AssessmentSessionDetail() {
 
       {activeTab === "scores" && (
         <SpreadsheetScoreGrid
-          categories={categories}
+          disciplines={disciplines}
           participants={session.participants || []}
           isDraft={isDraft}
           onSaveScores={handleSaveScores}
@@ -428,7 +428,7 @@ export default function AssessmentSessionDetail() {
 
       {activeTab === "ranking" && (
         <SessionRankingTable
-          categories={categories}
+          disciplines={disciplines}
           rankingPayload={session.ranking}
         />
       )}

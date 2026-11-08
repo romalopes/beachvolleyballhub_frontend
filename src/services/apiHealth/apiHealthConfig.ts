@@ -2,7 +2,7 @@ import { APP_VERSION } from "../../constants/versions";
 import {
   hasStatusOk,
   isAuthMePayload,
-  isCategoryPayload,
+  isDisciplinePayload,
   isDrillListPayload,
   isHealthyDetailedPayload,
   isSkillListPayload,
@@ -16,7 +16,7 @@ export const API_CATEGORIES = {
   SYSTEM: "System",
   AUTH: "Authentication",
   SECURITY: "Security Guards",
-  CATEGORIES: "Categories",
+  CATEGORIES: "Disciplines",
   SKILLS: "Skills",
   DRILLS: "Drills",
   TRAINING: "Training & Media",
@@ -30,7 +30,7 @@ export interface LatencyThresholds {
 
 export interface ApiCheck {
   id: string;
-  category: string;
+  discipline: string;
   name: string;
   method: "GET" | "POST" | "PATCH" | "DELETE";
   url: string;
@@ -52,7 +52,7 @@ export interface ApiCheck {
 export interface CheckResult {
   id: string;
   name: string;
-  category: string;
+  discipline: string;
   passed: boolean;
   status: number | null;
   expectedStatus: number;
@@ -76,7 +76,7 @@ export const DEFAULT_THRESHOLDS: LatencyThresholds = {
 // check override anything else (e.g. latency thresholds or a custom validator).
 const listCheck = (check: {
   id: string;
-  category: string;
+  discipline: string;
   name: string;
   url: string;
   validate?: (data: unknown) => boolean;
@@ -92,7 +92,7 @@ const listCheck = (check: {
 export const API_CHECKS: ApiCheck[] = [
   {
     id: "system-liveness",
-    category: API_CATEGORIES.SYSTEM,
+    discipline: API_CATEGORIES.SYSTEM,
     name: "Public Liveness Check",
     method: "GET",
     url: "/health",
@@ -102,7 +102,7 @@ export const API_CHECKS: ApiCheck[] = [
   },
   {
     id: "system-detailed",
-    category: API_CATEGORIES.SYSTEM,
+    discipline: API_CATEGORIES.SYSTEM,
     name: "Detailed Infrastructure Health",
     method: "GET",
     url: "/health/detailed",
@@ -112,7 +112,7 @@ export const API_CHECKS: ApiCheck[] = [
   },
   {
     id: "system-version-match",
-    category: API_CATEGORIES.SYSTEM,
+    discipline: API_CATEGORIES.SYSTEM,
     name: "Backend Version Matches APP_VERSION",
     method: "GET",
     url: "/health/detailed",
@@ -125,7 +125,7 @@ export const API_CHECKS: ApiCheck[] = [
   },
   {
     id: "auth-me-valid",
-    category: API_CATEGORIES.AUTH,
+    discipline: API_CATEGORIES.AUTH,
     name: "Authenticated Session Context",
     method: "GET",
     url: "/me",
@@ -135,7 +135,7 @@ export const API_CHECKS: ApiCheck[] = [
   },
   {
     id: "auth-account",
-    category: API_CATEGORIES.AUTH,
+    discipline: API_CATEGORIES.AUTH,
     name: "Account Payload Shape",
     method: "GET",
     url: "/account",
@@ -145,7 +145,7 @@ export const API_CHECKS: ApiCheck[] = [
   },
   {
     id: "security-me-rejected",
-    category: API_CATEGORIES.SECURITY,
+    discipline: API_CATEGORIES.SECURITY,
     name: "Unauthenticated /me Rejection",
     method: "GET",
     url: "/me",
@@ -156,7 +156,7 @@ export const API_CHECKS: ApiCheck[] = [
   },
   {
     id: "security-detailed-rejected",
-    category: API_CATEGORIES.SECURITY,
+    discipline: API_CATEGORIES.SECURITY,
     name: "Unauthenticated /health/detailed Rejection",
     method: "GET",
     url: "/health/detailed",
@@ -167,7 +167,7 @@ export const API_CHECKS: ApiCheck[] = [
   },
   {
     id: "security-admin-skills-rejected",
-    category: API_CATEGORIES.SECURITY,
+    discipline: API_CATEGORIES.SECURITY,
     name: "Unauthenticated /admin/skills Rejection",
     method: "GET",
     url: "/admin/skills",
@@ -177,26 +177,26 @@ export const API_CHECKS: ApiCheck[] = [
     validate: () => true,
   },
   listCheck({
-    id: "categories-list",
-    category: API_CATEGORIES.CATEGORIES,
-    name: "Categories List",
-    url: "/categories",
+    id: "disciplines-list",
+    discipline: API_CATEGORIES.CATEGORIES,
+    name: "Disciplines List",
+    url: "/disciplines",
     validate: (data) =>
-      isValidArray(data) && (data as unknown[]).every(isCategoryPayload),
-    describeFailure: () => "Expected an array of { id, name, slug } categories",
+      isValidArray(data) && (data as unknown[]).every(isDisciplinePayload),
+    describeFailure: () => "Expected an array of { id, name, slug } disciplines",
   }),
   listCheck({
     id: "skills-list",
-    category: API_CATEGORIES.SKILLS,
-    name: "Skills List (with categories)",
+    discipline: API_CATEGORIES.SKILLS,
+    name: "Skills List (with disciplines)",
     url: "/skills",
     validate: isSkillListPayload,
     describeFailure: () =>
-      "Expected an array of { id, title, slug, category_id, category } skills",
+      "Expected an array of { id, title, slug, discipline_id, discipline } skills",
   }),
   listCheck({
     id: "drills-list",
-    category: API_CATEGORIES.DRILLS,
+    discipline: API_CATEGORIES.DRILLS,
     name: "Drills List (definition excluded)",
     url: "/drills",
     latencyThresholds: { excellent: 300, good: 700, slow: 1500 },
@@ -206,7 +206,7 @@ export const API_CHECKS: ApiCheck[] = [
   }),
   listCheck({
     id: "drill-skills-list",
-    category: API_CATEGORIES.DRILLS,
+    discipline: API_CATEGORIES.DRILLS,
     name: "Drill/Skill Links",
     url: "/drill_skills",
     validate: (data) =>
@@ -220,7 +220,7 @@ export const API_CHECKS: ApiCheck[] = [
   }),
   listCheck({
     id: "training-sessions-list",
-    category: API_CATEGORIES.TRAINING,
+    discipline: API_CATEGORIES.TRAINING,
     name: "Training Sessions List",
     url: "/training_sessions",
     validate: isTrainingSessionListPayload,
@@ -229,7 +229,7 @@ export const API_CHECKS: ApiCheck[] = [
   }),
   listCheck({
     id: "videos-list",
-    category: API_CATEGORIES.TRAINING,
+    discipline: API_CATEGORIES.TRAINING,
     name: "Videos List",
     url: "/videos",
     validate: isVideoListPayload,
@@ -237,21 +237,21 @@ export const API_CHECKS: ApiCheck[] = [
       "Expected an array of { id, title, provider, source_url, external_url } videos",
   }),
   {
-    id: "write-category-create-delete",
-    category: API_CATEGORIES.WRITE_SANDBOX,
-    name: "Create + Delete a Temporary Category",
+    id: "write-discipline-create-delete",
+    discipline: API_CATEGORIES.WRITE_SANDBOX,
+    name: "Create + Delete a Temporary Discipline",
     method: "POST",
-    url: "/categories",
+    url: "/disciplines",
     expectedStatus: 201,
     requiresAuth: false,
     requiresManualTrigger: true,
     description:
-      "Creates a temporary category (name suffixed with a timestamp) then deletes it. Self-cleaning.",
-    validate: isCategoryPayload,
+      "Creates a temporary discipline (name suffixed with a timestamp) then deletes it. Self-cleaning.",
+    validate: isDisciplinePayload,
   },
   {
     id: "send-test-email",
-    category: API_CATEGORIES.WRITE_SANDBOX,
+    discipline: API_CATEGORIES.WRITE_SANDBOX,
     name: "Send Test Email",
     method: "POST",
     url: "/health/email/test",
@@ -279,7 +279,7 @@ export const API_CHECKS: ApiCheck[] = [
   },
   {
     id: "send-test-notification",
-    category: API_CATEGORIES.WRITE_SANDBOX,
+    discipline: API_CATEGORIES.WRITE_SANDBOX,
     name: "Send Test Notification",
     method: "POST",
     url: "/health/notifications/test",
@@ -309,7 +309,7 @@ export const API_CHECKS: ApiCheck[] = [
 // A tiny helper to keep the config self-documenting.
 export const isWriteCheck = (check: ApiCheck): boolean =>
   check.requiresManualTrigger === true ||
-  check.category === API_CATEGORIES.WRITE_SANDBOX;
+  check.discipline === API_CATEGORIES.WRITE_SANDBOX;
 
 export const getCheckById = (id: string): ApiCheck | undefined =>
   API_CHECKS.find((c) => c.id === id);

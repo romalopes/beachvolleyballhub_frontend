@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { api, type Category, type Drill, type Skill } from "../api";
+import { api, type Discipline, type Drill, type Skill } from "../api";
 import { useAuth } from "../auth/AuthContext";
 import LibraryHero from "../components/LibraryHero";
 import DrillCard from "../components/DrillCard";
@@ -22,11 +22,11 @@ type SortKey = "name-asc" | "name-desc";
 export default function Drills() {
   const { user } = useAuth();
   const isAdmin = user?.roles?.includes("admin");
-  const [categories, setCategories] = useState<Category[]>([]);
+  const [disciplines, setDisciplines] = useState<Discipline[]>([]);
   const [drills, setDrills] = useState<Drill[]>([]);
   const [allSkills, setAllSkills] = useState<Skill[]>([]);
   const [search, setSearch] = useState("");
-  const [selectedCategory, setSelectedCategory] = useState<string>("");
+  const [selectedDiscipline, setSelectedDiscipline] = useState<string>("");
   const [selectedSkill, setSelectedSkill] = useState<string>("all");
   const [selectedDifficulty, setSelectedDifficulty] = useState<
     "all" | "unspecified" | DifficultyLevel
@@ -47,7 +47,7 @@ export default function Drills() {
   const [modalPage, setModalPage] = useState(1);
 
   useEffect(() => {
-    Promise.all([api.drills(), api.skills(), api.categories()])
+    Promise.all([api.drills(), api.skills(), api.disciplines()])
       .then(([drs, sks, cats]) => {
         if (import.meta.env.DEV) {
           drs.forEach((drill) => {
@@ -58,21 +58,21 @@ export default function Drills() {
         }
         setDrills(drs.filter(isValidDrillRange));
         setAllSkills(sks);
-        setCategories(cats);
+        setDisciplines(cats);
       })
       .catch(console.error)
       .finally(() => setLoading(false));
   }, []);
 
-  // Filter skills based on selected category
+  // Filter skills based on selected discipline
   const filteredSkills = useMemo(() => {
-    if (!selectedCategory) return allSkills;
-    return allSkills.filter((skill) => skill.category?.name === selectedCategory);
-  }, [allSkills, selectedCategory]);
+    if (!selectedDiscipline) return allSkills;
+    return allSkills.filter((skill) => skill.discipline?.name === selectedDiscipline);
+  }, [allSkills, selectedDiscipline]);
 
-  // Handle category change - reset skill selection
-  const handleCategoryChange = (category: string) => {
-    setSelectedCategory(category);
+  // Handle discipline change - reset skill selection
+  const handleDisciplineChange = (discipline: string) => {
+    setSelectedDiscipline(discipline);
     setSelectedSkill("all");
   };
 
@@ -116,10 +116,10 @@ export default function Drills() {
     const matchesSkill =
       selectedSkill === "all" ||
       drill.skills?.some((s) => s.id === Number(selectedSkill));
-    // Filter by category
-    const matchesCategory =
-      !selectedCategory ||
-      drill.skills?.some((s) => s.category?.name === selectedCategory);
+    // Filter by discipline
+    const matchesDiscipline =
+      !selectedDiscipline ||
+      drill.skills?.some((s) => s.discipline?.name === selectedDiscipline);
     // Opt-in filter: only drills that actually carry a visual definition.
     const matchesDefinition =
       !onlyWithDefinition || drill.has_definition === true;
@@ -129,7 +129,7 @@ export default function Drills() {
       matchesStage &&
       matchesPlayers &&
       matchesSkill &&
-      matchesCategory &&
+      matchesDiscipline &&
       matchesDefinition
     );
   });
@@ -207,7 +207,7 @@ export default function Drills() {
     setModalPage(1);
   };
 
-  // The category select always holds a value (first category by default), so it
+  // The discipline select always holds a value (first discipline by default), so it
   // is intentionally excluded from "filters active".
   const filtersActive =
     search.trim() !== "" ||
@@ -221,7 +221,7 @@ export default function Drills() {
 
   const clearFilters = () => {
     setSearch("");
-    setSelectedCategory(categories.length > 0 ? categories[0].name : "");
+    setSelectedDiscipline(disciplines.length > 0 ? disciplines[0].name : "");
     setSelectedSkill("all");
     setSelectedDifficulty("all");
     setSelectedStage("all");
@@ -275,12 +275,12 @@ export default function Drills() {
         </div>
         <div className="settings-toolbar-row">
           <select
-            value={selectedCategory}
-            onChange={(e) => handleCategoryChange(e.target.value)}
-            aria-label="Filter by category"
-            disabled={categories.length === 0}
+            value={selectedDiscipline}
+            onChange={(e) => handleDisciplineChange(e.target.value)}
+            aria-label="Filter by discipline"
+            disabled={disciplines.length === 0}
           >
-            {categories.map((cat) => (
+            {disciplines.map((cat) => (
               <option key={cat.id} value={cat.name}>
                 {cat.name}
               </option>
@@ -389,10 +389,10 @@ export default function Drills() {
           <div className="drills-by-skill">
             {[...drillsBySkill.entries()].map(
               ([skillId, { skill, drills: skillDrills }]) => (
-                <section key={skillId} className="category-section">
-                  <div className="category-section-header">
-                    <h2 className="category-section-title">{skill.title}</h2>
-                    <span className="category-section-count">
+                <section key={skillId} className="discipline-section">
+                  <div className="discipline-section-header">
+                    <h2 className="discipline-section-title">{skill.title}</h2>
+                    <span className="discipline-section-count">
                       {skillDrills.length}{" "}
                       {skillDrills.length === 1 ? "drill" : "drills"}
                     </span>
@@ -422,10 +422,10 @@ export default function Drills() {
             )}
           </div>
           {ungroupedDrills.length > 0 && (
-            <section className="category-section">
-              <div className="category-section-header">
-                <h2 className="category-section-title">Ungrouped drills</h2>
-                <span className="category-section-count">
+            <section className="discipline-section">
+              <div className="discipline-section-header">
+                <h2 className="discipline-section-title">Ungrouped drills</h2>
+                <span className="discipline-section-count">
                   {ungroupedDrills.length}{" "}
                   {ungroupedDrills.length === 1 ? "drill" : "drills"}
                 </span>

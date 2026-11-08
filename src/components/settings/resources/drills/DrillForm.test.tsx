@@ -12,9 +12,9 @@ vi.mock("../../../../api", () => {
   class ApiValidationError extends Error {}
   return {
     api: {
-      // `vi.fn` so a test can hand the picker specific categories/skills.
+      // `vi.fn` so a test can hand the picker specific disciplines/skills.
       skills: vi.fn(() => Promise.resolve([])),
-      categories: vi.fn(() => Promise.resolve([])),
+      disciplines: vi.fn(() => Promise.resolve([])),
       adminCreateDrill: vi.fn(() => Promise.resolve({})),
       adminUpdateDrill: vi.fn(() => Promise.resolve({})),
     },
@@ -26,7 +26,7 @@ import DrillForm from "./DrillForm";
 import { SAMPLE_DRILL_DEFINITION } from "../../../drill/definition";
 import type { DrillDefinition } from "../../../drill/definition";
 import { api } from "../../../../api";
-import type { Category, Drill, Skill } from "../../../../api";
+import type { Discipline, Drill, Skill } from "../../../../api";
 
 /**
  * The visual builder and the JSON textarea are two views of one model. These
@@ -39,7 +39,7 @@ afterEach(() => {
   cleanup();
   // The lookups are overridden per test; put the "nothing loaded" default back.
   vi.mocked(api.skills).mockResolvedValue([]);
-  vi.mocked(api.categories).mockResolvedValue([]);
+  vi.mocked(api.disciplines).mockResolvedValue([]);
 });
 
 const renderForm = () =>
@@ -54,7 +54,7 @@ const jsonField = () => {
   return screen.getByLabelText("Definition (JSON)") as HTMLTextAreaElement;
 };
 
-/** Wait for the mount effects (skills/categories) to flush. */
+/** Wait for the mount effects (skills/disciplines) to flush. */
 const ready = () =>
   waitFor(() =>
     expect(screen.getByText(/no participants yet/i)).toBeInTheDocument(),
@@ -222,13 +222,13 @@ describe("DrillForm — stored definitions", () => {
 
 describe("DrillForm — optional training attributes", () => {
   it("submits blank training attributes as null", async () => {
-    const serve = category(10, "Serve");
-    vi.mocked(api.categories).mockResolvedValue([serve]);
+    const serve = discipline(10, "Serve");
+    vi.mocked(api.disciplines).mockResolvedValue([serve]);
     vi.mocked(api.skills).mockResolvedValue([skill(1, "Float serve", serve)]);
     const create = vi.mocked(api.adminCreateDrill);
 
     renderForm();
-    await screen.findByLabelText("Category:");
+    await screen.findByLabelText("Discipline:");
 
     // A title and one skill are all the form requires; the five training
     // attributes are left blank (the selects keep their placeholder option).
@@ -252,13 +252,13 @@ describe("DrillForm — optional training attributes", () => {
   });
 
   it("still rejects a partial player range that cannot be true", async () => {
-    const serve = category(10, "Serve");
-    vi.mocked(api.categories).mockResolvedValue([serve]);
+    const serve = discipline(10, "Serve");
+    vi.mocked(api.disciplines).mockResolvedValue([serve]);
     vi.mocked(api.skills).mockResolvedValue([skill(1, "Float serve", serve)]);
     const create = vi.mocked(api.adminCreateDrill);
 
     renderForm();
-    await screen.findByLabelText("Category:");
+    await screen.findByLabelText("Discipline:");
 
     fireEvent.change(screen.getByLabelText("Title *"), {
       target: { value: "Bad Range" },
@@ -278,13 +278,13 @@ describe("DrillForm — optional training attributes", () => {
   });
 
   it("submits a drill with no linked skills", async () => {
-    const serve = category(10, "Serve");
-    vi.mocked(api.categories).mockResolvedValue([serve]);
+    const serve = discipline(10, "Serve");
+    vi.mocked(api.disciplines).mockResolvedValue([serve]);
     vi.mocked(api.skills).mockResolvedValue([skill(1, "Float serve", serve)]);
     const create = vi.mocked(api.adminCreateDrill);
 
     renderForm();
-    await screen.findByLabelText("Category:");
+    await screen.findByLabelText("Discipline:");
 
     // Only a title is required — no skill has to be selected.
     fireEvent.change(screen.getByLabelText("Title *"), {
@@ -346,30 +346,30 @@ describe("DrillForm — optional training attributes", () => {
 });
 
 /**
- * The picker shows one category at a time — there is no "All Categories" escape
- * hatch, so a drill is always authored against a concrete category. It opens on
- * the first category the API returns and lists only that category's skills.
+ * The picker shows one discipline at a time — there is no "All Disciplines" escape
+ * hatch, so a drill is always authored against a concrete discipline. It opens on
+ * the first discipline the API returns and lists only that discipline's skills.
  */
-const category = (id: number, name: string): Category => ({
+const discipline = (id: number, name: string): Discipline => ({
   id,
   name,
   slug: name.toLowerCase(),
 });
 
-const skill = (id: number, title: string, cat: Category): Skill => ({
+const skill = (id: number, title: string, cat: Discipline): Skill => ({
   id,
   title,
   slug: title.toLowerCase().replace(/\s+/g, "-"),
   description: null,
-  category_id: cat.id,
-  category: cat,
+  discipline_id: cat.id,
+  discipline: cat,
 });
 
 describe("DrillForm — skills picker", () => {
-  it("opens on the first category and lists only its skills", async () => {
-    const serve = category(10, "Serve");
-    const pass = category(20, "Pass");
-    vi.mocked(api.categories).mockResolvedValue([serve, pass]);
+  it("opens on the first discipline and lists only its skills", async () => {
+    const serve = discipline(10, "Serve");
+    const pass = discipline(20, "Pass");
+    vi.mocked(api.disciplines).mockResolvedValue([serve, pass]);
     vi.mocked(api.skills).mockResolvedValue([
       skill(1, "Float serve", serve),
       skill(2, "Bump pass", pass),
@@ -377,15 +377,15 @@ describe("DrillForm — skills picker", () => {
 
     renderForm();
 
-    // The first category is selected without the user choosing anything.
-    const picker = await screen.findByLabelText("Category:");
+    // The first discipline is selected without the user choosing anything.
+    const picker = await screen.findByLabelText("Discipline:");
     await waitFor(() => expect(picker).toHaveValue("10"));
     expect(screen.getByText("Float serve")).toBeInTheDocument();
-    // The other category's skills are not offered, and neither is "All".
+    // The other discipline's skills are not offered, and neither is "All".
     expect(screen.queryByText("Bump pass")).toBeNull();
-    expect(screen.queryByText("All Categories")).toBeNull();
+    expect(screen.queryByText("All Disciplines")).toBeNull();
 
-    // Switching category swaps the visible skills.
+    // Switching discipline swaps the visible skills.
     fireEvent.change(picker, { target: { value: "20" } });
     await waitFor(() => expect(screen.getByText("Bump pass")).toBeInTheDocument());
     expect(screen.queryByText("Float serve")).toBeNull();

@@ -51,7 +51,7 @@ const skill = {
   title: "Float Serve",
   slug: "float-serve",
   description: "Serving without spin.",
-  category_id: 2,
+  discipline_id: 2,
   video_references: [videoReference],
 } as Skill;
 

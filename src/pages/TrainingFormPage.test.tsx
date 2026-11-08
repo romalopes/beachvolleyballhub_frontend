@@ -5,7 +5,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { AuthProvider } from "../auth/AuthProvider";
 import {
   api,
-  type Category,
+  type Discipline,
   type Drill,
   type Skill,
   type TrainingSession,
@@ -20,7 +20,7 @@ vi.mock("../api", async (importOriginal) => {
     ...actual,
     api: {
       me: vi.fn(),
-      categories: vi.fn(),
+      disciplines: vi.fn(),
       skills: vi.fn(),
       drills: vi.fn(),
       players: vi.fn(),
@@ -45,7 +45,7 @@ const coachUser = {
   roles: ["coach"],
 };
 
-const categories: Category[] = [
+const disciplines: Discipline[] = [
   { id: 1, name: "Defense", slug: "defense" },
   { id: 2, name: "Serving", slug: "serving" },
 ];
@@ -56,14 +56,14 @@ const skills: Skill[] = [
     title: "Serve Reception",
     slug: "serve-reception",
     description: null,
-    category_id: 1,
+    discipline_id: 1,
   },
   {
     id: 6,
     title: "Defensive Movement",
     slug: "defensive-movement",
     description: null,
-    category_id: 1,
+    discipline_id: 1,
   },
 ];
 
@@ -85,7 +85,7 @@ const drills: Drill[] = [
         title: "Serve Reception",
         slug: "serve-reception",
         description: null,
-        category_id: 1,
+        discipline_id: 1,
       },
     ],
   },
@@ -119,7 +119,7 @@ const drills: Drill[] = [
         title: "Defensive Movement",
         slug: "defensive-movement",
         description: null,
-        category_id: 1,
+        discipline_id: 1,
       },
     ],
   },
@@ -143,7 +143,7 @@ const renderForm = (route = "/training/new") =>
 beforeEach(() => {
   vi.clearAllMocks();
   mockedApi.me.mockResolvedValue(coachUser);
-  mockedApi.categories.mockResolvedValue(categories);
+  mockedApi.disciplines.mockResolvedValue(disciplines);
   mockedApi.skills.mockResolvedValue(skills);
   mockedApi.drills.mockResolvedValue(drills);
   mockedApi.players.mockResolvedValue(paginated([]));
@@ -168,7 +168,7 @@ const drillRowTitles = () =>
 
 const addSkillFocus = async (skillId = "5") => {
   await userEvent.selectOptions(
-    focusSection().getByLabelText(/^Category$/i),
+    focusSection().getByLabelText(/^Discipline$/i),
     "1",
   );
   await userEvent.selectOptions(
@@ -322,10 +322,10 @@ describe("TrainingFormPage — new training", () => {
   it("adds a skill focus and a custom focus with descriptions", async () => {
     renderForm();
     await screen.findByLabelText(/^Title$/i);
-    await focusSection().findByLabelText(/^Category$/i);
+    await focusSection().findByLabelText(/^Discipline$/i);
 
     await userEvent.selectOptions(
-      focusSection().getByLabelText(/^Category$/i),
+      focusSection().getByLabelText(/^Discipline$/i),
       "1",
     );
     await userEvent.selectOptions(
@@ -371,7 +371,7 @@ describe("TrainingFormPage — new training", () => {
   it("recommends drills from focus skills and allows manual browse + add", async () => {
     renderForm();
     await screen.findByLabelText(/^Title$/i);
-    await focusSection().findByLabelText(/^Category$/i);
+    await focusSection().findByLabelText(/^Discipline$/i);
     await addSkillFocus();
 
     expect(
@@ -407,7 +407,7 @@ describe("TrainingFormPage — new training", () => {
 
     renderForm();
     await screen.findByLabelText(/^Title$/i);
-    await focusSection().findByLabelText(/^Category$/i);
+    await focusSection().findByLabelText(/^Discipline$/i);
     await addSkillFocus();
 
     await userEvent.click(
@@ -429,7 +429,7 @@ describe("TrainingFormPage — new training", () => {
   it("edits duration, notes, removes and reorders selected drills", async () => {
     renderForm();
     await screen.findByLabelText(/^Title$/i);
-    await focusSection().findByLabelText(/^Category$/i);
+    await focusSection().findByLabelText(/^Discipline$/i);
     await addSkillFocus();
     await userEvent.click(
       drillSection().getByRole("checkbox", { name: /recommended only/i }),
@@ -480,7 +480,7 @@ describe("TrainingFormPage — new training", () => {
   it("submits the training with nested focuses and drills", async () => {
     renderForm();
     await screen.findByLabelText(/^Title$/i);
-    await focusSection().findByLabelText(/^Category$/i);
+    await focusSection().findByLabelText(/^Discipline$/i);
     await userEvent.type(
       screen.getByLabelText(/^Title$/i),
       "Serve Reception Training",
@@ -647,7 +647,7 @@ describe("TrainingFormPage — new training", () => {
   it("narrows the drill list as the coach types a name", async () => {
     renderForm();
     await screen.findByLabelText(/^Title$/i);
-    await focusSection().findByLabelText(/^Category$/i);
+    await focusSection().findByLabelText(/^Discipline$/i);
     await addSkillFocus();
 
     // Recommended mode: only "Serve Receive Progression" matches "serve".
@@ -680,7 +680,7 @@ describe("TrainingFormPage — new training", () => {
   it("filters the drill list by the selected focus skill", async () => {
     renderForm();
     await screen.findByLabelText(/^Title$/i);
-    await focusSection().findByLabelText(/^Category$/i);
+    await focusSection().findByLabelText(/^Discipline$/i);
     await addSkillFocus("5");
     await addSkillFocus("6");
 
@@ -720,7 +720,7 @@ describe("TrainingFormPage — new training", () => {
   it("clears the skill filter when that focus is removed", async () => {
     renderForm();
     await screen.findByLabelText(/^Title$/i);
-    await focusSection().findByLabelText(/^Category$/i);
+    await focusSection().findByLabelText(/^Discipline$/i);
     await addSkillFocus("5");
     await addSkillFocus("6");
     await userEvent.selectOptions(

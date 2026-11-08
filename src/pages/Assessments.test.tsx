@@ -22,8 +22,8 @@ const row = (overrides: Partial<Assessment> = {}): Assessment => ({
   id: 1,
   player_profile_id: 12,
   coach_profile_id: 7,
-  category_id: 5,
-  custom_category: null,
+  discipline_id: 5,
+  custom_discipline: null,
   training_session_id: null,
   score: 70,
   reported_value: 4,
@@ -32,7 +32,7 @@ const row = (overrides: Partial<Assessment> = {}): Assessment => ({
   status: "active",
   created_at: "2026-09-01T00:00:00.000Z",
   updated_at: "2026-09-01T00:00:00.000Z",
-  category_label: "Attack",
+  discipline_label: "Attack",
   ten_scale: 7,
   five_scale: 4,
   score_label: "70/100",
@@ -50,7 +50,7 @@ const row = (overrides: Partial<Assessment> = {}): Assessment => ({
   },
   assessment_session_name: "Spring evaluation",
   assessment_session_scheduled_on: "2026-09-01",
-  category: { id: 5, name: "Attack", slug: "attack" },
+  discipline: { id: 5, name: "Attack", slug: "attack" },
   ...overrides,
 });
 
@@ -101,8 +101,8 @@ describe("Assessments", () => {
     mockedApi.assessments.mockResolvedValue(
       paginated([
         row({
-          category_id: null,
-          category: null,
+          discipline_id: null,
+          discipline: null,
           assessment_definition_id: 7,
           assessment_definition: {
             id: 7,

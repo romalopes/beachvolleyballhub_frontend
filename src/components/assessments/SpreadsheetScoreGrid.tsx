@@ -3,8 +3,8 @@ import type { KeyboardEvent } from "react";
 import { AlertCircle, Check, Save } from "lucide-react";
 import type {
   AssessmentScale,
-  AssessmentSessionCategory,
-  AssessmentSessionCategoryScore,
+  AssessmentSessionDiscipline,
+  AssessmentSessionDisciplineScore,
   AssessmentSessionParticipant,
   AssessmentSessionScoreInput,
 } from "../../api";
@@ -12,20 +12,20 @@ import { legalValue, toScore, SCALE_LABELS, SCALE_MAXIMA } from "../../utils/rat
 import { profileDisplayName } from "../../utils/profileName";
 
 interface SpreadsheetScoreGridProps {
-  categories: AssessmentSessionCategory[];
+  disciplines: AssessmentSessionDiscipline[];
   participants: AssessmentSessionParticipant[];
   isDraft: boolean;
   onSaveScores: (scores: AssessmentSessionScoreInput[]) => Promise<void>;
 }
 
 export default function SpreadsheetScoreGrid({
-  categories,
+  disciplines,
   participants,
   isDraft,
   onSaveScores,
 }: SpreadsheetScoreGridProps) {
   const includedParticipants = participants.filter((p) => p.inclusion === "included");
-  const sortedCategories = [...categories].sort((a, b) => a.position - b.position);
+  const sortedDisciplines = [...disciplines].sort((a, b) => a.position - b.position);
 
   const [gridValues, setGridValues] = useState<Record<number, Record<number, string>>>({});
   const [dirty, setDirty] = useState(false);
@@ -45,11 +45,11 @@ export default function SpreadsheetScoreGrid({
    */
   const savedEntry = (
     playerProfileId: number,
-    categoryId: number
-  ): AssessmentSessionCategoryScore | undefined =>
+    disciplineId: number
+  ): AssessmentSessionDisciplineScore | undefined =>
     participants
       .find((p) => p.player_profile_id === playerProfileId)
-      ?.result?.category_scores?.find((c) => c.assessment_category_id === categoryId);
+      ?.result?.discipline_scores?.find((c) => c.assessment_category_id === disciplineId);
 
   // Hydrate from the server payload, not just local state: a published session is
   // read-only, so without this its cells would stay permanently blank and the
@@ -62,7 +62,7 @@ export default function SpreadsheetScoreGrid({
       includedParticipants
         .map(
           (p) =>
-            `${p.player_profile_id}:${(p.result?.category_scores ?? [])
+            `${p.player_profile_id}:${(p.result?.discipline_scores ?? [])
               .map((c) => `${c.assessment_category_id}=${c.reported_value}`)
               .join(",")}`,
         )
@@ -78,7 +78,7 @@ export default function SpreadsheetScoreGrid({
       const merged: Record<number, Record<number, string>> = {};
       for (const p of includedParticipants) {
         merged[p.player_profile_id] = {};
-        for (const cat of sortedCategories) {
+        for (const cat of sortedDisciplines) {
           const saved = savedEntry(p.player_profile_id, cat.id);
           merged[p.player_profile_id][cat.id] =
             saved?.reported_value != null
@@ -98,7 +98,7 @@ export default function SpreadsheetScoreGrid({
   // Keep the ref matrix sized to the current grid. Assigning during render is
   // unsafe under concurrent rendering, so it is synced after commit instead.
   const rowCount = includedParticipants.length;
-  const colCount = sortedCategories.length;
+  const colCount = sortedDisciplines.length;
 
   useEffect(() => {
     cellRefs.current = Array.from({ length: rowCount }, (_, r) =>
@@ -108,14 +108,14 @@ export default function SpreadsheetScoreGrid({
 
   const handleCellChange = (
     playerProfileId: number,
-    categoryId: number,
+    disciplineId: number,
     val: string
   ) => {
     setGridValues((prev) => ({
       ...prev,
       [playerProfileId]: {
         ...prev[playerProfileId],
-        [categoryId]: val,
+        [disciplineId]: val,
       },
     }));
     setDirty(true);
@@ -149,7 +149,7 @@ export default function SpreadsheetScoreGrid({
       const input = e.currentTarget;
       if (input.selectionStart === input.value.length) {
         e.preventDefault();
-        targetCol = Math.min(sortedCategories.length - 1, colIndex + 1);
+        targetCol = Math.min(sortedDisciplines.length - 1, colIndex + 1);
       } else {
         return;
       }
@@ -166,7 +166,7 @@ export default function SpreadsheetScoreGrid({
     let anyFilled = false;
     let weightedSum = 0;
 
-    for (const cat of sortedCategories) {
+    for (const cat of sortedDisciplines) {
       const rawVal = playerCells[cat.id]?.trim();
       if (!rawVal) {
         allValid = false;
@@ -199,9 +199,9 @@ export default function SpreadsheetScoreGrid({
 
       for (const p of includedParticipants) {
         const playerCells = gridValues[p.player_profile_id] || {};
-        const categoryScores = [];
+        const disciplineScores = [];
 
-        for (const cat of sortedCategories) {
+        for (const cat of sortedDisciplines) {
           const rawVal = playerCells[cat.id]?.trim();
           if (rawVal === undefined || rawVal === "") {
             continue;
@@ -212,17 +212,17 @@ export default function SpreadsheetScoreGrid({
               `Invalid value "${rawVal}" for ${profileDisplayName(p.account_name, p.player_name)} in ${cat.label}. Scale is ${selectedScale}.`
             );
           }
-          categoryScores.push({
+          disciplineScores.push({
             assessment_category_id: cat.id,
             scale: selectedScale,
             value: num,
           });
         }
 
-        if (categoryScores.length > 0) {
+        if (disciplineScores.length > 0) {
           payload.push({
             player_profile_id: p.player_profile_id,
-            category_scores: categoryScores,
+            discipline_scores: disciplineScores,
           });
         }
       }
@@ -298,10 +298,10 @@ export default function SpreadsheetScoreGrid({
           <thead>
             <tr>
               <th className="col-player-name">Player</th>
-              {sortedCategories.map((cat) => (
-                <th key={cat.id} className="col-category">
-                  <div className="category-header-title">{cat.label}</div>
-                  <div className="category-header-weight">{cat.weight}%</div>
+              {sortedDisciplines.map((cat) => (
+                <th key={cat.id} className="col-discipline">
+                  <div className="discipline-header-title">{cat.label}</div>
+                  <div className="discipline-header-weight">{cat.weight}%</div>
                 </th>
               ))}
               <th className="col-preview-total">Live Total</th>
@@ -317,7 +317,7 @@ export default function SpreadsheetScoreGrid({
                   <td className="cell-player-name">
                     <span className="player-name-text">{profileDisplayName(p.account_name, p.player_name)}</span>
                   </td>
-                  {sortedCategories.map((cat, cIdx) => {
+                  {sortedDisciplines.map((cat, cIdx) => {
                     const cellVal = gridValues[p.player_profile_id]?.[cat.id] ?? "";
                     const isCellInvalid =
                       cellVal.trim() !== "" && !legalValue(Number(cellVal), selectedScale);

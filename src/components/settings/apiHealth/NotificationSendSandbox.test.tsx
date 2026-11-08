@@ -19,7 +19,7 @@ const mockedEmit = vi.mocked(emitNotificationsChanged);
 
 const check: ApiCheck = {
   id: "send-test-notification",
-  category: "Write Operations (Manual)",
+  discipline: "Write Operations (Manual)",
   name: "Send Test Notification",
   method: "POST",
   url: "/health/notifications/test",
@@ -33,7 +33,7 @@ function result(overrides: Partial<CheckResult> = {}): CheckResult {
   return {
     id: check.id,
     name: check.name,
-    category: check.category,
+    discipline: check.discipline,
     passed: true,
     status: 201,
     expectedStatus: 201,

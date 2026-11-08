@@ -1,7 +1,7 @@
 import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { api, type AssessmentDefinition, type Category, type CategoryCustom } from "../api";
+import { api, type AssessmentDefinition, type Discipline, type DisciplineCustom } from "../api";
 import { paginated } from "../test/paginated";
 import { AuthContext, type AuthContextValue } from "../auth/AuthContext";
 import AssessmentDefinitions from "./AssessmentDefinitions";
@@ -13,9 +13,9 @@ vi.mock("../api", async (importOriginal) => {
     api: {
       ...actual.api,
       assessmentDefinitions: vi.fn(),
-      categories: vi.fn(),
-      categoryCustoms: vi.fn(),
-      createCategoryCustom: vi.fn(),
+      disciplines: vi.fn(),
+      disciplineCustoms: vi.fn(),
+      createDisciplineCustom: vi.fn(),
       createAssessmentDefinition: vi.fn(),
       updateAssessmentDefinition: vi.fn(),
       archiveAssessmentDefinition: vi.fn(),
@@ -27,7 +27,7 @@ vi.mock("../api", async (importOriginal) => {
 
 const mockedApi = vi.mocked(api, true);
 
-const categories: Category[] = [
+const disciplines: Discipline[] = [
   { id: 1, name: "Attack", slug: "attack" },
   { id: 2, name: "Defense", slug: "defense" },
 ];
@@ -47,14 +47,14 @@ const definition = (overrides: Partial<AssessmentDefinition> = {}): AssessmentDe
   assessment_categories: [
     {
       id: 11,
-      category_id: 1,
-      category_custom_id: null,
-      source_type: "category",
+      discipline_id: 1,
+      discipline_custom_id: null,
+      source_type: "discipline",
       label: "Attack",
       weight: 100,
       position: 0,
-      category: categories[0],
-      category_custom: null,
+      discipline: disciplines[0],
+      discipline_custom: null,
     },
   ],
   ...overrides,
@@ -91,32 +91,32 @@ const renderPage = (auth: AuthContextValue = authValue()) =>
 beforeEach(() => {
   vi.clearAllMocks();
   mockedApi.assessmentDefinitions.mockResolvedValue(paginated([]));
-  mockedApi.categories.mockResolvedValue(categories);
-  mockedApi.categoryCustoms.mockResolvedValue([]);
-  mockedApi.createCategoryCustom.mockResolvedValue({ id: 20, name: "Communication", visibility: "shared" } satisfies CategoryCustom);
+  mockedApi.disciplines.mockResolvedValue(disciplines);
+  mockedApi.disciplineCustoms.mockResolvedValue([]);
+  mockedApi.createDisciplineCustom.mockResolvedValue({ id: 20, name: "Communication", visibility: "shared" } satisfies DisciplineCustom);
   mockedApi.createAssessmentDefinition.mockResolvedValue(definition());
 });
 
 describe("AssessmentDefinitions", () => {
-  it("adds categories, blocks duplicates, and tracks the total", async () => {
+  it("adds disciplines, blocks duplicates, and tracks the total", async () => {
     renderPage();
     expect(await screen.findByRole("option", { name: "Attack" })).toBeInTheDocument();
 
-    await userEvent.selectOptions(screen.getByLabelText("Add category"), "1");
-    await userEvent.click(screen.getByRole("button", { name: "Add category" }));
+    await userEvent.selectOptions(screen.getByLabelText("Add discipline"), "1");
+    await userEvent.click(screen.getByRole("button", { name: "Add discipline" }));
     expect(screen.getByText("1. Attack")).toBeInTheDocument();
     expect(screen.getByText(/Total: 0%/)).toBeInTheDocument();
 
-    await userEvent.selectOptions(screen.getByLabelText("Add category"), "1");
-    await userEvent.click(screen.getByRole("button", { name: "Add category" }));
+    await userEvent.selectOptions(screen.getByLabelText("Add discipline"), "1");
+    await userEvent.click(screen.getByRole("button", { name: "Add discipline" }));
     expect(screen.getByRole("alert")).toHaveTextContent(/not already/i);
   });
 
   it("only enables publishing when the weights total 100", async () => {
     renderPage();
     await screen.findByRole("option", { name: "Attack" });
-    await userEvent.selectOptions(screen.getByLabelText("Add category"), "1");
-    await userEvent.click(screen.getByRole("button", { name: "Add category" }));
+    await userEvent.selectOptions(screen.getByLabelText("Add discipline"), "1");
+    await userEvent.click(screen.getByRole("button", { name: "Add discipline" }));
     await userEvent.type(screen.getByLabelText("Weight for Attack"), "100");
     expect(screen.getByRole("button", { name: "Publish" })).toBeEnabled();
   });
@@ -133,30 +133,30 @@ describe("AssessmentDefinitions", () => {
     expect(screen.getByLabelText("Assessment definition")).toHaveValue("new");
   });
 
-  it("uses a text box and creates a custom category when adding one", async () => {
+  it("uses a text box and creates a custom discipline when adding one", async () => {
     renderPage();
     await screen.findByRole("option", { name: "Attack" });
 
-    await userEvent.selectOptions(screen.getByLabelText("Category type"), "custom_category");
-    expect(screen.getByLabelText("New custom category")).toBeInTheDocument();
-    expect(screen.queryByLabelText("Add category")).not.toBeInTheDocument();
+    await userEvent.selectOptions(screen.getByLabelText("Discipline type"), "custom_discipline");
+    expect(screen.getByLabelText("New custom discipline")).toBeInTheDocument();
+    expect(screen.queryByLabelText("Add discipline")).not.toBeInTheDocument();
 
-    await userEvent.type(screen.getByLabelText("New custom category"), "Communication");
-    await userEvent.click(screen.getByRole("button", { name: "Add category" }));
+    await userEvent.type(screen.getByLabelText("New custom discipline"), "Communication");
+    await userEvent.click(screen.getByRole("button", { name: "Add discipline" }));
 
-    expect(mockedApi.createCategoryCustom).toHaveBeenCalledWith({ name: "Communication", visibility: "shared" });
+    expect(mockedApi.createDisciplineCustom).toHaveBeenCalledWith({ name: "Communication", visibility: "shared" });
     expect(await screen.findByText("1. Communication")).toBeInTheDocument();
   });
 
-  it("rejects an empty custom category name", async () => {
+  it("rejects an empty custom discipline name", async () => {
     renderPage();
     await screen.findByRole("option", { name: "Attack" });
 
-    await userEvent.selectOptions(screen.getByLabelText("Category type"), "custom_category");
-    await userEvent.click(screen.getByRole("button", { name: "Add category" }));
+    await userEvent.selectOptions(screen.getByLabelText("Discipline type"), "custom_discipline");
+    await userEvent.click(screen.getByRole("button", { name: "Add discipline" }));
 
-    expect(screen.getByRole("alert")).toHaveTextContent("Enter a custom category name.");
-    expect(mockedApi.createCategoryCustom).not.toHaveBeenCalled();
+    expect(screen.getByRole("alert")).toHaveTextContent("Enter a custom discipline name.");
+    expect(mockedApi.createDisciplineCustom).not.toHaveBeenCalled();
   });
 
   it("saves an incomplete definition as a draft", async () => {
@@ -189,7 +189,7 @@ describe("AssessmentDefinitions", () => {
     expect(publish.closest(".assessment-definition-actions")).not.toBeNull();
 
     expect(screen.getByRole("button", { name: "Save draft" }).closest(".assessment-definition-actions")).not.toBeNull();
-    expect(screen.getByRole("button", { name: "Add category" }).closest(".assessment-definition-add")).not.toBeNull();
+    expect(screen.getByRole("button", { name: "Add discipline" }).closest(".assessment-definition-add")).not.toBeNull();
     expect(screen.getByRole("button", { name: "Up" }).closest(".assessment-definition-row-actions")).not.toBeNull();
     expect(screen.getByRole("button", { name: "Remove" }).closest(".assessment-definition-row-actions")).not.toBeNull();
   });

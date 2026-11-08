@@ -61,9 +61,9 @@ import LocationCreatePage from "./pages/settings/LocationCreatePage";
 import LocationEditPage from "./pages/settings/LocationEditPage";
 import SkillsSettings from "./pages/settings/Skills";
 import SkillFormPage from "./pages/settings/SkillFormPage";
-import CategoriesSettings from "./pages/settings/Categories";
-import CategoryDetailSettings from "./pages/settings/CategoryDetail";
-import CategoryFormPage from "./pages/settings/CategoryFormPage";
+import DisciplinesSettings from "./pages/settings/Disciplines";
+import DisciplineDetailSettings from "./pages/settings/DisciplineDetail";
+import DisciplineFormPage from "./pages/settings/DisciplineFormPage";
 import DrillsSettings from "./pages/settings/Drills";
 import DrillFormPage from "./pages/settings/DrillFormPage";
 import Logs from "./pages/settings/Logs";
@@ -600,34 +600,34 @@ export default function App() {
                   }
                 />
                 <Route
-                  path="/settings/categories"
+                  path="/settings/disciplines"
                   element={
                     <AdminRoute>
-                      <CategoriesSettings />
+                      <DisciplinesSettings />
                     </AdminRoute>
                   }
                 />
                 <Route
-                  path="/settings/categories/new"
+                  path="/settings/disciplines/new"
                   element={
                     <AdminRoute>
-                      <CategoryFormPage />
+                      <DisciplineFormPage />
                     </AdminRoute>
                   }
                 />
                 <Route
-                  path="/settings/categories/:slug/edit"
+                  path="/settings/disciplines/:slug/edit"
                   element={
                     <AdminRoute>
-                      <CategoryFormPage />
+                      <DisciplineFormPage />
                     </AdminRoute>
                   }
                 />
                 <Route
-                  path="/settings/categories/:slug"
+                  path="/settings/disciplines/:slug"
                   element={
                     <AdminRoute>
-                      <CategoryDetailSettings />
+                      <DisciplineDetailSettings />
                     </AdminRoute>
                   }
                 />

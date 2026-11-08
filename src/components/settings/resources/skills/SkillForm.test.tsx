@@ -1,7 +1,7 @@
 import userEvent from "@testing-library/user-event";
 import { render, screen, waitFor } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { api, type Category, type Skill } from "../../../../api";
+import { api, type Discipline, type Skill } from "../../../../api";
 import SkillForm from "./SkillForm";
 
 vi.mock("../../../../api", async (importOriginal) => {
@@ -10,7 +10,7 @@ vi.mock("../../../../api", async (importOriginal) => {
     ...actual,
     api: {
       ...actual.api,
-      categories: vi.fn(),
+      disciplines: vi.fn(),
       adminCreateSkill: vi.fn(),
       adminUpdateSkill: vi.fn(),
     },
@@ -18,7 +18,7 @@ vi.mock("../../../../api", async (importOriginal) => {
 });
 
 const mockedApi = vi.mocked(api, true);
-const categories: Category[] = [
+const disciplines: Discipline[] = [
   { id: 2, name: "Passing", slug: "passing" },
   { id: 3, name: "Serving", slug: "serving" },
 ];
@@ -27,16 +27,16 @@ const skill: Skill = {
   title: "Float Serve",
   slug: "float-serve",
   description: "Controlled float serve",
-  category_id: 3,
+  discipline_id: 3,
 };
 
 describe("SkillForm", () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    mockedApi.categories.mockResolvedValue(categories);
+    mockedApi.disciplines.mockResolvedValue(disciplines);
   });
 
-  it("loads categories and validates title and category", async () => {
+  it("loads disciplines and validates title and discipline", async () => {
     render(<SkillForm onSuccess={vi.fn()} onCancel={vi.fn()} />);
     expect(await screen.findByRole("option", { name: "Serving" })).toBeInTheDocument();
 
@@ -45,7 +45,7 @@ describe("SkillForm", () => {
 
     await userEvent.type(screen.getByLabelText("Title *"), "Float Serve");
     await userEvent.click(screen.getByRole("button", { name: "Create Skill" }));
-    expect(screen.getByText("Category is required.")).toBeInTheDocument();
+    expect(screen.getByText("Discipline is required.")).toBeInTheDocument();
     expect(mockedApi.adminCreateSkill).not.toHaveBeenCalled();
   });
 
@@ -56,14 +56,14 @@ describe("SkillForm", () => {
 
     await screen.findByRole("option", { name: "Serving" });
     await userEvent.type(screen.getByLabelText("Title *"), "  Float Serve  ");
-    await userEvent.selectOptions(screen.getByLabelText("Category *"), "3");
+    await userEvent.selectOptions(screen.getByLabelText("Discipline *"), "3");
     await userEvent.type(screen.getByLabelText("Description"), "   ");
     await userEvent.click(screen.getByRole("button", { name: "Create Skill" }));
 
     await waitFor(() =>
       expect(mockedApi.adminCreateSkill).toHaveBeenCalledWith({
         title: "Float Serve",
-        category_id: 3,
+        discipline_id: 3,
         description: null,
       }),
     );
@@ -75,14 +75,14 @@ describe("SkillForm", () => {
     render(<SkillForm initial={skill} onSuccess={vi.fn()} onCancel={vi.fn()} />);
 
     expect(await screen.findByLabelText("Title *")).toHaveValue("Float Serve");
-    expect(screen.getByLabelText("Category *")).toHaveValue("3");
+    expect(screen.getByLabelText("Discipline *")).toHaveValue("3");
     expect(screen.getByLabelText("Description")).toHaveValue("Controlled float serve");
 
     await userEvent.click(screen.getByRole("button", { name: "Update Skill" }));
     expect(await screen.findByText("Skill could not be saved")).toBeInTheDocument();
     expect(mockedApi.adminUpdateSkill).toHaveBeenCalledWith(7, {
       title: "Float Serve",
-      category_id: 3,
+      discipline_id: 3,
       description: "Controlled float serve",
     });
   });

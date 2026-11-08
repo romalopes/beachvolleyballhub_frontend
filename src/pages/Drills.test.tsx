@@ -8,7 +8,7 @@ import userEvent from "@testing-library/user-event";
 import { MemoryRouter } from "react-router-dom";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { AuthProvider } from "../auth/AuthProvider";
-import { api, type Category, type Drill, type Skill } from "../api";
+import { api, type Discipline, type Drill, type Skill } from "../api";
 import Drills from "./Drills";
 
 vi.mock("../api", async (importOriginal) => {
@@ -19,23 +19,23 @@ vi.mock("../api", async (importOriginal) => {
       me: vi.fn(),
       drills: vi.fn(),
       skills: vi.fn(),
-      categories: vi.fn(),
+      disciplines: vi.fn(),
     },
   };
 });
 
 const mockedApi = vi.mocked(api, true);
 
-const offense: Category = { id: 1, name: "Offense", slug: "offense" };
-const defense: Category = { id: 2, name: "Defense", slug: "defense" };
+const offense: Discipline = { id: 1, name: "Offense", slug: "offense" };
+const defense: Discipline = { id: 2, name: "Defense", slug: "defense" };
 
 const spike: Skill = {
   id: 10,
   title: "Spike",
   slug: "spike",
   description: null,
-  category_id: 1,
-  category: offense,
+  discipline_id: 1,
+  discipline: offense,
 };
 
 const dig: Skill = {
@@ -43,8 +43,8 @@ const dig: Skill = {
   title: "Dig",
   slug: "dig",
   description: null,
-  category_id: 2,
-  category: defense,
+  discipline_id: 2,
+  discipline: defense,
 };
 
 const makeDrill = (overrides: Partial<Drill>): Drill => ({
@@ -87,7 +87,7 @@ const renderDrills = () =>
 beforeEach(() => {
   vi.clearAllMocks();
   mockedApi.me.mockResolvedValue(null);
-  mockedApi.categories.mockResolvedValue([offense, defense]);
+  mockedApi.disciplines.mockResolvedValue([offense, defense]);
   mockedApi.skills.mockResolvedValue([spike, dig]);
   mockedApi.drills.mockResolvedValue([alpha, beta]);
 });
@@ -97,7 +97,7 @@ describe("Drills — filter toolbar", () => {
     renderDrills();
     await screen.findByText("Alpha Spike");
 
-    expect(screen.getByLabelText("Filter by category")).toBeInTheDocument();
+    expect(screen.getByLabelText("Filter by discipline")).toBeInTheDocument();
     expect(screen.getByLabelText("Filter by skill")).toBeInTheDocument();
     expect(screen.getByLabelText("Filter by training stage")).toBeInTheDocument();
     expect(screen.getByLabelText("Filter by difficulty level")).toBeInTheDocument();

@@ -329,10 +329,10 @@ export default function TrainingDetail() {
                     focus.custom_focus
                   )}
                 </span>
-                {focus.skill?.category && (
+                {focus.skill?.discipline && (
                   <span className="related-item-meta">
                     {" "}
-                    · {focus.skill.category.name}
+                    · {focus.skill.discipline.name}
                   </span>
                 )}
                 {focus.description && <p>{focus.description}</p>}

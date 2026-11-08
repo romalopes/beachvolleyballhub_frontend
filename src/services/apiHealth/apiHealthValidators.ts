@@ -25,7 +25,7 @@ export const isAuthMePayload = (data: unknown): boolean =>
   typeof data.email_address === "string" &&
   Array.isArray(data.roles);
 
-export const isCategoryPayload = (data: unknown): boolean =>
+export const isDisciplinePayload = (data: unknown): boolean =>
   isRecord(data) &&
   typeof data.id === "number" &&
   typeof data.name === "string" &&
@@ -36,7 +36,7 @@ export const isSkillPayload = (data: unknown): boolean =>
   typeof data.id === "number" &&
   typeof data.title === "string" &&
   typeof data.slug === "string" &&
-  typeof data.category_id === "number";
+  typeof data.discipline_id === "number";
 
 export const isSkillListPayload = (data: unknown): boolean =>
   isValidArray(data) && data.every(isSkillPayload);

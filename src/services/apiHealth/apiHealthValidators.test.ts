@@ -3,7 +3,7 @@ import {
   hasStatusOk,
   isAccountPayload,
   isAuthMePayload,
-  isCategoryPayload,
+  isDisciplinePayload,
   isDrillListPayload,
   isDrillPayload,
   isHealthyDetailedPayload,
@@ -52,21 +52,21 @@ describe("apiHealthValidators", () => {
     ).toBe(false);
   });
 
-  it("isCategoryPayload validates { id, name, slug }", () => {
+  it("isDisciplinePayload validates { id, name, slug }", () => {
     expect(
-      isCategoryPayload({ id: 1, name: "Serving", slug: "serving" })
+      isDisciplinePayload({ id: 1, name: "Serving", slug: "serving" })
     ).toBe(true);
-    expect(isCategoryPayload({ id: 1, name: "Serving" })).toBe(false);
-    expect(isCategoryPayload([])).toBe(false);
+    expect(isDisciplinePayload({ id: 1, name: "Serving" })).toBe(false);
+    expect(isDisciplinePayload([])).toBe(false);
   });
 
-  it("isSkillPayload validates { id, title, slug, category_id }", () => {
+  it("isSkillPayload validates { id, title, slug, discipline_id }", () => {
     expect(
       isSkillPayload({
         id: 1,
         title: "Serve",
         slug: "serve",
-        category_id: 2,
+        discipline_id: 2,
       })
     ).toBe(true);
     expect(

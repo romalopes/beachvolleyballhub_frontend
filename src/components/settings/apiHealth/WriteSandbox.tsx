@@ -42,7 +42,7 @@ export default function WriteSandbox({
           </span>
           <span className="health-status-text" style={{ marginLeft: "0.5rem" }}>
             {result.error ||
-              `Created + deleted temp category in ${result.latencyMs}ms`}
+              `Created + deleted temp discipline in ${result.latencyMs}ms`}
           </span>
           <div style={{ marginTop: "0.6rem" }}>
             <ResponseInspector check={check} result={result} />
@@ -55,7 +55,7 @@ export default function WriteSandbox({
           <div className="health-modal" role="dialog" aria-modal="true">
             <h4 style={{ marginTop: 0 }}>Confirm write test</h4>
             <p>
-              This will create a temporary category and then immediately
+              This will create a temporary discipline and then immediately
               delete it. No other data is modified. Continue?
             </p>
             <div className="health-modal-actions">

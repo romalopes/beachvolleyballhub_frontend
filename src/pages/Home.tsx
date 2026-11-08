@@ -2,7 +2,7 @@ import { type FormEvent, useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import {
   api,
-  type Category,
+  type Discipline,
   type Drill,
   type Skill,
   type Tournament,
@@ -90,7 +90,7 @@ const sections = [
     path: "/skills",
     icon: Target,
     description:
-      "Browse all beach volleyball skills organised by category. Each skill includes descriptions and related drills.",
+      "Browse all beach volleyball skills organised by discipline. Each skill includes descriptions and related drills.",
   },
   {
     title: "Drills",
@@ -160,12 +160,12 @@ const sections = [
     title: "Assessment definitions",
     icon: ClipboardList,
     description:
-      "Manage the assessment categories and weightings used to evaluate player skills consistently.",
+      "Manage the assessment disciplines and weightings used to evaluate player skills consistently.",
   },
 ];
 
 export default function Home() {
-  const [categories, setCategories] = useState<Category[]>([]);
+  const [disciplines, setDisciplines] = useState<Discipline[]>([]);
   const [skills, setSkills] = useState<Skill[]>([]);
   const [drills, setDrills] = useState<Drill[]>([]);
   const [loading, setLoading] = useState(true);
@@ -224,9 +224,9 @@ export default function Home() {
   }, []);
 
   useEffect(() => {
-    Promise.all([api.categories(), api.skills(), api.drills()])
+    Promise.all([api.disciplines(), api.skills(), api.drills()])
       .then(([cats, sks, drs]) => {
-        setCategories(cats);
+        setDisciplines(cats);
         setSkills(sks);
         setDrills(drs);
       })
@@ -623,8 +623,8 @@ export default function Home() {
       </section>
       <section className="home-stats">
         <div className="home-stat">
-          <span className="home-stat-value">{categories.length}</span>
-          <span className="home-stat-label">Categories</span>
+          <span className="home-stat-value">{disciplines.length}</span>
+          <span className="home-stat-label">Disciplines</span>
         </div>
         <div className="home-stat">
           <span className="home-stat-value">{skills.length}</span>

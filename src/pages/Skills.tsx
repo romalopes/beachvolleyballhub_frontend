@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { api, type Category, type Skill } from "../api";
+import { api, type Discipline, type Skill } from "../api";
 import { useAuth } from "../auth/AuthContext";
 import LibraryHero from "../components/LibraryHero";
 import SkillCard from "../components/SkillCard";
@@ -14,22 +14,22 @@ const ITEMS_PER_PAGE = 20;
 export default function Skills() {
   const { user } = useAuth();
   const isAdmin = user?.roles?.includes("admin");
-  const [categories, setCategories] = useState<Category[]>([]);
+  const [disciplines, setDisciplines] = useState<Discipline[]>([]);
   const [skills, setSkills] = useState<Skill[]>([]);
-  const [selectedCategory, setSelectedCategory] = useState<string>("all");
+  const [selectedDiscipline, setSelectedDiscipline] = useState<string>("all");
   const [search, setSearch] = useState("");
   const [loading, setLoading] = useState(true);
   const navigate = useNavigate();
 
   // Modal state for "Show all"
   const [modalOpen, setModalOpen] = useState(false);
-  const [modalCategory, setModalCategory] = useState<string | null>(null);
+  const [modalDiscipline, setModalDiscipline] = useState<string | null>(null);
   const [modalPage, setModalPage] = useState(1);
 
   useEffect(() => {
-    Promise.all([api.categories(), api.skills()])
+    Promise.all([api.disciplines(), api.skills()])
       .then(([cats, sks]) => {
-        setCategories(cats);
+        setDisciplines(cats);
         setSkills(sks);
       })
       .catch(console.error)
@@ -37,23 +37,23 @@ export default function Skills() {
   }, []);
 
   const filteredSkills = skills.filter((skill) => {
-    const matchesCategory =
-      selectedCategory === "all" || skill.category?.name === selectedCategory;
+    const matchesDiscipline =
+      selectedDiscipline === "all" || skill.discipline?.name === selectedDiscipline;
     const matchesSearch = skill.title
       .toLowerCase()
       .includes(search.toLowerCase());
-    return matchesCategory && matchesSearch;
+    return matchesDiscipline && matchesSearch;
   });
 
-  // Group skills by category
-  const skillsByCategory = useMemo(() => {
+  // Group skills by discipline
+  const skillsByDiscipline = useMemo(() => {
     const grouped = new Map<string, Skill[]>();
     filteredSkills.forEach((skill) => {
-      const categoryName = skill.category?.name ?? "Uncategorized";
-      if (!grouped.has(categoryName)) grouped.set(categoryName, []);
-      grouped.get(categoryName)!.push(skill);
+      const disciplineName = skill.discipline?.name ?? "Uncategorized";
+      if (!grouped.has(disciplineName)) grouped.set(disciplineName, []);
+      grouped.get(disciplineName)!.push(skill);
     });
-    // Sort categories alphabetically
+    // Sort disciplines alphabetically
     return new Map(
       [...grouped.entries()].sort((a, b) => a[0].localeCompare(b[0])),
     );
@@ -61,9 +61,9 @@ export default function Skills() {
 
   // Get skills for modal
   const modalSkills = useMemo(() => {
-    if (!modalCategory) return [];
-    return skillsByCategory.get(modalCategory) ?? [];
-  }, [modalCategory, skillsByCategory]);
+    if (!modalDiscipline) return [];
+    return skillsByDiscipline.get(modalDiscipline) ?? [];
+  }, [modalDiscipline, skillsByDiscipline]);
 
   const modalTotalPages = Math.ceil(modalSkills.length / ITEMS_PER_PAGE);
   const modalPaginatedSkills = modalSkills.slice(
@@ -71,15 +71,15 @@ export default function Skills() {
     modalPage * ITEMS_PER_PAGE,
   );
 
-  const openModal = (category: string) => {
-    setModalCategory(category);
+  const openModal = (discipline: string) => {
+    setModalDiscipline(discipline);
     setModalPage(1);
     setModalOpen(true);
   };
 
   const closeModal = () => {
     setModalOpen(false);
-    setModalCategory(null);
+    setModalDiscipline(null);
     setModalPage(1);
   };
 
@@ -90,9 +90,9 @@ export default function Skills() {
       <LibraryHero
         eyebrow="Skill library"
         title="Skills"
-        description="Browse all beach volleyball skills organised by category. Click a skill to see details and related drills."
+        description="Browse all beach volleyball skills organised by discipline. Click a skill to see details and related drills."
         highlights={[
-          { icon: LayoutGrid, label: "Browse by category" },
+          { icon: LayoutGrid, label: "Browse by discipline" },
           { icon: Link2, label: "Connect drills" },
           { icon: Target, label: "Coach the details" },
         ]}
@@ -126,16 +126,16 @@ export default function Skills() {
 
       <div className="filter-bar">
         <button
-          className={`filter-btn${selectedCategory === "all" ? " active" : ""}`}
-          onClick={() => setSelectedCategory("all")}
+          className={`filter-btn${selectedDiscipline === "all" ? " active" : ""}`}
+          onClick={() => setSelectedDiscipline("all")}
         >
           All
         </button>
-        {categories.map((cat) => (
+        {disciplines.map((cat) => (
           <button
             key={cat.id}
-            className={`filter-btn${selectedCategory === cat.name ? " active" : ""}`}
-            onClick={() => setSelectedCategory(cat.name)}
+            className={`filter-btn${selectedDiscipline === cat.name ? " active" : ""}`}
+            onClick={() => setSelectedDiscipline(cat.name)}
           >
             {cat.name}
           </button>
@@ -148,19 +148,19 @@ export default function Skills() {
           description="Try adjusting your search or filter."
         />
       ) : (
-        <div className="skills-by-category">
-          {[...skillsByCategory.entries()].map(
-            ([categoryName, categorySkills]) => (
-              <section key={categoryName} className="category-section">
-                <div className="category-section-header">
-                  <h2 className="category-section-title">{categoryName}</h2>
-                  <span className="category-section-count">
-                    {categorySkills.length}{" "}
-                    {categorySkills.length === 1 ? "skill" : "skills"}
+        <div className="skills-by-discipline">
+          {[...skillsByDiscipline.entries()].map(
+            ([disciplineName, disciplineSkills]) => (
+              <section key={disciplineName} className="discipline-section">
+                <div className="discipline-section-header">
+                  <h2 className="discipline-section-title">{disciplineName}</h2>
+                  <span className="discipline-section-count">
+                    {disciplineSkills.length}{" "}
+                    {disciplineSkills.length === 1 ? "skill" : "skills"}
                   </span>
                 </div>
                 <div className="grid">
-                  {categorySkills.slice(0, ITEMS_PER_SECTION).map((skill) => (
+                  {disciplineSkills.slice(0, ITEMS_PER_SECTION).map((skill) => (
                     <SkillCard
                       key={skill.id}
                       skill={skill}
@@ -170,12 +170,12 @@ export default function Skills() {
                     />
                   ))}
                 </div>
-                {categorySkills.length > ITEMS_PER_SECTION && (
+                {disciplineSkills.length > ITEMS_PER_SECTION && (
                   <button
                     className="show-all-link"
-                    onClick={() => openModal(categoryName)}
+                    onClick={() => openModal(disciplineName)}
                   >
-                    Show all {categorySkills.length} skills
+                    Show all {disciplineSkills.length} skills
                   </button>
                 )}
               </section>
@@ -184,12 +184,12 @@ export default function Skills() {
         </div>
       )}
 
-      {/* Modal for showing all skills in a category */}
-      {modalOpen && modalCategory && (
+      {/* Modal for showing all skills in a discipline */}
+      {modalOpen && modalDiscipline && (
         <div className="modal-overlay" onClick={closeModal}>
           <div className="modal-content" onClick={(e) => e.stopPropagation()}>
             <div className="modal-header">
-              <h2>{modalCategory}</h2>
+              <h2>{modalDiscipline}</h2>
               <button
                 className="modal-close"
                 onClick={closeModal}

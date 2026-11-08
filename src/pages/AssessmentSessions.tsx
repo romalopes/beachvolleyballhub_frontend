@@ -426,7 +426,7 @@ export default function AssessmentSessions() {
                     {selectedDef && (
                       <div className="wizard-rubric-preview">
                         <p className="wizard-hint">
-                          Categories in &ldquo;{selectedDef.name}&rdquo; (
+                          Disciplines in &ldquo;{selectedDef.name}&rdquo; (
                           {selectedDef.assessment_categories.length}):
                         </p>
                         <ul>

@@ -39,8 +39,8 @@ const definition = {
   name: "A-Level Assessment",
   status: "active" as const,
   assessment_categories: [
-    { id: 1, label: "Attack", weight: 40, position: 0, source_type: "category" },
-    { id: 2, label: "Block", weight: 30, position: 1, source_type: "category" },
+    { id: 1, label: "Attack", weight: 40, position: 0, source_type: "discipline" },
+    { id: 2, label: "Block", weight: 30, position: 1, source_type: "discipline" },
   ],
 };
 
@@ -177,7 +177,7 @@ describe("AssessmentSessions wizard", () => {
     return screen.findByRole("heading", { name: /new assessment session/i });
   };
 
-  it("previews the chosen rubric's categories and weights", async () => {
+  it("previews the chosen rubric's disciplines and weights", async () => {
     const user = userEvent.setup();
     renderPage();
     await openWizard(user);

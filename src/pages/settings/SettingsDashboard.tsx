@@ -5,9 +5,9 @@ import SettingsLayout from "../../components/settings/SettingsLayout";
 
 const RESOURCES = [
   {
-    to: "/settings/categories",
-    label: "Categories",
-    desc: "Manage skill categories.",
+    to: "/settings/disciplines",
+    label: "Disciplines",
+    desc: "Manage skill disciplines.",
     icon: Tags,
   },
   {

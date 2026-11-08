@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import {
   api,
   ApiValidationError,
-  type Category,
+  type Discipline,
   type Drill,
   type DrillStatus,
   type DrillVisibility,
@@ -129,15 +129,15 @@ export default function DrillForm({
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [availableSkills, setAvailableSkills] = useState<Skill[]>([]);
-  const [availableCategories, setAvailableCategories] = useState<Category[]>(
+  const [availableDisciplines, setAvailableDisciplines] = useState<Discipline[]>(
     [],
   );
   /**
-   * The category the picker shows. `null` means "follow the first category", so
-   * the picker opens on a real category without an extra render — there is no
+   * The discipline the picker shows. `null` means "follow the first discipline", so
+   * the picker opens on a real discipline without an extra render — there is no
    * "all skills" mode.
    */
-  const [skillCategoryFilter, setSkillCategoryFilter] = useState<number | null>(
+  const [skillDisciplineFilter, setSkillDisciplineFilter] = useState<number | null>(
     null,
   );
   const [selectedSkillIds, setSelectedSkillIds] = useState<number[]>(() =>
@@ -158,9 +158,9 @@ export default function DrillForm({
       })
       .catch(console.error);
     api
-      .categories()
+      .disciplines()
       .then((items) => {
-        if (!cancelled) setAvailableCategories(items);
+        if (!cancelled) setAvailableDisciplines(items);
       })
       .catch(console.error);
     return () => {
@@ -331,9 +331,9 @@ export default function DrillForm({
       issues={displayIssues}
       onFormat={formatDefinition}
       availableSkills={availableSkills}
-      availableCategories={availableCategories}
-      skillCategoryFilter={skillCategoryFilter}
-      onSkillCategoryChange={setSkillCategoryFilter}
+      availableDisciplines={availableDisciplines}
+      skillDisciplineFilter={skillDisciplineFilter}
+      onSkillDisciplineChange={setSkillDisciplineFilter}
       selectedSkillIds={selectedSkillIds}
       skillsError={skillsError}
       onToggleSkill={toggleSkill}
@@ -358,9 +358,9 @@ function DrillFormFields({
   issues,
   onFormat,
   availableSkills,
-  availableCategories,
-  skillCategoryFilter,
-  onSkillCategoryChange,
+  availableDisciplines,
+  skillDisciplineFilter,
+  onSkillDisciplineChange,
   selectedSkillIds,
   skillsError,
   onToggleSkill,
@@ -381,22 +381,22 @@ function DrillFormFields({
   issues: DrillSchemaIssue[];
   onFormat: () => void;
   availableSkills: Skill[];
-  availableCategories: Category[];
-  skillCategoryFilter: number | null;
-  onSkillCategoryChange: (value: number) => void;
+  availableDisciplines: Discipline[];
+  skillDisciplineFilter: number | null;
+  onSkillDisciplineChange: (value: number) => void;
   selectedSkillIds: number[];
   skillsError: string | null;
   onToggleSkill: (id: number) => void;
 }) {
-  // One category at a time, opening on the first the API returned. A `null`
-  // filter follows that first category; with no categories at all (not loaded,
+  // One discipline at a time, opening on the first the API returned. A `null`
+  // filter follows that first discipline; with no disciplines at all (not loaded,
   // or the fetch failed) every skill is shown rather than none.
-  const activeCategory =
-    skillCategoryFilter ?? availableCategories[0]?.id ?? null;
+  const activeDiscipline =
+    skillDisciplineFilter ?? availableDisciplines[0]?.id ?? null;
   const filteredSkills =
-    activeCategory === null
+    activeDiscipline === null
       ? availableSkills
-      : availableSkills.filter((skill) => skill.category_id === activeCategory);
+      : availableSkills.filter((skill) => skill.discipline_id === activeDiscipline);
   return (
     <form onSubmit={onSubmit} className="admin-form drill-form">
       {error && <div className="auth-flash auth-flash-error">{error}</div>}
@@ -523,16 +523,16 @@ function DrillFormFields({
 
       <div className="admin-field">
         <span id="drill-skills-label">Skills (optional)</span>
-        <div className="filter-select-group drill-skills-category">
-          <label htmlFor="drill-skill-category">Category:</label>
+        <div className="filter-select-group drill-skills-discipline">
+          <label htmlFor="drill-skill-discipline">Discipline:</label>
           <select
-            id="drill-skill-category"
-            value={activeCategory ?? ""}
-            onChange={(e) => onSkillCategoryChange(Number(e.target.value))}
+            id="drill-skill-discipline"
+            value={activeDiscipline ?? ""}
+            onChange={(e) => onSkillDisciplineChange(Number(e.target.value))}
           >
-            {availableCategories.map((category) => (
-              <option key={category.id} value={category.id}>
-                {category.name}
+            {availableDisciplines.map((discipline) => (
+              <option key={discipline.id} value={discipline.id}>
+                {discipline.name}
               </option>
             ))}
           </select>
@@ -550,7 +550,7 @@ function DrillFormFields({
           {availableSkills.length === 0 ? (
             <p className="drill-skills-empty">No skills available.</p>
           ) : filteredSkills.length === 0 ? (
-            <p className="drill-skills-empty">No skills in this category.</p>
+            <p className="drill-skills-empty">No skills in this discipline.</p>
           ) : (
             filteredSkills.map((skill) => {
               const checked = selectedSkillIds.includes(skill.id);
@@ -561,7 +561,7 @@ function DrillFormFields({
                     checked={checked}
                     onChange={() => onToggleSkill(skill.id)}
                   />
-                  {/* One category on screen, so the name would just repeat. */}
+                  {/* One discipline on screen, so the name would just repeat. */}
                   <span>{skill.title}</span>
                 </label>
               );
@@ -578,7 +578,7 @@ function DrillFormFields({
               {selectedSkillIds.map((id) => {
                 const skill = availableSkills.find((s) => s.id === id);
                 const label = skill
-                  ? `${skill.title}${skill.category ? ` (${skill.category.name})` : ""}`
+                  ? `${skill.title}${skill.discipline ? ` (${skill.discipline.name})` : ""}`
                   : `Skill #${id}`;
                 return (
                   <li key={id} className="drill-skill-chip">

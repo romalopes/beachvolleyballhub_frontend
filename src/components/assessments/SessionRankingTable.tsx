@@ -1,21 +1,21 @@
 import { Trophy, AlertCircle, UserMinus } from "lucide-react";
 import type {
-  AssessmentSessionCategory,
+  AssessmentSessionDiscipline,
   AssessmentSessionRankingPayload,
 } from "../../api";
 import { profileDisplayName } from "../../utils/profileName";
 
 interface SessionRankingTableProps {
-  categories: AssessmentSessionCategory[];
+  disciplines: AssessmentSessionDiscipline[];
   rankingPayload: AssessmentSessionRankingPayload;
 }
 
 export default function SessionRankingTable({
-  categories,
+  disciplines,
   rankingPayload,
 }: SessionRankingTableProps) {
   const { ranking, incomplete, excluded } = rankingPayload;
-  const categoryMap = new Map(categories.map((c) => [c.id, c.label]));
+  const disciplineMap = new Map(disciplines.map((c) => [c.id, c.label]));
 
   const hasRankings = ranking && ranking.length > 0;
   const hasIncomplete = incomplete && incomplete.length > 0;
@@ -68,7 +68,7 @@ export default function SessionRankingTable({
           </div>
         ) : (
           <p className="ranking-empty-msg">
-            No complete ratings recorded yet. Score every category for a player to include them in the ranking.
+            No complete ratings recorded yet. Score every discipline for a player to include them in the ranking.
           </p>
         )}
       </section>
@@ -78,22 +78,22 @@ export default function SessionRankingTable({
         <section className="ranking-section incomplete-section">
           <div className="ranking-section-header">
             <AlertCircle size={18} className="ranking-icon alert" />
-            <h4>Incomplete / Missing Categories ({incomplete.length})</h4>
+            <h4>Incomplete / Missing Disciplines ({incomplete.length})</h4>
           </div>
           <p className="ranking-section-desc">
-            These included players are not ranked because they have unscored categories.
+            These included players are not ranked because they have unscored disciplines.
           </p>
           <ul className="incomplete-player-list">
             {incomplete.map((row) => {
-              const missingNames = row.missing_category_ids
-                .map((id) => categoryMap.get(id) || `Category #${id}`)
+              const missingNames = row.missing_discipline_ids
+                .map((id) => disciplineMap.get(id) || `Discipline #${id}`)
                 .join(", ");
 
               return (
                 <li key={row.player_profile_id} className="incomplete-player-item">
                   <div className="incomplete-player-info">
                     <span className="player-name">{profileDisplayName(row.account_name, row.player_name)}</span>
-                    <span className="incomplete-categories-badge">
+                    <span className="incomplete-disciplines-badge">
                       Missing: {missingNames || "unscored"}
                     </span>
                   </div>

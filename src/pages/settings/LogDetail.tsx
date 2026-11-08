@@ -109,8 +109,8 @@ export default function LogDetail() {
                     {o.label ? ` — ${o.label}` : ""}
                   </Link>
                 )}
-                {o.exists && o.type === "Category" && (
-                  <Link to={`/settings/categories/${o.slug ?? o.id}`}>
+                {o.exists && o.type === "Discipline" && (
+                  <Link to={`/settings/disciplines/${o.slug ?? o.id}`}>
                     {o.type} #{o.id}
                     {o.label ? ` — ${o.label}` : ""}
                   </Link>
@@ -121,7 +121,7 @@ export default function LogDetail() {
                     {o.label ? ` — ${o.label}` : ""}
                   </Link>
                 )}
-                {o.exists && !["Skill", "Drill", "Category", "User"].includes(o.type) && (
+                {o.exists && !["Skill", "Drill", "Discipline", "User"].includes(o.type) && (
                   <span>
                     {o.type} #{o.id}
                     {o.label ? ` — ${o.label}` : ""}

@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { api, type Category, type Skill } from "../../../../api";
+import { api, type Discipline, type Skill } from "../../../../api";
 
 interface SkillFormProps {
   initial?: Skill | null;
@@ -8,29 +8,29 @@ interface SkillFormProps {
 }
 
 export default function SkillForm({ initial, onSuccess, onCancel }: SkillFormProps) {
-  const [categories, setCategories] = useState<Category[]>([]);
+  const [disciplines, setDisciplines] = useState<Discipline[]>([]);
   // Seeded once from `initial`: the page renders the form only after the skill
   // is loaded, and keys it by id, so no state-syncing effect is needed.
   const [title, setTitle] = useState(initial?.title ?? "");
-  const [categoryId, setCategoryId] = useState<string>(
-    initial ? String(initial.category_id) : "",
+  const [disciplineId, setDisciplineId] = useState<string>(
+    initial ? String(initial.discipline_id) : "",
   );
   const [description, setDescription] = useState(initial?.description ?? "");
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    api.categories().then(setCategories).catch(console.error);
+    api.disciplines().then(setDisciplines).catch(console.error);
   }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
     if (!title.trim()) { setError("Title is required."); return; }
-    if (categoryId === "") { setError("Category is required."); return; }
+    if (disciplineId === "") { setError("Discipline is required."); return; }
     const payload = {
       title: title.trim(),
-      category_id: Number(categoryId),
+      discipline_id: Number(disciplineId),
       description: description.trim() || null,
     };
     setSaving(true);
@@ -56,10 +56,10 @@ export default function SkillForm({ initial, onSuccess, onCancel }: SkillFormPro
           placeholder="e.g. Forearm Pass" maxLength={255} />
       </div>
       <div className="admin-field">
-        <label htmlFor="skill-category">Category *</label>
-        <select id="skill-category" value={categoryId} onChange={(e) => setCategoryId(e.target.value)}>
-          <option value="">Select a category</option>
-          {categories.map((c) => (
+        <label htmlFor="skill-discipline">Discipline *</label>
+        <select id="skill-discipline" value={disciplineId} onChange={(e) => setDisciplineId(e.target.value)}>
+          <option value="">Select a discipline</option>
+          {disciplines.map((c) => (
             <option key={c.id} value={c.id}>{c.name}</option>
           ))}
         </select>

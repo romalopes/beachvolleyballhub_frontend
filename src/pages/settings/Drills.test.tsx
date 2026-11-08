@@ -7,7 +7,7 @@ import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { MemoryRouter } from "react-router-dom";
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { api, type Category, type Drill, type Skill } from "../../api";
+import { api, type Discipline, type Drill, type Skill } from "../../api";
 import Drills from "./Drills";
 
 vi.mock("../../api", async (importOriginal) => {
@@ -17,7 +17,7 @@ vi.mock("../../api", async (importOriginal) => {
     api: {
       adminDrills: vi.fn(),
       adminSkills: vi.fn(),
-      adminCategories: vi.fn(),
+      adminDisciplines: vi.fn(),
       adminDestroyDrill: vi.fn(),
       adminUpdateDrill: vi.fn(),
     },
@@ -32,15 +32,15 @@ vi.mock("../../auth/AuthContext", () => ({
 
 const mockedApi = vi.mocked(api, true);
 
-const offense: Category = { id: 1, name: "Offense", slug: "offense" };
+const offense: Discipline = { id: 1, name: "Offense", slug: "offense" };
 
 const spike: Skill = {
   id: 10,
   title: "Spike",
   slug: "spike",
   description: null,
-  category_id: 1,
-  category: offense,
+  discipline_id: 1,
+  discipline: offense,
 };
 
 const makeDrill = (overrides: Partial<Drill>): Drill => ({
@@ -87,7 +87,7 @@ beforeEach(() => {
     meta: { ...meta, per_page: 2, total: 2 },
   });
   mockedApi.adminSkills.mockResolvedValue({ data: [spike], meta });
-  mockedApi.adminCategories.mockResolvedValue({ data: [offense], meta });
+  mockedApi.adminDisciplines.mockResolvedValue({ data: [offense], meta });
 });
 
 describe("settings Drills — visual definition filter", () => {

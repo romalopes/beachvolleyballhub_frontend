@@ -9,12 +9,12 @@ import DeleteConfirm from "../../components/settings/DeleteConfirm";
 import Pagination from "../../components/settings/Pagination";
 
 const PER_PAGE = 20;
-type SortKey = "name-asc" | "name-desc" | "category";
+type SortKey = "name-asc" | "name-desc" | "discipline";
 
-interface CategoryOrigin {
+interface DisciplineOrigin {
   from?: string;
   fromPath?: string;
-  categoryName?: string;
+  disciplineName?: string;
 }
 
 export default function Skills() {
@@ -22,7 +22,7 @@ export default function Skills() {
   const navigate = useNavigate();
   const location = useLocation();
   const [searchParams] = useSearchParams();
-  const origin = (location.state ?? null) as CategoryOrigin | null;
+  const origin = (location.state ?? null) as DisciplineOrigin | null;
   const [skills, setSkills] = useState<Skill[]>([]);
   const [drills, setDrills] = useState<Drill[]>([]);
   const [drillsFailed, setDrillsFailed] = useState(false);
@@ -34,8 +34,8 @@ export default function Skills() {
   const [page, setPage] = useState(1);
 
   const [search, setSearch] = useState("");
-  const [categoryFilter, setCategoryFilter] = useState<number | "all">(() => {
-    const raw = searchParams.get("category");
+  const [disciplineFilter, setDisciplineFilter] = useState<number | "all">(() => {
+    const raw = searchParams.get("discipline");
     const parsed = raw !== null ? Number(raw) : NaN;
     return raw !== null && Number.isInteger(parsed) && parsed > 0 ? parsed : "all";
   });
@@ -57,10 +57,10 @@ export default function Skills() {
       .finally(() => setLoading(false));
   }, []);
 
-  const categories = useMemo(() => {
+  const disciplines = useMemo(() => {
     const byId = new Map<number, string>();
     skills.forEach((s) => {
-      if (s.category) byId.set(s.category.id, s.category.name);
+      if (s.discipline) byId.set(s.discipline.id, s.discipline.name);
     });
     return [...byId.entries()]
       .map(([id, name]) => ({ id, name }))
@@ -77,26 +77,26 @@ export default function Skills() {
     return counts;
   }, [drills]);
 
-  // A ?category= id that matches no loaded category degrades to the full list.
-  const effectiveCategoryFilter =
-    categoryFilter !== "all" && !categories.some((c) => c.id === categoryFilter)
+  // A ?discipline= id that matches no loaded discipline degrades to the full list.
+  const effectiveDisciplineFilter =
+    disciplineFilter !== "all" && !disciplines.some((c) => c.id === disciplineFilter)
       ? "all"
-      : categoryFilter;
+      : disciplineFilter;
 
-  const originCategoryName =
-    origin?.categoryName ??
-    (effectiveCategoryFilter !== "all"
-      ? categories.find((c) => c.id === effectiveCategoryFilter)?.name
+  const originDisciplineName =
+    origin?.disciplineName ??
+    (effectiveDisciplineFilter !== "all"
+      ? disciplines.find((c) => c.id === effectiveDisciplineFilter)?.name
       : undefined);
 
   const filtersActive =
-    search.trim() !== "" || effectiveCategoryFilter !== "all" || sort !== "name-asc";
+    search.trim() !== "" || effectiveDisciplineFilter !== "all" || sort !== "name-asc";
 
   const visibleSkills = useMemo(() => {
     const query = search.trim().toLowerCase();
     const filtered = skills.filter((s) => {
       if (query && !s.title.toLowerCase().includes(query)) return false;
-      if (effectiveCategoryFilter !== "all" && s.category_id !== effectiveCategoryFilter) return false;
+      if (effectiveDisciplineFilter !== "all" && s.discipline_id !== effectiveDisciplineFilter) return false;
       return true;
     });
 
@@ -106,11 +106,11 @@ export default function Skills() {
     switch (sort) {
       case "name-desc":
         return [...filtered].sort((a, b) => byTitle(b, a));
-      case "category":
+      case "discipline":
         return [...filtered].sort(
           (a, b) =>
-            (a.category?.name ?? "\uFFFF").localeCompare(
-              b.category?.name ?? "\uFFFF",
+            (a.discipline?.name ?? "\uFFFF").localeCompare(
+              b.discipline?.name ?? "\uFFFF",
               undefined,
               { sensitivity: "base" }
             ) || byTitle(a, b)
@@ -118,11 +118,11 @@ export default function Skills() {
       default:
         return [...filtered].sort(byTitle);
     }
-  }, [skills, search, effectiveCategoryFilter, sort]);
+  }, [skills, search, effectiveDisciplineFilter, sort]);
 
   const clearFilters = () => {
     setSearch("");
-    setCategoryFilter("all");
+    setDisciplineFilter("all");
     setSort("name-asc");
     setPage(1);
   };
@@ -173,14 +173,14 @@ export default function Skills() {
       }
     >
       {error && <div className="auth-flash auth-flash-error">{error}</div>}
-      {originCategoryName && effectiveCategoryFilter !== "all" && (
+      {originDisciplineName && effectiveDisciplineFilter !== "all" && (
         <p className="settings-result-count">
-          Showing skills in &ldquo;{originCategoryName}&rdquo;.
+          Showing skills in &ldquo;{originDisciplineName}&rdquo;.
           {origin?.fromPath && (
             <>
               {" "}
               <Link to={origin.fromPath} className="admin-table-name">
-                Back to {origin.from ?? "Categories"}
+                Back to {origin.from ?? "Disciplines"}
               </Link>
             </>
           )}
@@ -213,15 +213,15 @@ export default function Skills() {
         </div>
         <div className="settings-toolbar-row">
           <select
-            value={categoryFilter}
+            value={disciplineFilter}
             onChange={(e) => {
-              setCategoryFilter(e.target.value === "all" ? "all" : Number(e.target.value));
+              setDisciplineFilter(e.target.value === "all" ? "all" : Number(e.target.value));
               setPage(1);
             }}
-            aria-label="Filter by category"
+            aria-label="Filter by discipline"
           >
-            <option value="all">All categories</option>
-            {categories.map((c) => (
+            <option value="all">All disciplines</option>
+            {disciplines.map((c) => (
               <option key={c.id} value={c.id}>
                 {c.name}
               </option>
@@ -237,7 +237,7 @@ export default function Skills() {
           >
             <option value="name-asc">Name A–Z</option>
             <option value="name-desc">Name Z–A</option>
-            <option value="category">Category</option>
+            <option value="discipline">Discipline</option>
           </select>
           {filtersActive && (
             <button type="button" className="admin-btn" onClick={clearFilters}>
@@ -279,7 +279,7 @@ export default function Skills() {
               </Link>
             ),
           },
-          { key: "category", label: "Category", render: (s) => s.category?.name ?? "—" },
+          { key: "discipline", label: "Discipline", render: (s) => s.discipline?.name ?? "—" },
           {
             key: "drills",
             label: "Drills",

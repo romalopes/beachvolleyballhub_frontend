@@ -494,13 +494,13 @@ describe("PlayerDetail", () => {
     mockedApi.player.mockResolvedValue(player({
       assessment_count: 1,
       assessments: [{
-        id: 1, player_profile_id: 12, coach_profile_id: 7, category_id: null, custom_category: null,
+        id: 1, player_profile_id: 12, coach_profile_id: 7, discipline_id: null, custom_discipline: null,
         training_session_id: null, score: 70, reported_value: 4, scale: "one_to_five",
         notes: null, status: "active", created_at: "2026-09-02T00:00:00.000Z",
-        updated_at: "2026-09-02T00:00:00.000Z", category_label: "Test", ten_scale: 7,
+        updated_at: "2026-09-02T00:00:00.000Z", discipline_label: "Test", ten_scale: 7,
         five_scale: 4, score_label: "70/100", status_label: "Published",
         created_by: { id: 2, name: "Coach Ana" },
-        category: null,
+        discipline: null,
         assessment_definition_id: 7,
         assessment_definition: {
           id: 7, name: "Test", description: null, status: "active", created_by_id: 2,
@@ -529,13 +529,13 @@ describe("PlayerDetail", () => {
     mockedApi.player.mockResolvedValue(player({
       assessment_count: 1,
       assessments: [{
-        id: 1, player_profile_id: 12, coach_profile_id: 7, category_id: 5, custom_category: null,
+        id: 1, player_profile_id: 12, coach_profile_id: 7, discipline_id: 5, custom_discipline: null,
         training_session_id: null, score: 70, reported_value: 4, scale: "one_to_five",
         notes: null, status: "active", created_at: "2026-09-01T00:00:00.000Z",
-        updated_at: "2026-09-01T00:00:00.000Z", category_label: "Attack", ten_scale: 7,
+        updated_at: "2026-09-01T00:00:00.000Z", discipline_label: "Attack", ten_scale: 7,
         five_scale: 4, score_label: "70/100", status_label: "Published",
         created_by: { id: 2, name: "Coach Ana" },
-        category: { id: 5, name: "Attack", slug: "attack" },
+        discipline: { id: 5, name: "Attack", slug: "attack" },
       }],
     }));
     renderDetail();

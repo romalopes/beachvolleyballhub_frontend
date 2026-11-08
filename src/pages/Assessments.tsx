@@ -68,7 +68,7 @@ export default function Assessments() {
         title="Assessments"
         description="Coaching ratings of players, newest first."
         highlights={[
-          { icon: ClipboardCheck, label: "Rate every category" },
+          { icon: ClipboardCheck, label: "Rate every discipline" },
           { icon: Users, label: "Compare coaches" },
           { icon: TrendingUp, label: "Track progress" },
         ]}
@@ -134,10 +134,10 @@ export default function Assessments() {
                   <strong>Rubric:</strong>{" "}
                   {row.assessment_definition ? (
                     row.assessment_definition.name
-                  ) : row.category ? (
-                    row.category.name
+                  ) : row.discipline ? (
+                    row.discipline.name
                   ) : (
-                    row.custom_category ?? "Unspecified rubric"
+                    row.custom_discipline ?? "Unspecified rubric"
                   )}
                   {row.training_session_id && (
                     <>

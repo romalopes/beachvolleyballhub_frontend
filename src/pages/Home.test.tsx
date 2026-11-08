@@ -11,7 +11,7 @@ vi.mock("../api", async (importOriginal) => {
     ...actual,
     api: {
       ...actual.api,
-      categories: vi.fn(),
+      disciplines: vi.fn(),
       skills: vi.fn(),
       drills: vi.fn(),
       trainingSessions: vi.fn(),
@@ -37,7 +37,7 @@ beforeEach(() => {
   vi.useFakeTimers({ toFake: ["Date"] });
   vi.setSystemTime(new Date(2026, 9, 28, 12));
   vi.stubEnv("VITE_GOOGLE_MAPS_EMBED_API_KEY", "embed-key");
-  mockedApi.categories.mockResolvedValue([]);
+  mockedApi.disciplines.mockResolvedValue([]);
   mockedApi.skills.mockResolvedValue([]);
   mockedApi.drills.mockResolvedValue([]);
   mockedApi.trainingSessions.mockResolvedValue([]);

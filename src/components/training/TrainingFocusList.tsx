@@ -25,8 +25,8 @@ export default function TrainingFocusList({ focuses }: TrainingFocusListProps) {
               focus.custom_focus
             )}
           </span>
-          {focus.skill?.category && (
-            <span className="related-item-meta"> · {focus.skill.category.name}</span>
+          {focus.skill?.discipline && (
+            <span className="related-item-meta"> · {focus.skill.discipline.name}</span>
           )}
           {focus.description && <p>{focus.description}</p>}
         </li>

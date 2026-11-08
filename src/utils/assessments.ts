@@ -21,8 +21,8 @@ export function canManageAssessments(user: User | null | undefined): boolean {
 
 export function assessmentRubricLabel(assessment: Assessment): string {
   return assessment.assessment_definition?.name ??
-    assessment.category?.name ??
-    assessment.custom_category ??
+    assessment.discipline?.name ??
+    assessment.custom_discipline ??
     "Unspecified rubric";
 }
 
