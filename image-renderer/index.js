@@ -34,7 +34,7 @@ async function getBrowser() {
 async function renderShareCard(snapshotData, outputPath) {
   const browser = await getBrowser();
   const context = await browser.newContext({
-    viewport: { width: 1920, height: 1260 },
+    viewport: { width: 1344, height: 1260 },
     deviceScaleFactor: 2,
   });
   const page = await context.newPage();
@@ -132,9 +132,9 @@ function generateHTML(snapshot) {
   <meta charset="utf-8">
   <style>
     * { box-sizing: border-box; margin: 0; padding: 0; }
-    html, body { width: 1920px; height: 1260px; overflow: hidden; }
+    html, body { width: 1344px; height: 1260px; overflow: hidden; }
     .weather-share-card {
-      width: 1920px;
+      width: 1344px;
       height: 1260px;
       background: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%);
       border-radius: 32px;
