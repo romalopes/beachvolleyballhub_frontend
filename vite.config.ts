@@ -13,27 +13,27 @@ export default defineConfig(({ mode }) => {
       react(),
       VitePWA({
         disable: !pwaEnabled,
-      registerType: "autoUpdate",
-      includeAssets: ["ball.png", "favicon.svg", "icons.svg"],
-      manifest: {
-        name: "Beach Volleyball Hub",
-        short_name: "BVB Hub",
-        description: "Beach volleyball coaching, training, assessment and tournament workflows.",
-        theme_color: "#D97706",
-        background_color: "#FDFBF7",
-        display: "standalone",
-        start_url: "/",
-        scope: "/",
-        icons: [
-          { src: "/ball.png", sizes: "192x192", type: "image/png", purpose: "any maskable" },
-          { src: "/ball.png", sizes: "512x512", type: "image/png", purpose: "any maskable" },
-        ],
-      },
-      workbox: {
-        navigateFallback: "/index.html",
-        globPatterns: ["**/*.{js,css,html,ico,png,svg,woff2}"],
-        cleanupOutdatedCaches: true,
-      },
+        registerType: "autoUpdate",
+        includeAssets: ["ball.png", "favicon.svg", "icons.svg"],
+        manifest: {
+          name: "Beach Volleyball Hub",
+          short_name: "BVB Hub",
+          description: "Beach volleyball coaching, training, assessment and tournament workflows.",
+          theme_color: "#D97706",
+          background_color: "#FDFBF7",
+          display: "standalone",
+          start_url: "/",
+          scope: "/",
+          icons: [
+            { src: "/ball.png", sizes: "192x192", type: "image/png", purpose: "any maskable" },
+            { src: "/ball.png", sizes: "512x512", type: "image/png", purpose: "any maskable" },
+          ],
+        },
+        workbox: {
+          navigateFallback: "/index.html",
+          globPatterns: ["**/*.{js,css,html,ico,png,svg,woff2}"],
+          cleanupOutdatedCaches: true,
+        },
       }),
     ],
   server: {
@@ -51,9 +51,14 @@ export default defineConfig(({ mode }) => {
         target: "http://127.0.0.1:3001",
         changeOrigin: true,
       },
+      "/weather": {
+        // Public weather share page with Open Graph metadata
+        target: "http://127.0.0.1:3001",
+        changeOrigin: true,
+      },
     },
   },
-    test: {
+  test: {
     environment: "jsdom",
     setupFiles: ["./src/test/setup.ts"],
     // Tests assert relative API URLs ("/api/v1/..."), the same default the

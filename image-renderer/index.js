@@ -9,6 +9,7 @@ const __dirname = path.dirname(__filename);
 
 const app = express();
 app.use(express.json({ limit: '10mb' }));
+app.use(express.static('/Users/romalopes/Documents/studies/my_project/beachvolleyballproject/beachvolleyballhub/public'));
 
 let browser = null;
 
@@ -24,12 +25,13 @@ async function getBrowser() {
 
 async function renderShareCard(snapshotData, outputPath) {
   const browser = await getBrowser();
-  const page = await browser.newPage();
+  const context = await browser.newContext({
+    viewport: { width: 2400, height: 1260 },
+    deviceScaleFactor: 2,
+  });
+  const page = await context.newPage();
   
   try {
-    await page.setViewportSize({ width: 2400, height: 1260 });
-    await page.setDeviceScaleFactor(2);
-    
     const html = generateHTML(snapshotData);
     
     await page.setContent(html, { waitUntil: 'networkidle' });
@@ -42,12 +44,11 @@ async function renderShareCard(snapshotData, outputPath) {
     await page.screenshot({ 
       path: outputPath, 
       type: 'png',
-      clip: { x: 0, y: 0, width: 2400, height: 1260 }
     });
     
     return true;
   } finally {
-    await page.close();
+    await context.close();
   }
 }
 
@@ -92,7 +93,7 @@ function generateHTML(snapshot) {
   }
   
   function severityClass(label) {
-    return `weather-advisor--${label.toLowerCase().replace(/\\s+/g, '-')}`;
+    return `weather-advisor--${label.toLowerCase().replace(/\s+/g, '-')}`;
   }
   
   const formattedTime = formatTime(forecast_target_time, timezone);
@@ -103,70 +104,69 @@ function generateHTML(snapshot) {
   <meta charset="utf-8">
   <style>
     * { box-sizing: border-box; margin: 0; padding: 0; }
+    html, body { width: 2400px; height: 1260px; overflow: hidden; }
     .weather-share-card {
-      width: 1200px;
-      height: 630px;
+      width: 2400px;
+      height: 1260px;
       background: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%);
-      border-radius: 16px;
-      padding: 32px;
+      border-radius: 32px;
+      padding: 48px;
       font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
       color: #1e293b;
-      box-shadow: 0 4px 24px rgba(0, 0, 0, 0.08), 0 1px 3px rgba(0, 0, 0, 0.05);
+      box-shadow: 0 8px 48px rgba(0, 0, 0, 0.08), 0 2px 6px rgba(0, 0, 0, 0.05);
       display: flex;
       flex-direction: column;
-      justify-content: space-between;
       box-sizing: border-box;
+      overflow: hidden;
     }
-    .weather-share-card__header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 16px; }
-    .weather-share-card__brand { display: flex; align-items: center; gap: 12px; }
+    .weather-share-card__header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 24px; }
+    .weather-share-card__brand { display: flex; align-items: center; gap: 20px; }
     .weather-share-card__logo { flex-shrink: 0; }
-    .weather-share-card__title { font-size: 24px; font-weight: 700; color: #0066cc; letter-spacing: -0.02em; }
+    .weather-share-card__title { font-size: 44px; font-weight: 700; color: #0066cc; letter-spacing: -0.02em; }
     .weather-share-card__time { text-align: right; }
-    .weather-share-card__label { display: block; font-size: 12px; font-weight: 500; color: #64748b; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 4px; }
-    .weather-share-card__value { font-size: 18px; font-weight: 600; color: #1e293b; }
-    .weather-share-card__location { display: flex; align-items: center; gap: 8px; margin-bottom: 20px; padding-bottom: 16px; border-bottom: 1px solid #e2e8f0; }
-    .weather-share-card__location-icon { font-size: 20px; }
-    .weather-share-card__location-name { font-size: 20px; font-weight: 600; color: #1e293b; }
-    .weather-share-card__main { display: flex; gap: 32px; margin-bottom: 20px; }
-    .weather-share-card__condition { flex: 0 0 200px; display: flex; flex-direction: column; align-items: center; text-align: center; }
-    .weather-share-card__icon { width: 96px; height: 96px; margin-bottom: 8px; }
-    .weather-share-card__temp-row { display: flex; flex-direction: column; gap: 4px; }
-    .weather-share-card__temperature { font-size: 48px; font-weight: 700; color: #1e293b; line-height: 1; }
-    .weather-share-card__condition-text { font-size: 16px; color: #475569; font-weight: 500; }
-    .weather-share-card__metrics { flex: 1; display: grid; grid-template-columns: repeat(2, 1fr); gap: 16px; }
-    .weather-share-card__metric { background: white; border-radius: 12px; padding: 16px; display: flex; flex-direction: column; gap: 8px; box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05); }
-    .weather-share-card__metric-icon { font-size: 20px; }
-    .weather-share-card__metric-label { font-size: 12px; font-weight: 500; color: #64748b; text-transform: uppercase; letter-spacing: 0.05em; }
-    .weather-share-card__metric-value { font-size: 20px; font-weight: 600; color: #1e293b; }
-    .weather-share-card__gust { font-size: 11px; color: #ef4444; font-weight: 500; margin-top: 4px; }
-    .weather-share-card__advisor { border-radius: 12px; padding: 20px; margin-bottom: 16px; background: white; box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05); }
-    .weather-share-card__advisor--excellent { border-left: 4px solid #22c55e; }
-    .weather-share-card__advisor--good { border-left: 4px solid #84cc16; }
-    .weather-share-card__advisor--fair { border-left: 4px solid #eab308; }
-    .weather-share-card__advisor--poor { border-left: 4px solid #f97316; }
-    .weather-share-card__advisor--unsuitable { border-left: 4px solid #ef4444; }
-    .weather-share-card__advisor-score { display: flex; flex-direction: column; gap: 4px; margin-bottom: 8px; }
-    .weather-share-card__advisor-label { font-size: 20px; font-weight: 700; color: #1e293b; }
-    .weather-share-card__advisor-value { font-size: 14px; color: #475569; }
-    .weather-share-card__advisor-note { font-size: 11px; color: #94a3b8; margin: 0 0 12px 0; }
-    .weather-share-card__warnings { margin: 0 0 12px 0; }
-    .weather-share-card__warning { font-size: 12px; color: #ef4444; margin: 0 0 6px 0; line-height: 1.4; }
-    .weather-share-card__advice { margin: 0; padding-left: 20px; font-size: 12px; color: #475569; line-height: 1.6; }
-    .weather-share-card__advice li { margin-bottom: 4px; }
-    .weather-share-card__footer { display: flex; justify-content: space-between; align-items: center; padding-top: 16px; border-top: 1px solid #e2e8f0; font-size: 11px; color: #94a3b8; }
-    .weather-share-card__url { font-family: 'SF Mono', Monaco, 'Cascadia Code', monospace; background: #f1f5f9; padding: 4px 8px; border-radius: 4px; word-break: break-all; max-width: 60%; }
-    .weather-share-card__attribution { display: flex; gap: 8px; align-items: center; }
+    .weather-share-card__label { display: block; font-size: 22px; font-weight: 500; color: #64748b; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 6px; }
+    .weather-share-card__value { font-size: 32px; font-weight: 600; color: #1e293b; }
+    .weather-share-card__location { display: flex; align-items: center; gap: 14px; margin-bottom: 28px; padding-bottom: 24px; border-bottom: 2px solid #e2e8f0; }
+    .weather-share-card__location-icon { font-size: 36px; }
+    .weather-share-card__location-name { font-size: 36px; font-weight: 600; color: #1e293b; }
+    .weather-share-card__main { display: flex; gap: 48px; flex: 1; margin-bottom: 24px; }
+    .weather-share-card__condition { flex: 0 0 480px; display: flex; flex-direction: column; align-items: center; text-align: center; }
+    .weather-share-card__icon { width: 320px; height: 320px; margin-bottom: 20px; }
+    .weather-share-card__temp-row { display: flex; flex-direction: column; gap: 6px; }
+    .weather-share-card__temperature { font-size: 84px; font-weight: 700; color: #1e293b; line-height: 1; }
+    .weather-share-card__condition-text { font-size: 28px; color: #475569; font-weight: 500; }
+    .weather-share-card__metrics { flex: 1; display: grid; grid-template-columns: repeat(2, 1fr); gap: 24px; }
+    .weather-share-card__metric { background: white; border-radius: 20px; padding: 24px; display: flex; flex-direction: column; gap: 12px; box-shadow: 0 2px 6px rgba(0, 0, 0, 0.05); }
+    .weather-share-card__metric-icon { font-size: 36px; }
+    .weather-share-card__metric-label { font-size: 22px; font-weight: 500; color: #64748b; text-transform: uppercase; letter-spacing: 0.05em; }
+    .weather-share-card__metric-value { font-size: 36px; font-weight: 600; color: #1e293b; }
+    .weather-share-card__gust { font-size: 20px; color: #ef4444; font-weight: 500; margin-top: 6px; }
+    .weather-share-card__advisor { border-radius: 20px; padding: 32px; margin-bottom: 16px; background: white; box-shadow: 0 2px 6px rgba(0, 0, 0, 0.05); flex-shrink: 0; }
+    .weather-share-card__advisor--excellent { border-left: 6px solid #22c55e; }
+    .weather-share-card__advisor--good { border-left: 6px solid #84cc16; }
+    .weather-share-card__advisor--fair { border-left: 6px solid #eab308; }
+    .weather-share-card__advisor--poor { border-left: 6px solid #f97316; }
+    .weather-share-card__advisor--unsuitable { border-left: 6px solid #ef4444; }
+    .weather-share-card__advisor-score { display: flex; flex-direction: column; gap: 6px; margin-bottom: 12px; }
+    .weather-share-card__advisor-label { font-size: 34px; font-weight: 700; color: #1e293b; }
+    .weather-share-card__advisor-value { font-size: 26px; color: #475569; }
+    .weather-share-card__advisor-note { font-size: 18px; color: #94a3b8; margin: 0 0 16px 0; }
+    .weather-share-card__warnings { margin: 0 0 16px 0; }
+    .weather-share-card__warning { font-size: 20px; color: #ef4444; margin: 0 0 10px 0; line-height: 1.4; }
+    .weather-share-card__advice { margin: 0; padding-left: 32px; font-size: 20px; color: #475569; line-height: 1.6; }
+    .weather-share-card__advice li { margin-bottom: 6px; }
+    .weather-share-card__footer { display: flex; justify-content: space-between; align-items: center; padding-top: 24px; border-top: 2px solid #e2e8f0; font-size: 20px; color: #94a3b8; flex-shrink: 0; }
+    .weather-share-card__url { font-family: 'SF Mono', Monaco, 'Cascadia Code', monospace; background: #f1f5f9; padding: 8px 16px; border-radius: 8px; word-break: break-all; max-width: 60%; }
+    .weather-share-card__attribution { display: flex; gap: 16px; align-items: center; }
     .weather-share-card__attribution a { color: #0066cc; text-decoration: none; }
+    .weather-share-card__attribution a:hover { text-decoration: underline; }
   </style>
 </head>
 <body>
-  <div class="weather-share-card ${severityClass(volleyball.label)}">
+  <div class="weather-share-card">
     <div class="weather-share-card__header">
       <div class="weather-share-card__brand">
-        <svg class="weather-share-card__logo" viewBox="0 0 120 120" width="48" height="48" aria-hidden="true">
-          <circle cx="60" cy="60" r="58" fill="#0066cc" />
-          <text x="60" y="72" textAnchor="middle" fontSize="50" fontWeight="bold" fill="white" fontFamily="system-ui, sans-serif">🏐</text>
-        </svg>
+        <img src="http://localhost:3002/ball.png" class="weather-share-card__logo" width="176" height="176" aria-hidden="true">
         <span class="weather-share-card__title">BeachVolleyballHub</span>
       </div>
       <div class="weather-share-card__time">
@@ -182,7 +182,7 @@ function generateHTML(snapshot) {
 
     <div class="weather-share-card__main">
       <div class="weather-share-card__condition">
-        ${iconUrl ? `<img src="${iconUrl}" alt="" class="weather-share-card__icon" width="96" height="96" />` : ''}
+        ${iconUrl ? `<img src="${iconUrl}" alt="" class="weather-share-card__icon" width="384" height="384" />` : ''}
         <div class="weather-share-card__temp-row">
           <span class="weather-share-card__temperature">${metric(temp, (v) => Math.round(v) + '°C')}</span>
           <span class="weather-share-card__condition-text">${escapeHtml(condition)}</span>
@@ -241,10 +241,10 @@ function generateHTML(snapshot) {
 function escapeHtml(text) {
   if (!text) return '';
   return text
-    .replace(/&/g, '&')
-    .replace(/</g, '<')
-    .replace(/>/g, '>')
-    .replace(/"/g, '"')
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
     .replace(/'/g, '&#039;');
 }
 
@@ -268,7 +268,7 @@ app.get('/health', (req, res) => {
   res.json({ status: 'ok' });
 });
 
-const PORT = process.env.PORT || 3001;
+const PORT = process.env.PORT || 3002;
 app.listen(PORT, '0.0.0.0', () => {
   console.log(`Image renderer listening on port ${PORT}`);
 });
