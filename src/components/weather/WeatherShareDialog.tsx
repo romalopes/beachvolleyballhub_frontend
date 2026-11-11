@@ -130,6 +130,10 @@ export function WeatherShareDialog({
     setDownloading(true);
     try {
       const response = await fetch(state.metadata.image_url);
+      if (!response.ok) {
+        throw new Error(`Image request failed with ${response.status}`);
+      }
+
       const blob = await response.blob();
       const url = URL.createObjectURL(blob);
       const a = document.createElement("a");
@@ -141,7 +145,10 @@ export function WeatherShareDialog({
       URL.revokeObjectURL(url);
       console.log("Image downloaded: Weather share image saved to your device");
     } catch {
-      console.error("Download failed: Could not download image");
+      // Cross-origin image hosts may block fetch/blob access without CORS.
+      // Opening the public image URL still lets the browser display or save it.
+      window.open(state.metadata.image_url, "_blank", "noopener,noreferrer");
+      console.warn("Direct download unavailable; opened image URL instead");
     } finally {
       setDownloading(false);
     }
@@ -180,44 +187,54 @@ export function WeatherShareDialog({
   const handleShareImage = useCallback(async () => {
     if (!state.metadata?.image_url || !state.shareData) return;
 
-    if (!canShareFiles()) {
-      toast({
-        title: "File sharing not supported",
-        description: "Use download and attach manually, or share the link instead",
-        variant: "destructive",
-      });
-      return;
-    }
-
     setSharing(true);
     try {
-      const response = await fetch(state.metadata.image_url);
-      const blob = await response.blob();
-      const file = new File([blob], `weather-share-${state.shareData.public_token}.png`, {
-        type: "image/png",
-      });
+      if (canShareFiles()) {
+        const response = await fetch(state.metadata.image_url);
+        if (!response.ok) {
+          throw new Error(`Image request failed with ${response.status}`);
+        }
 
-      const shareData = {
-        title: `Beach Volleyball Weather at ${state.metadata.location_name}`,
-        text: `Beach volleyball conditions at ${state.metadata.location_name}`,
-        files: [file],
-      };
+        const blob = await response.blob();
+        const file = new File([blob], `weather-share-${state.shareData.public_token}.png`, {
+          type: "image/png",
+        });
+        const shareData = {
+          title: `Beach Volleyball Weather at ${state.metadata.location_name}`,
+          text: `Beach volleyball conditions at ${state.metadata.location_name}`,
+          files: [file],
+        };
 
-      if (navigator.share && navigator.canShare(shareData)) {
         await navigator.share(shareData);
         console.log("Shared: Weather image sent successfully");
       } else {
-        toast({
-          title: "File sharing not available",
-          description: "Use download and attach manually",
-          variant: "destructive",
-        });
+        // Desktop browsers commonly do not support sharing files. Share the
+        // public report URL instead so the recipient can view the image.
+        const shareData = {
+          title: `Beach Volleyball Weather at ${state.metadata.location_name}`,
+          text: `Beach volleyball conditions at ${state.metadata.location_name}`,
+          url: state.shareData.public_url,
+        };
+
+        if (navigator.share && navigator.canShare?.(shareData)) {
+          await navigator.share(shareData);
+        } else {
+          const whatsappUrl = `https://wa.me/?text=${encodeURIComponent(
+            `${shareData.text}\n${shareData.url}`,
+          )}`;
+          window.open(whatsappUrl, "_blank", "noopener,noreferrer");
+        }
       }
     } catch (error) {
       if (error instanceof DOMException && error.name === "AbortError") {
         return;
       }
-      console.error("Share failed: Could not share image");
+      console.error("Share failed: Could not share image", error);
+      toast({
+        title: "Share failed",
+        description: "Could not share the image",
+        variant: "destructive",
+      });
     } finally {
       setSharing(false);
     }
@@ -316,7 +333,7 @@ export function WeatherShareDialog({
             <button
               className="weather-share-dialog__action-btn"
               onClick={handleShareImage}
-              disabled={sharing || !canShareFiles()}
+              disabled={sharing || !state.metadata?.image_url}
             >
               <Share2 size={18} />
               Share Image
