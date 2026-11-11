@@ -9,11 +9,7 @@ const __dirname = path.dirname(__filename);
 
 const app = express();
 app.use(express.json({ limit: "10mb" }));
-app.use(
-  express.static(
-    "/Users/romalopes/Documents/studies/my_project/beachvolleyballproject/beachvolleyballhub/public",
-  ),
-);
+app.use(express.static(path.join(__dirname, "public")));
 
 let browser = null;
 
