@@ -260,10 +260,7 @@ export function WeatherShareDialog({
           <div className="weather-share-dialog__card">
             <div className="weather-share-dialog__card-header">
               <div className="weather-share-dialog__card-brand">
-                <svg viewBox="0 0 120 120" width="32" height="32" aria-hidden="true">
-                  <circle cx="60" cy="60" r="58" fill="#0066cc" />
-                  <text x="60" y="72" textAnchor="middle" fontSize="40" fontWeight="bold" fill="white" fontFamily="system-ui, sans-serif">🏐</text>
-                </svg>
+                <img src="/ball.png" className="weather-share-dialog__logo" width="48" height="48" aria-hidden="true" />
                 <span>BeachVolleyballHub</span>
               </div>
               <span className="weather-share-dialog__card-time">
