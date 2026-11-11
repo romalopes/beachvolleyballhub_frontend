@@ -18,6 +18,7 @@ import OfflineStatus from "./components/OfflineStatus";
 import MobileBottomNav from "./components/MobileBottomNav";
 import { featureFlags } from "./config/featureFlags";
 import NotificationsPage from "./pages/Notifications";
+import WeatherShareReportPage from "./pages/WeatherShareReportPage";
 import Home from "./pages/Home";
 import Skills from "./pages/Skills";
 import SkillDetail from "./pages/SkillDetail";
@@ -294,6 +295,7 @@ export default function App() {
                 <Route path="/reset-password" element={<ResetPassword />} />
                 <Route path="/verify-email" element={<VerifyEmail />} />
                 <Route path="/" element={<Home />} />
+                <Route path="/weather/:publicToken" element={<WeatherShareReportPage />} />
                 <Route path="/skills" element={<Skills />} />
                 <Route path="/skills/:slug" element={<SkillDetail />} />
                 <Route path="/drills" element={<Drills />} />

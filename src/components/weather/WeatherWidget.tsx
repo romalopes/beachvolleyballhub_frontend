@@ -1,9 +1,11 @@
 import { useContext, useState } from "react";
 import { Link } from "react-router-dom";
+import { Share2 } from "lucide-react";
 import type { WeatherResponse } from "../../api";
 import { AuthContext } from "../../auth/AuthContext";
 import DailyForecast from "./DailyForecast";
 import WeatherForecastModal from "./WeatherForecastModal";
+import WeatherShareDialog from "./WeatherShareDialog";
 
 interface WeatherWidgetProps {
   weather: WeatherResponse | null;
@@ -82,6 +84,7 @@ export default function WeatherWidget({
   locationName,
 }: WeatherWidgetProps) {
   const [forecastDate, setForecastDate] = useState<string | null>(null);
+  const [shareDialogOpen, setShareDialogOpen] = useState(false);
   const forecast = Array.isArray(weather?.forecast) ? weather.forecast : [];
   const hourly = Array.isArray(weather?.hourly) ? weather.hourly : [];
   const current = weather?.current ?? null;
@@ -103,6 +106,18 @@ export default function WeatherWidget({
         <h3 id="home-weather-title">Beach volleyball weather</h3>
         {updated && (
           <span className="home-weather-freshness">Updated {updated}</span>
+        )}
+        {weather && !loading && !error && (
+          <button
+            className="weather-share-btn"
+            type="button"
+            onClick={() => setShareDialogOpen(true)}
+            aria-label="Share weather conditions"
+            disabled={loading}
+          >
+            <Share2 size={18} />
+            <span>Share</span>
+          </button>
         )}
       </div>
 
@@ -235,6 +250,15 @@ export default function WeatherWidget({
               onClose={() => setForecastDate(null)}
             />
           )}
+
+          <WeatherShareDialog
+            isOpen={shareDialogOpen}
+            onClose={() => setShareDialogOpen(false)}
+            latitude={weather.location?.latitude ?? 0}
+            longitude={weather.location?.longitude ?? 0}
+            locationName={locationName}
+            forecastTargetTime={forecastDate}
+          />
         </>
       )}
     </section>

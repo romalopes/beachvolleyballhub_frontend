@@ -2548,6 +2548,37 @@ export interface WeatherAdvisorPreference {
   humidity_weight: number;
 }
 
+export interface WeatherShareCreateRequest {
+  lat: number;
+  lon: number;
+  location_name: string;
+  forecast_target_time?: string;
+}
+
+export interface WeatherShareCreateResponse {
+  public_token: string;
+  public_url: string;
+  image_url: string | null;
+  expires_at: string;
+  created_at: string;
+}
+
+export interface WeatherShareMetadata {
+  public_token: string;
+  location_name: string;
+  latitude: number;
+  longitude: number;
+  forecast_target_time: string | null;
+  timezone: string | null;
+  current: WeatherCurrent | null;
+  forecast: WeatherForecastDay[];
+  volleyball: WeatherVolleyball;
+  image_url: string | null;
+  canonical_url: string;
+  expires_at: string | null;
+  created_at: string;
+}
+
 export const api = {
   weather: (lat: number, lon: number, signal?: AbortSignal) =>
     fetchAPI<WeatherResponse>(
@@ -4676,4 +4707,17 @@ export const api = {
       {},
       "DELETE",
     ),
+
+  weatherShare: {
+    create: (data: WeatherShareCreateRequest) =>
+      postJSON<WeatherShareCreateResponse>("/weather_shares", data, "POST"),
+    metadata: (publicToken: string) =>
+      fetchAPI<WeatherShareMetadata>(`/weather_shares/${encodeURIComponent(publicToken)}/metadata`),
+    revoke: (publicToken: string) =>
+      postJSON<{}>(
+        `/weather_shares/${encodeURIComponent(publicToken)}`,
+        {},
+        "DELETE",
+      ),
+  },
 };

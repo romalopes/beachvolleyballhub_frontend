@@ -14550,3 +14550,281 @@
     margin: 0.5rem 0.55rem 0.8rem;
   }
 }
+
+/* ==========================================================================
+   Weather Share Dialog
+   ========================================================================== */
+
+.weather-share-dialog {
+  border: none;
+  border-radius: 16px;
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.15);
+  padding: 0;
+  max-width: 480px;
+  width: 90vw;
+  max-height: 90vh;
+  overflow: hidden;
+  font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+}
+
+.weather-share-dialog::backdrop {
+  background: rgba(0, 0, 0, 0.5);
+  backdrop-filter: blur(4px);
+}
+
+.weather-share-dialog__header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 20px 24px;
+  border-bottom: 1px solid #e2e8f0;
+}
+
+.weather-share-dialog__header h2 {
+  margin: 0;
+  font-size: 18px;
+  font-weight: 600;
+  color: #1e293b;
+}
+
+.weather-share-dialog__close {
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 8px;
+  border-radius: 8px;
+  color: #64748b;
+  transition: background 0.2s, color 0.2s;
+}
+
+.weather-share-dialog__close:hover {
+  background: #f1f5f9;
+  color: #1e293b;
+}
+
+.weather-share-dialog__loading {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 16px;
+  padding: 48px 24px;
+  text-align: center;
+}
+
+.weather-share-dialog__spinner {
+  animation: spin 1s linear infinite;
+  color: #0066cc;
+}
+
+@keyframes spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+.weather-share-dialog__error {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 16px;
+  padding: 48px 24px;
+  text-align: center;
+  color: #ef4444;
+}
+
+.weather-share-dialog__error-icon {
+  flex-shrink: 0;
+}
+
+.weather-share-dialog__retry {
+  background: #0066cc;
+  color: white;
+  border: none;
+  padding: 12px 24px;
+  border-radius: 8px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.weather-share-dialog__retry:hover {
+  background: #0052a3;
+}
+
+.weather-share-dialog__preview {
+  padding: 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.weather-share-dialog__card {
+  background: white;
+  border-radius: 12px;
+  overflow: hidden;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+}
+
+.weather-share-dialog__card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  padding: 16px;
+  border-bottom: 1px solid #e2e8f0;
+}
+
+.weather-share-dialog__card-brand {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-weight: 600;
+  color: #0066cc;
+}
+
+.weather-share-dialog__card-time {
+  font-size: 13px;
+  color: #64748b;
+  background: #f1f5f9;
+  padding: 4px 10px;
+  border-radius: 20px;
+}
+
+.weather-share-dialog__card-location {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 16px;
+  border-bottom: 1px solid #e2e8f0;
+  font-weight: 500;
+  color: #1e293b;
+}
+
+.weather-share-dialog__card-image {
+  padding: 16px;
+  text-align: center;
+}
+
+.weather-share-dialog__card-image img {
+  max-width: 100%;
+  height: auto;
+  border-radius: 8px;
+}
+
+.weather-share-dialog__card-advisor {
+  padding: 16px;
+  border-left: 4px solid #e2e8f0;
+}
+
+.weather-share-dialog__card-advisor--excellent {
+  border-left-color: #22c55e;
+}
+
+.weather-share-dialog__card-advisor--good {
+  border-left-color: #84cc16;
+}
+
+.weather-share-dialog__card-advisor--fair {
+  border-left-color: #eab308;
+}
+
+.weather-share-dialog__card-advisor--poor {
+  border-left-color: #f97316;
+}
+
+.weather-share-dialog__card-advisor--unsuitable {
+  border-left-color: #ef4444;
+}
+
+.weather-share-dialog__card-score {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin-bottom: 12px;
+}
+
+.weather-share-dialog__card-label {
+  font-size: 16px;
+  font-weight: 600;
+  color: #1e293b;
+}
+
+.weather-share-dialog__card-value {
+  font-size: 13px;
+  color: #64748b;
+}
+
+.weather-share-dialog__card-warnings {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.weather-share-dialog__card-warnings p {
+  margin: 0;
+  font-size: 12px;
+  color: #ef4444;
+  line-height: 1.4;
+}
+
+.weather-share-dialog__actions {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+
+.weather-share-dialog__action-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 12px 16px;
+  border: 1px solid #e2e8f0;
+  border-radius: 10px;
+  background: white;
+  font-size: 14px;
+  font-weight: 500;
+  color: #1e293b;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.weather-share-dialog__action-btn:hover:not(:disabled) {
+  background: #f8fafc;
+  border-color: #cbd5e1;
+}
+
+.weather-share-dialog__action-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.weather-share-dialog__action-btn--primary {
+  background: #0066cc;
+  border-color: #0066cc;
+  color: white;
+  grid-column: span 2;
+}
+
+.weather-share-dialog__action-btn--primary:hover:not(:disabled) {
+  background: #0052a3;
+  border-color: #0052a3;
+}
+
+.weather-share-dialog__url {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding-top: 12px;
+  border-top: 1px solid #e2e8f0;
+  font-size: 12px;
+  color: #64748b;
+}
+
+.weather-share-dialog__url code {
+  background: #f1f5f9;
+  padding: 8px 12px;
+  border-radius: 6px;
+  font-family: 'SF Mono', Monaco, 'Cascadia Code', monospace;
+  font-size: 11px;
+  word-break: break-all;
+  color: #0066cc;
+}
