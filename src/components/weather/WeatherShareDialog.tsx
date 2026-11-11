@@ -104,12 +104,33 @@ export function WeatherShareDialog({
       const metadata = await api.weatherShare.metadata(response.public_token);
 
       setState({ status: "preview", shareData: response, metadata });
+      pollForImage(response.public_token);
     } catch (error) {
       const message = error instanceof Error ? error.message : "Failed to create share";
       setState({ status: "error", error: message });
       console.error(`Share failed: ${message}`);
     }
   }, [latitude, longitude, locationName, forecastTargetTime, toast]);
+
+  const pollForImage = useCallback(async (publicToken: string) => {
+    for (let attempt = 0; attempt < 30; attempt++) {
+      await new Promise((resolve) => setTimeout(resolve, 1000));
+
+      try {
+        const metadata = await api.weatherShare.metadata(publicToken);
+
+        if (metadata.image_url) {
+          setState((prev) => ({
+            ...prev,
+            metadata: { ...prev.metadata, ...metadata },
+          }));
+          return;
+        }
+      } catch (error) {
+        console.warn("Polling for image failed:", error);
+      }
+    }
+  }, []);
 
   const handleCopyLink = useCallback(async () => {
     if (!state.shareData) return;

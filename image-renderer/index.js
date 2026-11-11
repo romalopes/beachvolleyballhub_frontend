@@ -195,7 +195,7 @@ function generateHTML(snapshot) {
   <div class="weather-share-card">
     <div class="weather-share-card__header">
       <div class="weather-share-card__brand">
-        <img src="http://localhost:3002/ball.png" class="weather-share-card__logo" width="144" height="144" aria-hidden="true">
+        <img src="http://localhost:3002/ball.png" class="weather-share-card__logo" width="96" height="96" aria-hidden="true">
         <span class="weather-share-card__title">BeachVolleyballHub</span>
       </div>
       <div class="weather-share-card__time">

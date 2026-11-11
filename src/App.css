@@ -14655,6 +14655,8 @@
   display: flex;
   flex-direction: column;
   gap: 20px;
+  overflow-y: auto;
+  max-height: calc(90vh - 120px);
 }
 
 .weather-share-dialog__card {
@@ -14705,6 +14707,7 @@
 
 .weather-share-dialog__card-image img {
   max-width: 100%;
+  max-height: 300px;
   height: auto;
   border-radius: 8px;
 }
