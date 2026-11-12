@@ -15434,3 +15434,244 @@
     width: 100%;
   }
 }
+
+/* Install Prompt */
+.install-prompt {
+  position: fixed;
+  bottom: 20px;
+  left: 20px;
+  right: 20px;
+  max-width: 400px;
+  margin: 0 auto;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  box-shadow: var(--shadow-lg);
+  padding: 16px;
+  z-index: 1000;
+  animation: slideUp 300ms ease;
+}
+
+@keyframes slideUp {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.install-prompt__content {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+
+.install-prompt__icon {
+  color: var(--primary);
+  flex-shrink: 0;
+}
+
+.install-prompt__text h3 {
+  margin: 0 0 4px;
+  font-size: 1rem;
+  font-weight: 600;
+  color: var(--text);
+}
+
+.install-prompt__text p {
+  margin: 0;
+  font-size: 0.85rem;
+  color: var(--text-secondary);
+}
+
+.install-prompt__actions {
+  display: flex;
+  gap: 8px;
+  justify-content: flex-end;
+}
+
+.install-prompt__btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 16px;
+  border-radius: 8px;
+  font-size: 0.85rem;
+  font-weight: 500;
+  border: none;
+  cursor: pointer;
+  transition: all 150ms ease;
+}
+
+.install-prompt__btn--primary {
+  background: var(--primary);
+  color: white;
+}
+
+.install-prompt__btn--primary:hover {
+  background: var(--primary-dark);
+}
+
+.install-prompt__btn--secondary {
+  background: var(--surface-hover);
+  color: var(--text);
+  border: 1px solid var(--border);
+}
+
+.install-prompt__btn--secondary:hover {
+  background: var(--surface-active);
+}
+
+/* Offline Page */
+.offline-page {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 100vh;
+  padding: 24px;
+  text-align: center;
+  background: var(--background);
+  color: var(--text);
+}
+
+.offline-page__icon {
+  color: var(--primary);
+  margin-bottom: 16px;
+}
+
+.offline-page__title {
+  font-size: 1.5rem;
+  font-weight: 700;
+  margin: 0 0 8px;
+}
+
+.offline-page__message {
+  font-size: 1rem;
+  color: var(--text-secondary);
+  margin: 0 0 24px;
+  max-width: 320px;
+}
+
+.offline-page__retry {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 24px;
+  background: var(--primary);
+  color: white;
+  border: none;
+  border-radius: 8px;
+  font-size: 1rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 150ms ease;
+}
+
+.offline-page__retry:hover {
+  background: var(--primary-dark);
+}
+
+.offline-page__cached-data {
+  margin-top: 24px;
+  padding: 16px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  max-width: 400px;
+  width: 100%;
+  text-align: left;
+}
+
+.offline-page__cached-title {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--text-secondary);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  margin: 0 0 8px;
+}
+
+.offline-page__cached-item {
+  font-size: 0.9rem;
+  color: var(--text);
+  margin: 4px 0;
+}
+
+/* PWA Update Banner */
+.pwa-update-banner {
+  position: fixed;
+  bottom: 20px;
+  left: 20px;
+  right: 20px;
+  max-width: 400px;
+  margin: 0 auto;
+  background: var(--primary);
+  color: white;
+  border-radius: 12px;
+  box-shadow: var(--shadow-lg);
+  padding: 16px;
+  z-index: 1001;
+  animation: slideUp 300ms ease;
+}
+
+.pwa-update-banner__content {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.pwa-update-banner__text {
+  flex: 1;
+}
+
+.pwa-update-banner__title {
+  font-weight: 600;
+  margin: 0 0 4px;
+}
+
+.pwa-update-banner__message {
+  font-size: 0.85rem;
+  opacity: 0.9;
+  margin: 0;
+}
+
+.pwa-update-banner__actions {
+  display: flex;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
+.pwa-update-banner__btn {
+  padding: 8px 16px;
+  border-radius: 8px;
+  font-size: 0.85rem;
+  font-weight: 500;
+  border: none;
+  cursor: pointer;
+  transition: all 150ms ease;
+}
+
+.pwa-update-banner__btn--primary {
+  background: white;
+  color: var(--primary);
+}
+
+.pwa-update-banner__btn--primary:hover {
+  background: var(--surface-hover);
+}
+
+.pwa-update-banner__btn--secondary {
+  background: rgba(255, 255, 255, 0.2);
+  color: white;
+  border: 1px solid rgba(255, 255, 255, 0.3);
+}
+
+.pwa-update-banner__btn--secondary:hover {
+  background: rgba(255, 255, 255, 0.3);
+}

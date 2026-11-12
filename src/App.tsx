@@ -4,9 +4,10 @@ import {
   Route,
   Outlet,
   useLocation,
+  useNavigate,
   Navigate,
 } from "react-router-dom";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { ChevronsLeft, ChevronsRight, X } from "lucide-react";
 import { AuthProvider } from "./auth/AuthProvider";
 import { useAuth } from "./auth/AuthContext";
@@ -15,11 +16,12 @@ import { useTestAccess } from "./auth/TestAccessContext";
 import Sidebar from "./components/Sidebar";
 import Footer from "./components/Footer";
 import NotificationBell from "./components/NotificationBell";
-import OfflineStatus from "./components/OfflineStatus";
+import OfflineStatus, { InstallPrompt } from "./components/OfflineStatus";
 import MobileBottomNav from "./components/MobileBottomNav";
 import { featureFlags } from "./config/featureFlags";
 import NotificationsPage from "./pages/Notifications";
 import WeatherShareReportPage from "./pages/WeatherShareReportPage";
+import OfflinePage from "./pages/OfflinePage";
 import Home from "./pages/Home";
 import Skills from "./pages/Skills";
 import SkillDetail from "./pages/SkillDetail";
@@ -176,6 +178,7 @@ function writeSidebarCollapsed(collapsed: boolean) {
 
 function Layout() {
   const location = useLocation();
+  const navigate = useNavigate();
   // The mobile sidebar closes on every navigation. Remembering which pathname
   // it was opened on makes that a derivation: as soon as the route changes the
   // stored pathname stops matching and the sidebar reads as closed, so no
@@ -197,6 +200,21 @@ function Layout() {
   // A persisted desktop icon-rail preference must not hide navigation groups
   // inside the full-width mobile drawer.
   const sidebarMenuCollapsed = menuCollapsed && !sidebarOpen;
+
+  // Handle deep links for weather shares
+  useEffect(() => {
+    const handleDeepLink = (event: CustomEvent) => {
+      const detail = event.detail as { type: string; token: string } | null;
+      if (detail?.type === "weather-share" && detail.token) {
+        navigate(`/weather/${detail.token}`);
+      }
+    };
+
+    window.addEventListener("bvb-deep-link", handleDeepLink as EventListener);
+    return () => {
+      window.removeEventListener("bvb-deep-link", handleDeepLink as EventListener);
+    };
+  }, [navigate]);
 
   return (
     <div
@@ -734,9 +752,11 @@ export default function App() {
                 <Route path="/analyses/:id" element={<AnalysisDetailPage />} />
                 <Route path="/analyses/:id/edit" element={<AnalysisFormPage />} />
                 <Route path="/hire-analysis" element={<HireAnalysisPage />} />
+                <Route path="/offline" element={<OfflinePage />} />
                 <Route path="*" element={<Navigate to="/" replace />} />
               </Route>
             </Routes>
+            {featureFlags.pwaEnabled && <InstallPrompt />}
           </AuthProvider>
         </TestAccessGate>
       </BrowserRouter>

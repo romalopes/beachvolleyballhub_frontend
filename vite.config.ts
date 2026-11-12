@@ -14,7 +14,7 @@ export default defineConfig(({ mode }) => {
       VitePWA({
         disable: !pwaEnabled,
         registerType: "autoUpdate",
-        includeAssets: ["ball.png", "favicon.svg", "icons.svg"],
+        includeAssets: ["ball.png", "favicon.svg", "icons.svg", "icon-192.png", "icon-512.png", "icon-maskable-512.png"],
         manifest: {
           name: "Beach Volleyball Hub",
           short_name: "BVB Hub",
@@ -25,14 +25,79 @@ export default defineConfig(({ mode }) => {
           start_url: "/",
           scope: "/",
           icons: [
-            { src: "/ball.png", sizes: "192x192", type: "image/png", purpose: "any maskable" },
-            { src: "/ball.png", sizes: "512x512", type: "image/png", purpose: "any maskable" },
+            { src: "/icon-192.png", sizes: "192x192", type: "image/png", purpose: "any" },
+            { src: "/icon-512.png", sizes: "512x512", type: "image/png", purpose: "any" },
+            { src: "/icon-maskable-512.png", sizes: "512x512", type: "image/png", purpose: "maskable" },
+          ],
+          shortcuts: [
+            {
+              name: "Current Location Weather",
+              short_name: "Weather",
+              description: "View weather for your current location",
+              url: "/weather",
+              icons: [{ src: "/icon-192.png", sizes: "192x192" }],
+            },
+            {
+              name: "My Tournaments",
+              short_name: "Tournaments",
+              description: "View your tournaments",
+              url: "/my-tournaments",
+              icons: [{ src: "/icon-192.png", sizes: "192x192" }],
+            },
           ],
         },
         workbox: {
           navigateFallback: "/index.html",
           globPatterns: ["**/*.{js,css,html,ico,png,svg,woff2}"],
           cleanupOutdatedCaches: true,
+          runtimeCaching: [
+            {
+              urlPattern: /^https?.*\/api\/.*/i,
+              handler: "NetworkFirst",
+              options: {
+                cacheName: "api-cache",
+                expiration: {
+                  maxEntries: 100,
+                  maxAgeSeconds: 60 * 60 * 24, // 24 hours
+                },
+                networkTimeoutSeconds: 10,
+              },
+            },
+            {
+              urlPattern: /^https?.*\/weather\/.*/i,
+              handler: "NetworkFirst",
+              options: {
+                cacheName: "weather-share-cache",
+                expiration: {
+                  maxEntries: 50,
+                  maxAgeSeconds: 60 * 60 * 24 * 7, // 7 days
+                },
+                networkTimeoutSeconds: 10,
+              },
+            },
+            {
+              urlPattern: /^https?.*\.weatherapi\.com\/.*/i,
+              handler: "CacheFirst",
+              options: {
+                cacheName: "weather-icons-cache",
+                expiration: {
+                  maxEntries: 100,
+                  maxAgeSeconds: 60 * 60 * 24 * 30, // 30 days
+                },
+              },
+            },
+            {
+              urlPattern: /^https?.*\/ball\.png/i,
+              handler: "CacheFirst",
+              options: {
+                cacheName: "static-assets-cache",
+                expiration: {
+                  maxEntries: 10,
+                  maxAgeSeconds: 60 * 60 * 24 * 365, // 1 year
+                },
+              },
+            },
+          ],
         },
       }),
     ],
