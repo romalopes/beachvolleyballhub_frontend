@@ -2,6 +2,7 @@ import {
   BrowserRouter,
   Routes,
   Route,
+  Outlet,
   useLocation,
   Navigate,
 } from "react-router-dom";
@@ -173,7 +174,7 @@ function writeSidebarCollapsed(collapsed: boolean) {
   }
 }
 
-function Layout({ children }: { children: React.ReactNode }) {
+function Layout() {
   const location = useLocation();
   // The mobile sidebar closes on every navigation. Remembering which pathname
   // it was opened on makes that a derivation: as soon as the route changes the
@@ -272,7 +273,7 @@ function Layout({ children }: { children: React.ReactNode }) {
         />
       )}
       <main className="main">
-        {children}
+        <Outlet />
         <Footer />
       </main>
       {featureFlags.mobileLayoutEnabled && <MobileBottomNav />}
@@ -286,8 +287,9 @@ export default function App() {
       <BrowserRouter>
         <TestAccessGate>
           <AuthProvider>
-            <Layout>
-              <Routes>
+            <Routes>
+              <Route path="/weather/:publicToken" element={<WeatherShareReportPage />} />
+              <Route element={<Layout />}>
                 <Route path="/test-access" element={<TestAccessPage />} />
                 <Route path="/login" element={<Login />} />
                 <Route path="/signup" element={<Signup />} />
@@ -295,7 +297,6 @@ export default function App() {
                 <Route path="/reset-password" element={<ResetPassword />} />
                 <Route path="/verify-email" element={<VerifyEmail />} />
                 <Route path="/" element={<Home />} />
-                <Route path="/weather/:publicToken" element={<WeatherShareReportPage />} />
                 <Route path="/skills" element={<Skills />} />
                 <Route path="/skills/:slug" element={<SkillDetail />} />
                 <Route path="/drills" element={<Drills />} />
@@ -734,8 +735,8 @@ export default function App() {
                 <Route path="/analyses/:id/edit" element={<AnalysisFormPage />} />
                 <Route path="/hire-analysis" element={<HireAnalysisPage />} />
                 <Route path="*" element={<Navigate to="/" replace />} />
-              </Routes>
-            </Layout>
+              </Route>
+            </Routes>
           </AuthProvider>
         </TestAccessGate>
       </BrowserRouter>

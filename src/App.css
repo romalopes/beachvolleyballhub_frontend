@@ -14879,7 +14879,7 @@
   color: #64748b;
 }
 
-.weather-share-dialog__url code {
+.weather-share-dialog__url-link {
   background: #f1f5f9;
   padding: 8px 12px;
   border-radius: 6px;
@@ -14887,4 +14887,10 @@
   font-size: 11px;
   word-break: break-all;
   color: #0066cc;
+  text-decoration: none;
+  display: inline-block;
+}
+
+.weather-share-dialog__url-link:hover {
+  text-decoration: underline;
 }

@@ -407,7 +407,14 @@ export function WeatherShareDialog({
 
           <p className="weather-share-dialog__url">
             <span>Share URL:</span>
-            <code>{state.shareData.public_url}</code>
+            <a
+              href={state.shareData.public_url}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="weather-share-dialog__url-link"
+            >
+              {state.shareData.public_url}
+            </a>
           </p>
         </div>
       )}
