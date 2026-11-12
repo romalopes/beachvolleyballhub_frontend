@@ -1280,7 +1280,7 @@
 .weather-box {
   display: grid;
   grid-template-columns: minmax(170px, 0.8fr) minmax(0, 1.5fr);
-  margin-top: 1rem;
+  margin-top: 0.75rem;
   overflow: hidden;
   border: 1px solid var(--border-light);
   border-radius: var(--radius-lg);
@@ -1293,9 +1293,9 @@
   display: grid;
   grid-template-columns: minmax(0, 1fr) auto;
   align-items: center;
-  gap: 0.75rem;
+  gap: 0.6rem;
   min-width: 0;
-  padding: 1.25rem;
+  padding: 1rem;
   background: linear-gradient(145deg, #1a1a1a, #3a3025);
 }
 
@@ -1307,71 +1307,74 @@
 
 .weather-now-copy > span {
   color: var(--amber-400);
-  font-size: 0.75rem;
+  font-size: 0.7rem;
   font-weight: 700;
   letter-spacing: 0.08em;
   text-transform: uppercase;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .weather-now-copy strong {
-  margin-top: 0.25rem;
+  margin-top: 0.2rem;
   color: var(--white);
-  font-size: clamp(2.75rem, 7vw, 4.25rem);
+  font-size: clamp(2.25rem, 6vw, 3.25rem);
   font-weight: 300;
   line-height: 1;
 }
 
 .weather-now-copy p {
-  margin-top: 0.4rem;
+  margin-top: 0.3rem;
   color: rgba(255, 255, 255, 0.9);
-  font-size: 0.9rem;
-  line-height: 1.3;
+  font-size: 0.85rem;
+  line-height: 1.25;
 }
 
 .weather-now-copy small {
-  margin-top: 0.35rem;
+  margin-top: 0.25rem;
   overflow: hidden;
   color: rgba(255, 255, 255, 0.65);
-  font-size: 0.75rem;
+  font-size: 0.7rem;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 
 .weather-now > img {
-  width: clamp(68px, 9vw, 92px);
-  height: clamp(68px, 9vw, 92px);
+  width: clamp(60px, 8vw, 84px);
+  height: clamp(60px, 8vw, 84px);
   flex: 0 0 auto;
-  filter: drop-shadow(0 5px 9px rgba(0, 0, 0, 0.22));
+  filter: drop-shadow(0 4px 8px rgba(0, 0, 0, 0.2));
 }
 
 .weather-now-metrics {
   display: grid;
   grid-column: 1 / -1;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 0.55rem 0.8rem;
-  margin: 0.5rem 0 0;
-  padding-top: 0.85rem;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0.4rem 0.6rem;
+  margin: 0.35rem 0 0;
+  padding-top: 0.6rem;
   border-top: 1px solid rgba(255, 255, 255, 0.14);
 }
 
 .weather-now-metrics div:last-child {
-  grid-column: 1 / -1;
+  grid-column: auto;
 }
 
 .weather-now-metrics dt {
   color: rgba(255, 255, 255, 0.5);
-  font-size: 0.62rem;
+  font-size: 0.55rem;
   font-weight: 700;
   letter-spacing: 0.07em;
   text-transform: uppercase;
 }
 
 .weather-now-metrics dd {
-  margin: 0.1rem 0 0;
+  margin: 0.05rem 0 0;
   color: var(--white);
-  font-size: 0.78rem;
+  font-size: 0.7rem;
   font-weight: 600;
-  line-height: 1.25;
+  line-height: 1.2;
 }
 
 .weather-more {
@@ -1379,7 +1382,7 @@
   min-width: 0;
   flex-direction: column;
   justify-content: space-between;
-  padding: 0.9rem 1rem 0.75rem;
+  padding: 0.7rem 0.9rem 0.55rem;
   background: #292929;
 }
 
@@ -1397,10 +1400,10 @@
   display: grid;
   grid-template-columns: 1fr auto;
   align-items: center;
-  gap: 0.1rem 0.35rem;
+  gap: 0.1rem 0.3rem;
   min-width: 0;
   width: 100%;
-  padding: 0.35rem 0.65rem;
+  padding: 0.25rem 0.5rem;
   border-left: 1px solid rgba(255, 255, 255, 0.12);
   background: transparent;
   color: var(--white);
@@ -1421,30 +1424,30 @@
 }
 .weather-day-card span {
   color: rgba(255, 255, 255, 0.68);
-  font-size: 0.72rem;
+  font-size: 0.65rem;
   font-weight: 700;
   text-transform: uppercase;
 }
 .weather-day-card img {
   grid-column: 2;
   grid-row: 1 / span 4;
-  width: 44px;
-  height: 44px;
+  width: 38px;
+  height: 38px;
 }
 .weather-day-card strong {
   color: var(--white);
-  font-size: 1.2rem;
+  font-size: 1.1rem;
   line-height: 1;
 }
 .weather-day-card small {
   color: rgba(255, 255, 255, 0.55);
-  font-size: 0.72rem;
+  font-size: 0.65rem;
 }
 .weather-day-wind {
-  margin-top: 0.15rem;
+  margin-top: 0.1rem;
   overflow: hidden;
   color: rgba(255, 255, 255, 0.72) !important;
-  font-size: 0.66rem !important;
+  font-size: 0.6rem !important;
   font-weight: 600;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -14609,7 +14612,13 @@
   width: 90vw;
   max-height: 90vh;
   overflow: hidden;
-  font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  font-family:
+    system-ui,
+    -apple-system,
+    BlinkMacSystemFont,
+    "Segoe UI",
+    Roboto,
+    sans-serif;
 }
 
 .weather-share-dialog::backdrop {
@@ -14639,7 +14648,9 @@
   padding: 8px;
   border-radius: 8px;
   color: #64748b;
-  transition: background 0.2s, color 0.2s;
+  transition:
+    background 0.2s,
+    color 0.2s;
 }
 
 .weather-share-dialog__close:hover {
@@ -14662,8 +14673,12 @@
 }
 
 @keyframes spin {
-  from { transform: rotate(0deg); }
-  to { transform: rotate(360deg); }
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
 }
 
 .weather-share-dialog__error {
@@ -14871,7 +14886,7 @@
   background: #f1f5f9;
   padding: 8px 12px;
   border-radius: 6px;
-  font-family: 'SF Mono', Monaco, 'Cascadia Code', monospace;
+  font-family: "SF Mono", Monaco, "Cascadia Code", monospace;
   font-size: 11px;
   word-break: break-all;
   color: #0066cc;
