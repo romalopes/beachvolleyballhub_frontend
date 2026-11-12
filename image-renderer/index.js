@@ -153,6 +153,8 @@ function generateHTML(snapshot) {
     .weather-share-card__location { display: flex; align-items: center; gap: 14px; margin-bottom: 28px; padding-bottom: 24px; border-bottom: 2px solid #e2e8f0; }
     .weather-share-card__location-icon { font-size: 36px; }
     .weather-share-card__location-name { font-size: 36px; font-weight: 600; color: #1e293b; }
+    .weather-share-card__time-display { text-align: center; margin-bottom: 24px; padding-bottom: 20px; border-bottom: 1px solid #e2e8f0; }
+    .weather-share-card__time-label { display: inline-block; font-size: 24px; font-weight: 500; color: #475569; background: #f1f5f9; padding: 8px 16px; border-radius: 12px; }
     .weather-share-card__main { display: flex; gap: 32px; flex: 1; margin-bottom: 8px; }
     .weather-share-card__condition { flex: 0 0 360px; display: flex; flex-direction: column; align-items: center; text-align: center; }
     .weather-share-card__icon { width: 240px; height: 240px; margin-bottom: 12px; }
@@ -203,6 +205,10 @@ function generateHTML(snapshot) {
     <div class="weather-share-card__location">
       <span class="weather-share-card__location-icon" aria-hidden="true">📍</span>
       <span class="weather-share-card__location-name">${escapeHtml(location_name)}</span>
+    </div>
+
+    <div class="weather-share-card__time-display">
+      <span class="weather-share-card__time-label">${escapeHtml(formattedTime)}</span>
     </div>
 
     <div class="weather-share-card__main">

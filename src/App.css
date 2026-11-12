@@ -14894,3 +14894,527 @@
 .weather-share-dialog__url-link:hover {
   text-decoration: underline;
 }
+
+/* Weather Share Report Page
+   ========================================================================== */
+
+.weather-share-report {
+  min-height: 100vh;
+  background: #f8fafc;
+  font-family:
+    system-ui,
+    -apple-system,
+    BlinkMacSystemFont,
+    "Segoe UI",
+    Roboto,
+    sans-serif;
+  color: #1e293b;
+}
+
+.weather-share-report.loading,
+.weather-share-report.error {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 100vh;
+  padding: 2rem;
+}
+
+.weather-share-report__spinner {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 16px;
+  text-align: center;
+}
+
+.weather-share-report__loader {
+  animation: spin 1s linear infinite;
+  color: #0066cc;
+}
+
+.weather-share-report__error {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 16px;
+  text-align: center;
+  color: #ef4444;
+  max-width: 400px;
+}
+
+.weather-share-report__error-icon {
+  flex-shrink: 0;
+}
+
+.weather-share-report__error h1 {
+  margin: 0;
+  font-size: 24px;
+  font-weight: 600;
+}
+
+.weather-share-report__error p {
+  margin: 0;
+  color: #64748b;
+}
+
+.weather-share-report__home-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 8px;
+  padding: 12px 24px;
+  background: #0066cc;
+  color: white;
+  border-radius: 8px;
+  font-weight: 600;
+  text-decoration: none;
+  transition: background 0.2s;
+}
+
+.weather-share-report__home-link:hover {
+  background: #0052a3;
+}
+
+.weather-share-report__header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 20px 24px;
+  background: white;
+  border-bottom: 1px solid #e2e8f0;
+  position: sticky;
+  top: 0;
+  z-index: 10;
+  flex-wrap: wrap;
+  gap: 16px;
+}
+
+.weather-share-report__back {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 16px;
+  background: #f1f5f9;
+  color: #1e293b;
+  border-radius: 8px;
+  font-weight: 500;
+  font-size: 14px;
+  text-decoration: none;
+  transition: all 0.2s;
+}
+
+.weather-share-report__back:hover {
+  background: #e2e8f0;
+  color: #0066cc;
+}
+
+.weather-share-report__actions {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.weather-share-report__action-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 10px 16px;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  background: white;
+  font-size: 14px;
+  font-weight: 500;
+  color: #1e293b;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.weather-share-report__action-btn:hover:not(:disabled) {
+  background: #f8fafc;
+  border-color: #cbd5e1;
+}
+
+.weather-share-report__action-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.weather-share-report__spinner {
+  animation: spin 1s linear infinite;
+}
+
+.weather-share-report__main {
+  max-width: 720px;
+  margin: 0 auto;
+  padding: 24px;
+}
+
+.weather-share-report__extra {
+  margin-top: 24px;
+  padding-top: 24px;
+  border-top: 1px solid #e2e8f0;
+}
+
+.weather-share-report__location-link {
+  margin-bottom: 16px;
+}
+
+.weather-share-report__maps-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 16px;
+  background: #f1f5f9;
+  color: #0066cc;
+  border-radius: 8px;
+  font-weight: 500;
+  font-size: 14px;
+  text-decoration: none;
+  transition: all 0.2s;
+}
+
+.weather-share-report__maps-link:hover {
+  background: #e2e8f0;
+}
+
+.weather-share-report__disclaimer {
+  margin: 0;
+  font-size: 13px;
+  color: #64748b;
+  line-height: 1.5;
+}
+
+/* Weather Share Card
+   ========================================================================== */
+
+.weather-share-card {
+  background: white;
+  border-radius: 16px;
+  box-shadow: 0 4px 24px rgba(0, 0, 0, 0.08), 0 1px 3px rgba(0, 0, 0, 0.05);
+  overflow: hidden;
+}
+
+.weather-share-card__header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  padding: 20px 24px;
+  border-bottom: 1px solid #e2e8f0;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.weather-share-card__brand {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.weather-share-card__logo {
+  flex-shrink: 0;
+}
+
+.weather-share-card__brand > span {
+  font-size: 20px;
+  font-weight: 600;
+  color: #0066cc;
+}
+
+.weather-share-card__time {
+  font-size: 13px;
+  color: #64748b;
+  background: #f1f5f9;
+  padding: 4px 10px;
+  border-radius: 20px;
+  white-space: nowrap;
+}
+
+.weather-share-card__location {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 24px;
+  border-bottom: 1px solid #e2e8f0;
+  font-weight: 500;
+  color: #1e293b;
+}
+
+.weather-share-card__location-icon {
+  font-size: 20px;
+}
+
+.weather-share-card__location-name {
+  font-size: 16px;
+}
+
+.weather-share-card__main {
+  display: flex;
+  gap: 24px;
+  padding: 24px;
+  flex-wrap: wrap;
+}
+
+.weather-share-card__condition {
+  flex: 0 0 180px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+}
+
+.weather-share-card__icon {
+  width: 120px;
+  height: 120px;
+  margin-bottom: 12px;
+}
+
+.weather-share-card__temp-row {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.weather-share-card__temperature {
+  font-size: 48px;
+  font-weight: 700;
+  color: #1e293b;
+  line-height: 1;
+}
+
+.weather-share-card__condition-text {
+  font-size: 18px;
+  color: #475569;
+  font-weight: 500;
+}
+
+.weather-share-card__metrics {
+  flex: 1;
+  min-width: 280px;
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 12px;
+}
+
+.weather-share-card__metric {
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.weather-share-card__metric-top {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.weather-share-card__metric-icon {
+  font-size: 24px;
+}
+
+.weather-share-card__metric-label {
+  font-size: 13px;
+  font-weight: 500;
+  color: #64748b;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.weather-share-card__metric-value {
+  font-size: 22px;
+  font-weight: 600;
+  color: #1e293b;
+}
+
+.weather-share-card__gust {
+  font-size: 12px;
+  color: #ef4444;
+  font-weight: 500;
+  margin-top: 4px;
+}
+
+.weather-share-card__advisor {
+  border-radius: 12px;
+  padding: 20px 24px;
+  margin: 0 24px 24px;
+  background: white;
+  border: 1px solid #e2e8f0;
+  border-left: 4px solid #e2e8f0;
+}
+
+.weather-share-card__advisor--excellent {
+  border-left-color: #22c55e;
+}
+
+.weather-share-card__advisor--good {
+  border-left-color: #84cc16;
+}
+
+.weather-share-card__advisor--fair {
+  border-left-color: #eab308;
+}
+
+.weather-share-card__advisor--poor {
+  border-left-color: #f97316;
+}
+
+.weather-share-card__advisor--unsuitable {
+  border-left-color: #ef4444;
+}
+
+.weather-share-card__advisor-score {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin-bottom: 12px;
+}
+
+.weather-share-card__advisor-label {
+  font-size: 20px;
+  font-weight: 600;
+  color: #1e293b;
+}
+
+.weather-share-card__advisor-value {
+  font-size: 16px;
+  color: #475569;
+}
+
+.weather-share-card__advisor-note {
+  margin: 0 0 16px;
+  font-size: 13px;
+  color: #94a3b8;
+}
+
+.weather-share-card__warnings {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-bottom: 16px;
+}
+
+.weather-share-card__warning {
+  margin: 0;
+  font-size: 13px;
+  color: #ef4444;
+  line-height: 1.4;
+}
+
+.weather-share-card__advice {
+  margin: 0;
+  padding-left: 20px;
+  font-size: 13px;
+  color: #475569;
+  line-height: 1.6;
+}
+
+.weather-share-card__advice li + li {
+  margin-top: 6px;
+}
+
+.weather-share-card__footer {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 16px 24px;
+  border-top: 1px solid #e2e8f0;
+  background: #f8fafc;
+  font-size: 12px;
+  color: #64748b;
+}
+
+.weather-share-card__url {
+  word-break: break-all;
+  font-family: "SF Mono", Monaco, "Cascadia Code", monospace;
+}
+
+.weather-share-card__attribution a {
+  color: #0066cc;
+  text-decoration: none;
+}
+
+.weather-share-card__attribution a:hover {
+  text-decoration: underline;
+}
+
+/* Responsive adjustments for weather share report */
+@media (max-width: 640px) {
+  .weather-share-report__header {
+    padding: 16px;
+  }
+
+  .weather-share-report__actions {
+    width: 100%;
+    justify-content: stretch;
+  }
+
+  .weather-share-report__action-btn {
+    flex: 1;
+    min-width: 0;
+  }
+
+  .weather-share-report__main {
+    padding: 16px;
+  }
+
+  .weather-share-card__header {
+    padding: 16px;
+  }
+
+  .weather-share-card__location {
+    padding: 12px 16px;
+  }
+
+  .weather-share-card__main {
+    padding: 16px;
+    gap: 16px;
+  }
+
+  .weather-share-card__condition {
+    flex: 0 0 140px;
+  }
+
+  .weather-share-card__icon {
+    width: 96px;
+    height: 96px;
+  }
+
+  .weather-share-card__temperature {
+    font-size: 40px;
+  }
+
+  .weather-share-card__metrics {
+    grid-template-columns: 1fr 1fr;
+    min-width: 100%;
+  }
+
+  .weather-share-card__advisor {
+    margin: 0 16px 16px;
+    padding: 16px;
+  }
+
+  .weather-share-card__footer {
+    padding: 12px 16px;
+  }
+}
+
+@media (max-width: 440px) {
+  .weather-share-card__metrics {
+    grid-template-columns: 1fr;
+  }
+
+  .weather-share-card__main {
+    flex-direction: column;
+    align-items: center;
+  }
+
+  .weather-share-card__condition {
+    flex: none;
+    width: 100%;
+  }
+}
