@@ -91,6 +91,10 @@ export const WeatherShareCard: FC<WeatherShareCardProps> = ({ snapshot }) => {
   const humidity = current?.humidity_percent ?? null;
   const uv = current?.uv_index ?? null;
 
+  const timeLabel = forecast_target_time
+    ? formatTime(forecast_target_time, timezone)
+    : "Current conditions";
+
   return (
     <div className="weather-share-card">
       <div className="weather-share-card__header">
@@ -99,12 +103,9 @@ export const WeatherShareCard: FC<WeatherShareCardProps> = ({ snapshot }) => {
             <circle cx="60" cy="60" r="58" fill="#0066cc" />
             <text x="60" y="72" textAnchor="middle" fontSize="50" fontWeight="bold" fill="white" fontFamily="system-ui, sans-serif">🏐</text>
           </svg>
-          <span className="weather-share-card__title">BeachVolleyballHub</span>
+          <span>BeachVolleyballHub</span>
         </div>
-        <div className="weather-share-card__time">
-          <span className="weather-share-card__label">Forecast for</span>
-          <span className="weather-share-card__value">{formatTime(forecast_target_time, timezone)}</span>
-        </div>
+        <span className="weather-share-card__time">{timeLabel}</span>
       </div>
 
       <div className="weather-share-card__location">

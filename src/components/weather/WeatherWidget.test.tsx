@@ -1,9 +1,19 @@
-import { render as rtlRender, screen, within } from "@testing-library/react";
+import {
+  render as rtlRender,
+  screen,
+  waitFor,
+  within,
+} from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { MemoryRouter } from "react-router-dom";
-import { describe, expect, it, vi } from "vitest";
+import { afterEach, beforeAll, describe, expect, it, vi } from "vitest";
+import { api } from "../../api";
 import type { User, WeatherResponse } from "../../api";
 import { AuthContext, type AuthContextValue } from "../../auth/AuthContext";
+import {
+  CURRENT_WEATHER_TIME,
+  formatForecastMoment,
+} from "../../utils/weatherTimeSelection";
 import WeatherWidget from "./WeatherWidget";
 
 function auth(user: User | null): AuthContextValue {
@@ -81,6 +91,16 @@ const weather = (overrides: Partial<WeatherResponse> = {}): WeatherResponse => (
         wind_kph: 18 + index,
         wind_gust_kph: 27 + index,
         wind_direction: index === 0 ? "NE" : "E",
+        humidity_percent: 60 + index,
+        uv_index: 3 + (index % 5),
+        precipitation_mm: 0,
+        volleyball: {
+          score: 50 + index,
+          label: index % 2 === 0 ? "Fair" : "Good",
+          advice: [],
+          warnings: [],
+          safety_override: false,
+        },
       };
     });
   })(),
@@ -117,6 +137,21 @@ const weather = (overrides: Partial<WeatherResponse> = {}): WeatherResponse => (
     url: "https://www.weatherapi.com/",
   },
   ...overrides,
+});
+
+// jsdom defines <dialog> but not its modal methods, so stub them to exercise
+// the share dialog.
+beforeAll(() => {
+  HTMLDialogElement.prototype.showModal = function (this: HTMLDialogElement) {
+    this.open = true;
+  };
+  HTMLDialogElement.prototype.close = function (this: HTMLDialogElement) {
+    this.open = false;
+  };
+});
+
+afterEach(() => {
+  vi.restoreAllMocks();
 });
 
 describe("WeatherWidget", () => {
@@ -380,5 +415,181 @@ describe("WeatherWidget", () => {
     expect(
       screen.queryByRole("button", { name: "View forecast" }),
     ).not.toBeInTheDocument();
+  });
+
+  it("offers a three-day time dropdown that defaults to current conditions", () => {
+    const data = weather();
+    render(
+      <WeatherWidget
+        weather={data}
+        loading={false}
+        error={null}
+        locationName="Coogee Beach, Sydney"
+      />,
+    );
+
+    const select = screen.getByRole("combobox", { name: "Time" });
+    const options = within(select).getAllByRole("option");
+
+    expect(select).toHaveValue(CURRENT_WEATHER_TIME);
+    expect(options).toHaveLength(data.hourly.length + 1);
+    expect(options[0]).toHaveTextContent("Current conditions");
+    expect(options[1]).toHaveTextContent(
+      formatForecastMoment(data.hourly[0].time_epoch, data.location.timezone),
+    );
+  });
+
+  it("updates the weather box and advisor when a forecast time is selected", async () => {
+    const user = userEvent.setup();
+    const data = weather();
+    const selected = data.hourly[5];
+    render(
+      <WeatherWidget
+        weather={data}
+        loading={false}
+        error={null}
+        locationName="Coogee Beach, Sydney"
+      />,
+    );
+
+    await user.selectOptions(
+      screen.getByRole("combobox", { name: "Time" }),
+      String(selected.time_epoch),
+    );
+
+    const weatherBox = document.querySelector<HTMLElement>(".weather-box");
+    expect(weatherBox).not.toBeNull();
+    const moment = formatForecastMoment(
+      selected.time_epoch,
+      data.location.timezone,
+    );
+    expect(within(weatherBox!).getByText(moment)).toBeInTheDocument();
+    expect(
+      within(weatherBox!).getByText(`${Math.round(selected.temperature_c!)}°`),
+    ).toBeInTheDocument();
+    expect(
+      within(weatherBox!).getByText(selected.condition!),
+    ).toBeInTheDocument();
+    expect(
+      within(weatherBox!).getByText(`${selected.humidity_percent}%`),
+    ).toBeInTheDocument();
+    expect(
+      within(weatherBox!).getByText(`${selected.rain_chance_percent}%`),
+    ).toBeInTheDocument();
+
+    expect(
+      screen.getByText(`${selected.volleyball!.score}/100 for beach volleyball`),
+    ).toBeInTheDocument();
+    expect(screen.getByText(`Forecast for ${moment}`)).toBeInTheDocument();
+
+    await user.selectOptions(
+      screen.getByRole("combobox", { name: "Time" }),
+      CURRENT_WEATHER_TIME,
+    );
+
+    expect(screen.getByText("78/100 for beach volleyball")).toBeInTheDocument();
+    expect(screen.queryByText(/Forecast for/)).not.toBeInTheDocument();
+  });
+
+  it("falls back to current conditions when the location changes", async () => {
+    const user = userEvent.setup();
+    const data = weather();
+    const { rerender } = render(
+      <WeatherWidget
+        weather={data}
+        loading={false}
+        error={null}
+        locationName="Coogee Beach, Sydney"
+      />,
+    );
+
+    await user.selectOptions(
+      screen.getByRole("combobox", { name: "Time" }),
+      String(data.hourly[5].time_epoch),
+    );
+
+    rerender(
+      <AuthContext.Provider value={auth(null)}>
+        <MemoryRouter>
+          <WeatherWidget
+            weather={weather({
+              location: {
+                latitude: -27.9,
+                longitude: 153.4,
+                timezone: "Australia/Brisbane",
+              },
+            })}
+            loading={false}
+            error={null}
+            locationName="Burleigh Heads, QLD"
+          />
+        </MemoryRouter>
+      </AuthContext.Provider>,
+    );
+
+    expect(screen.getByRole("combobox", { name: "Time" })).toHaveValue(
+      CURRENT_WEATHER_TIME,
+    );
+    const weatherBox = document.querySelector<HTMLElement>(".weather-box");
+    expect(within(weatherBox!).getByText("23°")).toBeInTheDocument();
+  });
+
+  it("shares the selected forecast time, and current weather by default", async () => {
+    const user = userEvent.setup();
+    const data = weather();
+    const selected = data.hourly[7];
+    const createShare = vi.spyOn(api.weatherShare, "create").mockResolvedValue({
+      public_token: "token",
+      public_url: "https://example.test/weather/token",
+      image_url: "https://example.test/weather/token.png",
+      expires_at: "2026-11-03T05:00:00Z",
+      created_at: "2026-10-27T05:00:00Z",
+    });
+    vi.spyOn(api.weatherShare, "metadata").mockResolvedValue({
+      public_token: "token",
+      location_name: "Coogee Beach, Sydney",
+      latitude: -33.9,
+      longitude: 151.2,
+      forecast_target_time: new Date(
+        selected.time_epoch * 1000,
+      ).toISOString(),
+      timezone: data.location.timezone,
+      current: data.current,
+      forecast: data.forecast,
+      volleyball: selected.volleyball!,
+      image_url: "https://example.test/weather/token.png",
+      canonical_url: "https://example.test/weather/token",
+      expires_at: null,
+      created_at: "2026-10-27T05:00:00Z",
+    });
+
+    render(
+      <WeatherWidget
+        weather={data}
+        loading={false}
+        error={null}
+        locationName="Coogee Beach, Sydney"
+      />,
+    );
+
+    await user.selectOptions(
+      screen.getByRole("combobox", { name: "Time" }),
+      String(selected.time_epoch),
+    );
+    await user.click(
+      screen.getByRole("button", { name: "Share weather conditions" }),
+    );
+
+    await waitFor(() => expect(createShare).toHaveBeenCalledTimes(1));
+    expect(createShare).toHaveBeenCalledWith(
+      expect.objectContaining({
+        lat: -33.9,
+        lon: 151.2,
+        location_name: "Coogee Beach, Sydney",
+        forecast_target_time: new Date(
+          selected.time_epoch * 1000,
+        ).toISOString(),
+      }),
+    );
   });
 });

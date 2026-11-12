@@ -109,11 +109,18 @@ export interface WeatherForecastHour {
   temperature_c: number | null;
   feels_like_c: number | null;
   condition: string | null;
+  condition_code?: number | null;
   icon_url: string | null;
   rain_chance_percent: number | null;
   wind_kph: number | null;
   wind_gust_kph: number | null;
+  wind_degree?: number | null;
   wind_direction: string | null;
+  humidity_percent?: number | null;
+  uv_index?: number | null;
+  precipitation_mm?: number | null;
+  /** Playing-suitability assessment for this hour, computed by the API. */
+  volleyball?: WeatherVolleyball | null;
 }
 
 export interface WeatherCurrent {
@@ -128,6 +135,11 @@ export interface WeatherCurrent {
   humidity_percent: number | null;
   uv_index: number | null;
   precipitation_mm: number | null;
+  /**
+   * Only present on shared snapshots whose conditions were taken from an
+   * hourly forecast entry; `/weather` current conditions do not include it.
+   */
+  rain_chance_percent?: number | null;
   icon_url: string | null;
 }
 

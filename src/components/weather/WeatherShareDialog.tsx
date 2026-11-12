@@ -20,7 +20,10 @@ interface ShareDialogState {
   error?: string;
 }
 
-function formatTime(isoString: string | null | undefined): string {
+function formatTime(
+  isoString: string | null | undefined,
+  timezone?: string | null,
+): string {
   if (!isoString) return "Current";
   try {
     return new Date(isoString).toLocaleString(undefined, {
@@ -29,6 +32,7 @@ function formatTime(isoString: string | null | undefined): string {
       day: "numeric",
       hour: "2-digit",
       minute: "2-digit",
+      ...(timezone ? { timeZone: timezone } : {}),
     });
   } catch {
     return isoString;
@@ -302,7 +306,11 @@ export function WeatherShareDialog({
                 <span>BeachVolleyballHub</span>
               </div>
               <span className="weather-share-dialog__card-time">
-                Forecast for {formatTime(state.metadata.forecast_target_time)}
+                Forecast for{" "}
+                {formatTime(
+                  state.metadata.forecast_target_time,
+                  state.metadata.timezone,
+                )}
               </span>
             </div>
 

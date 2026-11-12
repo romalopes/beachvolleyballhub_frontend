@@ -1,8 +1,17 @@
 import { useContext, useState } from "react";
 import { Link } from "react-router-dom";
 import { Share2 } from "lucide-react";
-import type { WeatherResponse } from "../../api";
+import type { WeatherResponse, WeatherVolleyball } from "../../api";
 import { AuthContext } from "../../auth/AuthContext";
+import {
+  CURRENT_WEATHER_TIME,
+  advisorForTime,
+  conditionsForTime,
+  findSelectedHour,
+  formatForecastMoment,
+  shareTargetTime,
+  weatherTimeOptions,
+} from "../../utils/weatherTimeSelection";
 import DailyForecast from "./DailyForecast";
 import WeatherForecastModal from "./WeatherForecastModal";
 import WeatherShareDialog from "./WeatherShareDialog";
@@ -32,9 +41,14 @@ function severityClass(label: string): string {
   return `weather-advisor--${label.toLowerCase().replace(/\s+/g, "-")}`;
 }
 
-function Advisor({ weather }: { weather: WeatherResponse }) {
+function Advisor({
+  volleyball,
+  periodLabel,
+}: {
+  volleyball: WeatherVolleyball | null;
+  periodLabel: string | null;
+}) {
   const user = useContext(AuthContext)?.user ?? null;
-  const volleyball = weather.volleyball;
   if (!volleyball) return null;
 
   return (
@@ -47,6 +61,9 @@ function Advisor({ weather }: { weather: WeatherResponse }) {
             : `${volleyball.score}/100 for beach volleyball`}
         </span>
       </div>
+      {periodLabel && (
+        <p className="weather-advisor-period">Forecast for {periodLabel}</p>
+      )}
       <p className="weather-advisor-note">
         Playing-suitability estimate for coaching — not an official safety
         rating.
@@ -85,9 +102,33 @@ export default function WeatherWidget({
 }: WeatherWidgetProps) {
   const [forecastDate, setForecastDate] = useState<string | null>(null);
   const [shareDialogOpen, setShareDialogOpen] = useState(false);
+  // The chosen dropdown value is stored with the location it belongs to, so a
+  // new location (or a refreshed forecast) automatically falls back to "now"
+  // instead of showing another location's selection.
+  const [selection, setSelection] = useState<{
+    locationKey: string;
+    value: string;
+  }>({ locationKey: "", value: CURRENT_WEATHER_TIME });
   const forecast = Array.isArray(weather?.forecast) ? weather.forecast : [];
   const hourly = Array.isArray(weather?.hourly) ? weather.hourly : [];
   const current = weather?.current ?? null;
+  const timezone = weather?.location?.timezone ?? null;
+  const locationKey = weather
+    ? `${weather.location?.latitude ?? ""},${weather.location?.longitude ?? ""}`
+    : "";
+  const requestedTime =
+    selection.locationKey === locationKey
+      ? selection.value
+      : CURRENT_WEATHER_TIME;
+  const selectedHour = findSelectedHour(hourly, requestedTime);
+  const selectedTime = selectedHour ? requestedTime : CURRENT_WEATHER_TIME;
+  const conditions = weather ? conditionsForTime(weather, selectedHour) : null;
+  const advisor = weather ? advisorForTime(weather, selectedHour) : null;
+  const periodLabel = selectedHour
+    ? formatForecastMoment(selectedHour.time_epoch, timezone)
+    : null;
+  const timeOptions = weatherTimeOptions(hourly, timezone);
+  const shareTarget = shareTargetTime(selectedHour);
   const attribution = weather?.attribution;
   const updated = weather?.updated_at
     ? new Intl.DateTimeFormat(undefined, {
@@ -96,7 +137,9 @@ export default function WeatherWidget({
       }).format(new Date(weather.updated_at))
     : null;
 
-  const openForecast = (date = forecast[0]?.date) => {
+  const openForecast = (
+    date = selectedHour?.time.slice(0, 10) ?? forecast[0]?.date,
+  ) => {
     if (date) setForecastDate(date);
   };
 
@@ -121,6 +164,26 @@ export default function WeatherWidget({
         )}
       </div>
 
+      {timeOptions.length > 1 && (
+        <div className="weather-time-picker">
+          <label htmlFor="weather-time-select">Time</label>
+          <select
+            id="weather-time-select"
+            value={selectedTime}
+            onChange={(event) =>
+              setSelection({ locationKey, value: event.target.value })
+            }
+          >
+            {timeOptions.map((option) => (
+              <option key={option.value} value={option.value}>
+                {option.label}
+              </option>
+            ))}
+          </select>
+          <span className="weather-time-picker-hint">3-day forecast</span>
+        </div>
+      )}
+
       {findingLocation && (
         <p className="home-weather-status" role="status">
           Finding that location…
@@ -144,33 +207,38 @@ export default function WeatherWidget({
 
       {weather && (
         <>
-          {current && (
+          {conditions && (
             <div className="weather-box">
               <div className="weather-now">
                 <div className="weather-now-copy">
-                  <span>Today (Now)</span>
+                  <span>{conditions.label}</span>
                   <strong>
                     {metric(
-                      current.temperature_c,
+                      conditions.temperature_c,
                       (value) => `${Math.round(value)}°`,
                     )}
                   </strong>
-                  <p>{current.condition ?? "Unknown conditions"}</p>
+                  <p>{conditions.condition ?? "Unknown conditions"}</p>
                   <small>In {locationName}</small>
                 </div>
-                {current.icon_url && (
-                  <img src={current.icon_url} alt="" width="92" height="92" />
+                {conditions.icon_url && (
+                  <img
+                    src={conditions.icon_url}
+                    alt=""
+                    width="92"
+                    height="92"
+                  />
                 )}
                 <dl className="weather-now-metrics">
                   <div>
                     <dt>Wind</dt>
                     <dd>
                       {metric(
-                        current.wind_kph,
+                        conditions.wind_kph,
                         (value) => `${Math.round(value)} km/h`,
                       )}
-                      {current.wind_direction
-                        ? ` ${current.wind_direction}`
+                      {conditions.wind_direction
+                        ? ` ${conditions.wind_direction}`
                         : ""}
                     </dd>
                   </div>
@@ -178,7 +246,7 @@ export default function WeatherWidget({
                     <dt>Gusts</dt>
                     <dd>
                       {metric(
-                        current.wind_gust_kph,
+                        conditions.wind_gust_kph,
                         (value) => `${Math.round(value)} km/h`,
                       )}
                     </dd>
@@ -187,7 +255,7 @@ export default function WeatherWidget({
                     <dt>Humidity</dt>
                     <dd>
                       {metric(
-                        current.humidity_percent,
+                        conditions.humidity_percent,
                         (value) => `${Math.round(value)}%`,
                       )}
                     </dd>
@@ -195,14 +263,25 @@ export default function WeatherWidget({
                   <div>
                     <dt>UV</dt>
                     <dd>
-                      {metric(current.uv_index, (value) => value.toFixed(1))}
+                      {metric(conditions.uv_index, (value) =>
+                        value.toFixed(1),
+                      )}
+                    </dd>
+                  </div>
+                  <div>
+                    <dt>Rain chance</dt>
+                    <dd>
+                      {metric(
+                        conditions.rain_chance_percent,
+                        (value) => `${Math.round(value)}%`,
+                      )}
                     </dd>
                   </div>
                   <div>
                     <dt>Precipitation</dt>
                     <dd>
                       {metric(
-                        current.precipitation_mm,
+                        conditions.precipitation_mm,
                         (value) => `${value.toFixed(1)} mm`,
                       )}
                     </dd>
@@ -225,7 +304,7 @@ export default function WeatherWidget({
             </div>
           )}
 
-          <Advisor weather={weather} />
+          <Advisor volleyball={advisor} periodLabel={periodLabel} />
           {attribution?.url && attribution.name && (
             <p className="home-weather-attribution">
               Weather data provided by{" "}
@@ -257,7 +336,7 @@ export default function WeatherWidget({
             latitude={weather.location?.latitude ?? 0}
             longitude={weather.location?.longitude ?? 0}
             locationName={locationName}
-            forecastTargetTime={forecastDate}
+            forecastTargetTime={shareTarget}
           />
         </>
       )}
