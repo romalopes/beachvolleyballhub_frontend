@@ -15149,6 +15149,22 @@
   font-size: 16px;
 }
 
+.weather-share-card__time-display {
+  text-align: center;
+  padding: 12px 24px;
+  border-bottom: 1px solid #e2e8f0;
+}
+
+.weather-share-card__time-label {
+  display: inline-block;
+  font-size: 13px;
+  font-weight: 500;
+  color: #475569;
+  background: #f1f5f9;
+  padding: 6px 12px;
+  border-radius: 20px;
+}
+
 .weather-share-card__main {
   display: flex;
   gap: 24px;

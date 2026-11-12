@@ -76,17 +76,32 @@ function severityClass(label: string): string {
 }
 
 export const WeatherShareCard: FC<WeatherShareCardProps> = ({ snapshot }) => {
-  const { location_name, forecast_target_time, timezone, current, forecast, volleyball, public_url } = snapshot;
+  const {
+    location_name,
+    forecast_target_time,
+    timezone,
+    current,
+    forecast,
+    volleyball,
+    public_url,
+  } = snapshot;
   const targetTime = forecast_target_time || new Date().toISOString();
 
-  const forecastDay = forecast.find((d) => d.date === targetTime.split("T")[0]) || forecast[0];
+  const forecastDay =
+    forecast.find((d) => d.date === targetTime.split("T")[0]) || forecast[0];
 
-  const rainChance = current?.rain_chance_percent ?? forecastDay?.rain_chance_percent ?? null;
-  const temp = current?.feels_like_c ?? current?.temperature_c ?? forecastDay?.average_temp_c ?? null;
+  const rainChance =
+    current?.rain_chance_percent ?? forecastDay?.rain_chance_percent ?? null;
+  const temp =
+    current?.feels_like_c ??
+    current?.temperature_c ??
+    forecastDay?.average_temp_c ??
+    null;
   const condition = current?.condition ?? forecastDay?.condition ?? "Unknown";
   const iconUrl = current?.icon_url ?? forecastDay?.icon_url ?? null;
   const wind = current?.wind_kph ?? forecastDay?.max_wind_kph ?? null;
-  const windDir = current?.wind_direction ?? forecastDay?.max_wind_direction ?? null;
+  const windDir =
+    current?.wind_direction ?? forecastDay?.max_wind_direction ?? null;
   const gust = current?.wind_gust_kph ?? null;
   const humidity = current?.humidity_percent ?? null;
   const uv = current?.uv_index ?? null;
@@ -99,9 +114,25 @@ export const WeatherShareCard: FC<WeatherShareCardProps> = ({ snapshot }) => {
     <div className="weather-share-card">
       <div className="weather-share-card__header">
         <div className="weather-share-card__brand">
-          <svg className="weather-share-card__logo" viewBox="0 0 120 120" width="48" height="48" aria-hidden="true">
+          <svg
+            className="weather-share-card__logo"
+            viewBox="0 0 120 120"
+            width="48"
+            height="48"
+            aria-hidden="true"
+          >
             <circle cx="60" cy="60" r="58" fill="#0066cc" />
-            <text x="60" y="72" textAnchor="middle" fontSize="50" fontWeight="bold" fill="white" fontFamily="system-ui, sans-serif">🏐</text>
+            <text
+              x="60"
+              y="72"
+              textAnchor="middle"
+              fontSize="50"
+              fontWeight="bold"
+              fill="white"
+              fontFamily="system-ui, sans-serif"
+            >
+              🏐
+            </text>
           </svg>
           <span>BeachVolleyballHub</span>
         </div>
@@ -109,36 +140,66 @@ export const WeatherShareCard: FC<WeatherShareCardProps> = ({ snapshot }) => {
       </div>
 
       <div className="weather-share-card__location">
-        <span className="weather-share-card__location-icon" aria-hidden="true">📍</span>
-        <span className="weather-share-card__location-name">{location_name}</span>
+        <span className="weather-share-card__location-icon" aria-hidden="true">
+          📍
+        </span>
+        <span className="weather-share-card__location-name">
+          {location_name}
+        </span>
+      </div>
+
+      <div className="weather-share-card__time-display">
+        <span className="weather-share-card__time-label">{timeLabel}</span>
       </div>
 
       <div className="weather-share-card__main">
         <div className="weather-share-card__condition">
           {iconUrl && (
-            <img src={iconUrl} alt="" className="weather-share-card__icon" width="96" height="96" />
+            <img
+              src={iconUrl}
+              alt=""
+              className="weather-share-card__icon"
+              width="96"
+              height="96"
+            />
           )}
           <div className="weather-share-card__temp-row">
-            <span className="weather-share-card__temperature">{metric(temp, (v) => `${Math.round(v)}°C`)}</span>
-            <span className="weather-share-card__condition-text">{condition}</span>
+            <span className="weather-share-card__temperature">
+              {metric(temp, (v) => `${Math.round(v)}°C`)}
+            </span>
+            <span className="weather-share-card__condition-text">
+              {condition}
+            </span>
           </div>
         </div>
 
         <div className="weather-share-card__metrics">
           <div className="weather-share-card__metric">
-            <span className="weather-share-card__metric-icon" aria-hidden="true">💨</span>
+            <span
+              className="weather-share-card__metric-icon"
+              aria-hidden="true"
+            >
+              💨
+            </span>
             <span className="weather-share-card__metric-label">Wind</span>
             <span className="weather-share-card__metric-value">
               {metric(wind, (v) => `${Math.round(v)} km/h`)}
               {windDir ? ` ${windDir}` : ""}
             </span>
             {gust && wind !== null && gust > wind && gust - wind > 15 && (
-              <span className="weather-share-card__gust">Gusts {Math.round(gust)} km/h</span>
+              <span className="weather-share-card__gust">
+                Gusts {Math.round(gust)} km/h
+              </span>
             )}
           </div>
 
           <div className="weather-share-card__metric">
-            <span className="weather-share-card__metric-icon" aria-hidden="true">🌧️</span>
+            <span
+              className="weather-share-card__metric-icon"
+              aria-hidden="true"
+            >
+              🌧️
+            </span>
             <span className="weather-share-card__metric-label">Rain</span>
             <span className="weather-share-card__metric-value">
               {metric(rainChance, (v) => `${Math.round(v)}%`)}
@@ -146,22 +207,40 @@ export const WeatherShareCard: FC<WeatherShareCardProps> = ({ snapshot }) => {
           </div>
 
           <div className="weather-share-card__metric">
-            <span className="weather-share-card__metric-icon" aria-hidden="true">☀️</span>
+            <span
+              className="weather-share-card__metric-icon"
+              aria-hidden="true"
+            >
+              ☀️
+            </span>
             <span className="weather-share-card__metric-label">UV Index</span>
-            <span className="weather-share-card__metric-value">{metric(uv, (v) => v.toFixed(1))}</span>
+            <span className="weather-share-card__metric-value">
+              {metric(uv, (v) => v.toFixed(1))}
+            </span>
           </div>
 
           <div className="weather-share-card__metric">
-            <span className="weather-share-card__metric-icon" aria-hidden="true">💧</span>
+            <span
+              className="weather-share-card__metric-icon"
+              aria-hidden="true"
+            >
+              💧
+            </span>
             <span className="weather-share-card__metric-label">Humidity</span>
-            <span className="weather-share-card__metric-value">{metric(humidity, (v) => `${Math.round(v)}%`)}</span>
+            <span className="weather-share-card__metric-value">
+              {metric(humidity, (v) => `${Math.round(v)}%`)}
+            </span>
           </div>
         </div>
       </div>
 
-      <div className={`weather-share-card__advisor ${severityClass(volleyball.label)}`}>
+      <div
+        className={`weather-share-card__advisor ${severityClass(volleyball.label)}`}
+      >
         <div className="weather-share-card__advisor-score">
-          <span className="weather-share-card__advisor-label">{volleyball.label}</span>
+          <span className="weather-share-card__advisor-label">
+            {volleyball.label}
+          </span>
           <span className="weather-share-card__advisor-value">
             {volleyball.score === null
               ? "No data"
@@ -169,7 +248,8 @@ export const WeatherShareCard: FC<WeatherShareCardProps> = ({ snapshot }) => {
           </span>
         </div>
         <p className="weather-share-card__advisor-note">
-          Playing-suitability estimate for coaching — not an official safety rating.
+          Playing-suitability estimate for coaching — not an official safety
+          rating.
         </p>
 
         {volleyball.warnings.length > 0 && (
@@ -194,8 +274,18 @@ export const WeatherShareCard: FC<WeatherShareCardProps> = ({ snapshot }) => {
       <div className="weather-share-card__footer">
         <span className="weather-share-card__url">{public_url}</span>
         <span className="weather-share-card__attribution">
-          Weather data: <a href="https://www.weatherapi.com/" target="_blank" rel="noopener noreferrer">WeatherAPI.com</a>
-          · Warnings: <a href={BOM_WARNINGS_URL} target="_blank" rel="noopener noreferrer">BOM</a>
+          Weather data:{" "}
+          <a
+            href="https://www.weatherapi.com/"
+            target="_blank"
+            rel="noopener noreferrer"
+          >
+            WeatherAPI.com
+          </a>
+          · Warnings:{" "}
+          <a href={BOM_WARNINGS_URL} target="_blank" rel="noopener noreferrer">
+            BOM
+          </a>
         </span>
       </div>
     </div>
