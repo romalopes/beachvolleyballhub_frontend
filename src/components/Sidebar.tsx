@@ -36,6 +36,7 @@ type SidebarLink = {
   path: string;
   label: string;
   icon: LucideIcon;
+  adminOnly?: boolean;
 };
 
 /**
@@ -127,32 +128,20 @@ const navGroups: SidebarGroup[] = [
         label: "Assessment definitions",
         icon: ClipboardList,
       },
-      {
-        path: "/analyses",
-        label: "Analysis",
-        icon: FileText,
-      },
     ],
   },
 ];
 
-// Settings and Account are destinations rather than sections, so they stay flat
-// below the groups instead of becoming one-item accordions that would hide
-// their only link when folded.
-const settingsLink: SidebarLink = {
-  path: "/settings",
-  label: "Settings",
-  icon: Settings,
-};
-const accountLink: SidebarLink = {
-  path: "/account",
-  label: "Account",
+const userGroup: SidebarGroup = {
+  id: "user",
+  label: "User",
   icon: UserCircle,
-};
-const identityLink: SidebarLink = {
-  path: "/identity",
-  label: "Identity",
-  icon: UsersRound,
+  items: [
+    { path: "/identity", label: "Identity", icon: UsersRound },
+    { path: "/settings", label: "Settings", icon: Settings, adminOnly: true },
+    { path: "/account", label: "Account", icon: UserCircle },
+    { path: "/analyses", label: "Analysis", icon: FileText },
+  ],
 };
 const tournamentsLink: SidebarLink = {
   path: "/tournaments",
@@ -163,12 +152,6 @@ const trainingSessionsLink: SidebarLink = {
   path: "/training",
   label: "Training Sessions",
   icon: ClipboardList,
-};
-
-const analysisLink: SidebarLink = {
-  path: "/analyses",
-  label: "Analysis",
-  icon: FileText,
 };
 
 /**
@@ -273,6 +256,8 @@ export default function Sidebar({
     return true;
   });
 
+  const groups = [...visibleGroups, ...(user ? [userGroup] : [])];
+
   return (
     <>
       <div className="sidebar-logo">
@@ -291,7 +276,7 @@ export default function Sidebar({
           link={trainingSessionsLink}
           menuCollapsed={menuCollapsed}
         />
-        {visibleGroups.map((group) => {
+        {groups.map((group) => {
           const GroupIcon = group.icon;
           const isCollapsed = collapsedGroups[group.id] === true;
           const panelId = `sidebar-group-${group.id}`;
@@ -338,29 +323,19 @@ export default function Sidebar({
                 className="sidebar-group-items"
                 hidden={menuCollapsed || isCollapsed}
               >
-                {group.items.map((item) => (
-                  <SidebarNavLink
-                    key={item.path}
-                    link={item}
-                    menuCollapsed={menuCollapsed}
-                  />
-                ))}
+                {group.items
+                  .filter((item) => !item.adminOnly || isAdmin)
+                  .map((item) => (
+                    <SidebarNavLink
+                      key={item.path}
+                      link={item}
+                      menuCollapsed={menuCollapsed}
+                    />
+                  ))}
               </div>
             </div>
           );
         })}
-        {isAdmin && (
-          <SidebarNavLink link={settingsLink} menuCollapsed={menuCollapsed} />
-        )}
-        {user && (
-          <SidebarNavLink link={identityLink} menuCollapsed={menuCollapsed} />
-        )}
-        {user && (
-          <SidebarNavLink link={accountLink} menuCollapsed={menuCollapsed} />
-        )}
-        {user && (
-          <SidebarNavLink link={analysisLink} menuCollapsed={menuCollapsed} />
-        )}
       </nav>
       <div className="sidebar-footer">
         Beach Volleyball Skills Database
