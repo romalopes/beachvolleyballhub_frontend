@@ -173,12 +173,24 @@ function generateHTML(snapshot) {
     .weather-share-card__advisor--poor { border-left: 6px solid #f97316; }
     .weather-share-card__advisor--unsuitable { border-left: 6px solid #ef4444; }
     .weather-share-card__advisor-score { display: flex; flex-direction: column; gap: 8px; margin-bottom: 16px; }
-    .weather-share-card__advisor-label { font-size: 48px; font-weight: 700; }
+    .weather-share-card__advisor-label { font-size: 48px; font-weight: 700; display: inline-flex; align-items: center; gap: 12px; }
     .weather-share-card__advisor-label--excellent { color: #16a34a; }
     .weather-share-card__advisor-label--good { color: #16a34a; }
     .weather-share-card__advisor-label--fair { color: #eab308; }
     .weather-share-card__advisor-label--poor { color: #f97316; }
     .weather-share-card__advisor-label--unsuitable { color: #ef4444; }
+    .weather-share-card__advisor-label::before {
+      content: "";
+      width: 16px;
+      height: 16px;
+      border-radius: 50%;
+      flex-shrink: 0;
+    }
+    .weather-share-card__advisor-label--excellent::before { background: #16a34a; box-shadow: 0 0 12px #16a34a; }
+    .weather-share-card__advisor-label--good::before { background: #16a34a; box-shadow: 0 0 12px #16a34a; }
+    .weather-share-card__advisor-label--fair::before { background: #eab308; box-shadow: 0 0 12px #eab308; }
+    .weather-share-card__advisor-label--poor::before { background: #f97316; box-shadow: 0 0 12px #f97316; }
+    .weather-share-card__advisor-label--unsuitable::before { background: #ef4444; box-shadow: 0 0 12px #ef4444; }
     .weather-share-card__advisor-value { font-size: 36px; color: #475569; }
     .weather-share-card__advisor-note { font-size: 18px; color: #94a3b8; margin: 0 0 20px 0; }
     .weather-share-card__warnings { margin: 0 0 20px 0; }

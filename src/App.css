@@ -1228,12 +1228,28 @@
   color: var(--charcoal);
   font-size: 1.125rem;
   font-weight: 700;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
 }
 .weather-advisor-label--excellent { color: #16a34a; }
 .weather-advisor-label--good { color: #16a34a; }
 .weather-advisor-label--fair { color: #eab308; }
 .weather-advisor-label--poor { color: #f97316; }
 .weather-advisor-label--unsuitable { color: #ef4444; }
+
+.weather-advisor-label::before {
+  content: "";
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+.weather-advisor-label--excellent::before { background: #16a34a; box-shadow: 0 0 8px #16a34a; }
+.weather-advisor-label--good::before { background: #16a34a; box-shadow: 0 0 8px #16a34a; }
+.weather-advisor-label--fair::before { background: #eab308; box-shadow: 0 0 8px #eab308; }
+.weather-advisor-label--poor::before { background: #f97316; box-shadow: 0 0 8px #f97316; }
+.weather-advisor-label--unsuitable::before { background: #ef4444; box-shadow: 0 0 8px #ef4444; }
 
 .weather-advisor-value {
   color: var(--text-secondary);
@@ -15298,12 +15314,27 @@
 .weather-share-card__advisor-label {
   font-size: 20px;
   font-weight: 600;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
 }
 .weather-share-card__advisor-label--excellent { color: #16a34a; }
 .weather-share-card__advisor-label--good { color: #16a34a; }
 .weather-share-card__advisor-label--fair { color: #eab308; }
 .weather-share-card__advisor-label--poor { color: #f97316; }
 .weather-share-card__advisor-label--unsuitable { color: #ef4444; }
+.weather-share-card__advisor-label::before {
+  content: "";
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+.weather-share-card__advisor-label--excellent::before { background: #16a34a; box-shadow: 0 0 8px #16a34a; }
+.weather-share-card__advisor-label--good::before { background: #16a34a; box-shadow: 0 0 8px #16a34a; }
+.weather-share-card__advisor-label--fair::before { background: #eab308; box-shadow: 0 0 8px #eab308; }
+.weather-share-card__advisor-label--poor::before { background: #f97316; box-shadow: 0 0 8px #f97316; }
+.weather-share-card__advisor-label--unsuitable::before { background: #ef4444; box-shadow: 0 0 8px #ef4444; }
 
 .weather-share-card__advisor-value {
   font-size: 16px;
