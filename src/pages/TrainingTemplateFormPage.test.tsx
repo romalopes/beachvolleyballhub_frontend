@@ -80,6 +80,7 @@ beforeEach(() => {
         id: 11,
         name: "Coogee Beach",
         locality: "Sydney",
+        default: true,
       },
     ],
   } as never);
@@ -99,6 +100,11 @@ describe("TrainingTemplateFormPage", () => {
     await user.selectOptions(screen.getByLabelText("Organisation"), "1");
     await waitFor(() =>
       expect(screen.getByRole("option", { name: /Coogee Beach/ })).toBeInTheDocument(),
+    );
+    expect(screen.getByLabelText("Location")).toHaveValue("11");
+    expect(screen.getByRole("option", { name: /Coogee Beach/ })).toHaveProperty(
+      "selected",
+      true,
     );
     await user.selectOptions(screen.getByLabelText("Location"), "11");
     await user.click(screen.getByRole("button", { name: "Create template" }));

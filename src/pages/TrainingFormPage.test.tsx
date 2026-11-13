@@ -28,11 +28,14 @@ vi.mock("../api", async (importOriginal) => {
       group: vi.fn(),
       locations: vi.fn(),
       locationCourts: vi.fn(),
+      organisationLocations: vi.fn(),
       createLocation: vi.fn(),
       createTrainingSession: vi.fn(),
       updateTrainingSession: vi.fn(),
       trainingSession: vi.fn(),
       drill: vi.fn(),
+      organisations: vi.fn(),
+      trainingTemplates: vi.fn(),
     },
   };
 });
@@ -150,6 +153,9 @@ beforeEach(() => {
   mockedApi.groups.mockResolvedValue(paginated([]));
   mockedApi.locations.mockResolvedValue(paginated([]));
   mockedApi.locationCourts.mockResolvedValue([]);
+  mockedApi.organisationLocations.mockResolvedValue({ locations: [] });
+  mockedApi.organisations.mockResolvedValue(paginated([]));
+  mockedApi.trainingTemplates.mockResolvedValue(paginated([]));
   mockedApi.createTrainingSession.mockResolvedValue({ id: 99 } as never);
 });
 

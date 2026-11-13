@@ -121,6 +121,21 @@ input:focus, textarea:focus, select:focus {
   box-shadow: 0 0 0 3px var(--amber-100);
 }
 
+.training-selection-group {
+  display: grid;
+  gap: 1rem;
+  border: 1px solid var(--border-light);
+  border-radius: var(--radius-lg);
+  padding: 1.25rem;
+  background: var(--bg-secondary);
+}
+
+.training-selection-group legend {
+  padding: 0 0.5rem;
+  font-weight: 600;
+  color: var(--charcoal);
+}
+
 input::placeholder { color: var(--slate-400); }
 
 img { max-width: 100%; display: block; }

@@ -26,6 +26,7 @@ import {
   Volleyball,
   FileText,
   type LucideIcon,
+  LayoutTemplate,
 } from "lucide-react";
 import { useAuth } from "../auth/AuthContext";
 import { useTestAccess } from "../auth/TestAccessContext";
@@ -69,7 +70,26 @@ const navGroups: SidebarGroup[] = [
       { path: "/skills", label: "Skills", icon: Target },
       { path: "/drills", label: "Drills", icon: Dumbbell },
       { path: "/videos", label: "Videos", icon: PlayCircle },
-      { path: "/training", label: "Training", icon: ClipboardList },
+      { path: "/analyses", label: "Analysis", icon: FileText },
+    ],
+  },
+  {
+    id: "training_management",
+    label: "Training Management",
+    icon: ClipboardList,
+    items: [
+      { path: "/training", label: "Sessions", icon: ClipboardList },
+      {
+        path: "/training/templates",
+        label: "Templates",
+        icon: LayoutTemplate,
+      },
+      { path: "/training/plans", label: "Plans", icon: UsersRound },
+      {
+        path: "/training/series",
+        label: "Series",
+        icon: ClipboardList,
+      },
       { path: "/schedule", label: "Schedule", icon: CalendarDays },
     ],
   },
@@ -139,10 +159,10 @@ const tournamentsLink: SidebarLink = {
   label: "Tournaments",
   icon: Trophy,
 };
-const organisationsLink: SidebarLink = {
-  path: "/organisations",
-  label: "Organisations",
-  icon: Building2,
+const trainingSessionsLink: SidebarLink = {
+  path: "/training",
+  label: "Training Sessions",
+  icon: ClipboardList,
 };
 
 const analysisLink: SidebarLink = {
@@ -206,7 +226,7 @@ function SidebarNavLink({
   return (
     <NavLink
       to={link.path}
-      end={link.path === "/"}
+      end={link.path === "/" || link.path === "/training"}
       className={({ isActive }) => `sidebar-link${isActive ? " active" : ""}`}
       title={menuCollapsed ? link.label : undefined}
     >
@@ -268,7 +288,7 @@ export default function Sidebar({
         <SidebarNavLink link={homeLink} menuCollapsed={menuCollapsed} />
         <SidebarNavLink link={tournamentsLink} menuCollapsed={menuCollapsed} />
         <SidebarNavLink
-          link={organisationsLink}
+          link={trainingSessionsLink}
           menuCollapsed={menuCollapsed}
         />
         {visibleGroups.map((group) => {

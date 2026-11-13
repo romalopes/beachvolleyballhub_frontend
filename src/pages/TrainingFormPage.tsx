@@ -8,12 +8,14 @@ import {
   type Group as GroupRecord,
   type Location,
   type Court,
+  type Organisation,
   type Player,
   type Skill,
   type TrainingSession,
   type TrainingSessionInput,
   type TrainingSessionStatus,
   type TrainingSessionVisibility,
+  type TrainingTemplate,
   type VideoReference,
 } from "../api";
 import { useAuth } from "../auth/AuthContext";
@@ -23,6 +25,8 @@ import PageHeader from "../components/PageHeader";
 import LocationCreateForm from "../components/locations/LocationCreateForm";
 import TrainingDrillList from "../components/training/TrainingDrillList";
 import TrainingFocusList from "../components/training/TrainingFocusList";
+import TrainingTemplateSelector from "../components/training/TrainingTemplateSelector";
+import OrganisationSelector from "../components/training/OrganisationSelector";
 import DrillSelector, {
   type DrillDraft,
 } from "../components/training/DrillSelector";
@@ -110,6 +114,10 @@ export default function TrainingFormPage() {
   const [focuses, setFocuses] = useState<FocusDraft[]>([]);
   const [selectedDrills, setSelectedDrills] = useState<DrillDraft[]>([]);
   const [participants, setParticipants] = useState<ParticipantDraft[]>([]);
+  const [organisations, setOrganisations] = useState<Organisation[]>([]);
+  const [organisationId, setOrganisationId] = useState<number | null>(null);
+  const [templates, setTemplates] = useState<TrainingTemplate[]>([]);
+  const [templateId, setTemplateId] = useState<number | null>(null);
   const [originalFocusIds, setOriginalFocusIds] = useState<number[]>([]);
   const [originalDrillIds, setOriginalDrillIds] = useState<number[]>([]);
   const [originalParticipantIds, setOriginalParticipantIds] = useState<
@@ -181,19 +189,41 @@ export default function TrainingFormPage() {
       // A group is optional and only seeds the roster, so a failure here must
       // not stop the form from opening: it falls back to no group.
       api.groups({ include_private: true }).catch(() => null),
-      typeof api.locations === "function"
-        ? api.locations().catch(() => ({ data: [], meta: { page: 1, per_page: 0, total: 0, total_pages: 0 } }))
-        : Promise.resolve({ data: [], meta: { page: 1, per_page: 0, total: 0, total_pages: 0 } }),
+      // Fetch active organisations where the user has a scheduling seat.
+      // `api.organisations` uses positional arguments: status, type, tree,
+      // mine, and roles. Passing an options object here silently treated it as
+      // the status argument and left `mine` disabled.
+      api
+        .organisations(
+          "active",
+          undefined,
+          false,
+          true,
+          "owner,administrator,coach",
+        )
+        .catch(() => ({
+          data: [],
+          meta: { page: 1, per_page: 0, total: 0, total_pages: 0 },
+        })),
     ])
-      .then(([cats, sks, drs, pageOfPlayers, groupsRes, locationsRes]) => {
-        if (cancelled) return;
-        setDisciplines(cats);
-        setSkills(sks);
-        setDrills(drs);
-        setPlayers(pageOfPlayers.data);
-        setGroups(groupsRes?.data || []);
-        setLocations(locationsRes.data);
-      })
+      .then(
+        ([
+          cats,
+          sks,
+          drs,
+          pageOfPlayers,
+          groupsRes,
+          orgsRes,
+        ]) => {
+          if (cancelled) return;
+          setDisciplines(cats);
+          setSkills(sks);
+          setDrills(drs);
+          setPlayers(pageOfPlayers.data);
+          setGroups(groupsRes?.data || []);
+          setOrganisations(orgsRes.data || []);
+        },
+      )
       .catch((err: unknown) => {
         if (cancelled) return;
         console.error(err);
@@ -299,13 +329,18 @@ export default function TrainingFormPage() {
         if (session.location) markLocationTouched("location");
         if (session.location_id) markLocationTouched("locationId");
         if (session.canonical_location) {
-          setLocations((current) => current.some((row) => row.id === session.canonical_location?.id)
-            ? current
-            : [session.canonical_location as Location, ...current]);
+          setLocations((current) =>
+            current.some((row) => row.id === session.canonical_location?.id)
+              ? current
+              : [session.canonical_location as Location, ...current],
+          );
         }
         setCourtId(session.court_id ?? null);
         if (session.location_id) {
-          void api.locationCourts(session.location_id).then(setCourts).catch(() => setCourts([]));
+          void api
+            .locationCourts(session.location_id)
+            .then(setCourts)
+            .catch(() => setCourts([]));
         }
         setStatus(session.status);
         setVisibility(session.visibility ?? "shared");
@@ -368,6 +403,96 @@ export default function TrainingFormPage() {
       cancelled = true;
     };
   }, [isNew, invalidId, sessionId]);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    setTemplateId(null);
+
+    if (organisationId === null) {
+      setTemplates([]);
+      return () => {
+        cancelled = true;
+      };
+    }
+
+    api
+      .trainingTemplates({
+        organisation_id: organisationId,
+        per_page: 100,
+      })
+      .then((response) => {
+        if (!cancelled) setTemplates(response.data || []);
+      })
+      .catch(() => {
+        if (!cancelled) setTemplates([]);
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [organisationId]);
+
+  useEffect(() => {
+    let active = true;
+
+    if (organisationId === null) {
+      setLocations([]);
+      setLocationId(null);
+      setLocation("");
+      setCourts([]);
+      setCourtId(null);
+      return () => {
+        active = false;
+      };
+    }
+
+    api
+      .organisationLocations(organisationId)
+      .then((response) => {
+        if (!active) return;
+
+        const nextLocations = response.locations ?? [];
+        const currentLocation = nextLocations.find(
+          (item) => item.id === locationId,
+        );
+        const defaultLocation = nextLocations.find((item) => item.default);
+        const selectedLocation = currentLocation ?? defaultLocation ?? null;
+
+        setLocations(nextLocations);
+        setLocationId(selectedLocation?.id ?? null);
+        setCourtId(null);
+
+        if (selectedLocation) {
+          if (!touchedLocationFields.current.has("location")) {
+            setLocation(selectedLocation.name);
+          }
+          void api
+            .locationCourts(selectedLocation.id)
+            .then((nextCourts) => {
+              if (active) setCourts(nextCourts);
+            })
+            .catch(() => {
+              if (active) setCourts([]);
+            });
+        } else {
+          setLocation("");
+          setCourts([]);
+        }
+      })
+      .catch(() => {
+        if (!active) return;
+        setLocations([]);
+        setLocationId(null);
+        setLocation("");
+        setCourts([]);
+        setCourtId(null);
+      });
+
+    return () => {
+      active = false;
+    };
+  }, [organisationId]);
 
   // A drill whose `definition` key is absent (the drills index strips it) gets
   // its full record fetched once, so the preview can render the visualisation.
@@ -539,6 +664,12 @@ export default function TrainingFormPage() {
       setErrors(["Date and start time are required."]);
       return;
     }
+    if (!organisationId) {
+      setErrors([
+        "An organisation is required. Please select an organisation.",
+      ]);
+      return;
+    }
     const startsAt = fromLocalInput(`${date}T${startTime}`);
     const endsAt = addMinutes(`${date}T${startTime}`, durationMinutes);
     const removedFocusIds = originalFocusIds.filter(
@@ -558,6 +689,8 @@ export default function TrainingFormPage() {
       location: location.trim() || null,
       location_id: locationId,
       court_id: courtId,
+      organisation_id: organisationId,
+      training_template_id: templateId,
       status,
       visibility,
       training_focuses_attributes: [
@@ -676,20 +809,66 @@ export default function TrainingFormPage() {
               </select>
             </label>
           </div>
+
+        </div>
+
+        <fieldset className="training-selection-group">
+          <legend>Training setup</legend>
+
+          <OrganisationSelector
+            organisations={organisations}
+            selectedId={organisationId}
+            onChange={(id) => {
+              setOrganisationId(id);
+              setLocations([]);
+              setLocationId(null);
+              setLocation("");
+              setCourts([]);
+              setCourtId(null);
+            }}
+            required
+            helperText={
+              "Select the organisation this training session is run on behalf of. You must have a coach, administrator or owner seat in the organisation."
+            }
+            noOrganisationsText={
+              "You don't have a coach/admin/owner seat in any organisation. Contact an administrator to be added to one."
+            }
+          />
+
+          <TrainingTemplateSelector
+            templates={templates}
+            selectedId={templateId}
+            onChange={(id) => setTemplateId(id)}
+            helperText={
+              "Start from a saved template to pre-fill focuses, drills and settings. You can still modify everything after loading."
+            }
+            noTemplatesText={
+              "No templates available. Create one from the Training Templates page."
+            }
+          />
+
           <label>
             Verified venue
             <select
               value={locationId ?? ""}
               onChange={(event) => {
-                const nextId = event.target.value ? Number(event.target.value) : null;
+                const nextId = event.target.value
+                  ? Number(event.target.value)
+                  : null;
                 setLocationId(nextId);
                 setCourtId(null);
                 // A venue the coach picked is theirs; no suggestion may replace it.
                 markLocationTouched("locationId");
                 const selected = locations.find((row) => row.id === nextId);
-                if (selected) { setLocation(selected.name); markLocationTouched("location"); }
+                if (selected) {
+                  setLocation(selected.name);
+                  markLocationTouched("location");
+                }
                 if (nextId) {
-                  void api.locationCourts(nextId).then(setCourts).catch(() => setCourts([]));
+                  void api
+                    .locationCourts(nextId)
+                    .then(setCourts)
+                    .catch(() => setCourts([]));
                 } else {
                   setCourts([]);
                 }
@@ -697,10 +876,16 @@ export default function TrainingFormPage() {
             >
               <option value="">No canonical location</option>
               {locations.map((row) => (
-                <option key={row.id} value={row.id}>{row.name}</option>
+                <option key={row.id} value={row.id}>
+                  {row.name}
+                </option>
               ))}
             </select>
           </label>
+        </fieldset>
+
+        <div className="training-editor-section">
+          <h3>Location details</h3>
           <LocationCreateForm
             idPrefix="training-proposal"
             onCreated={(createdLocation) => {
@@ -722,19 +907,42 @@ export default function TrainingFormPage() {
               );
             }}
           />
-          {locationNotice && <p className="field-hint" role="status">{locationNotice}</p>}
+          {locationNotice && (
+            <p className="field-hint" role="status">
+              {locationNotice}
+            </p>
+          )}
           {courts.length > 0 && (
             <label>
               Court
-              <select value={courtId ?? ""} onChange={(event) => setCourtId(event.target.value ? Number(event.target.value) : null)}>
+              <select
+                value={courtId ?? ""}
+                onChange={(event) =>
+                  setCourtId(
+                    event.target.value ? Number(event.target.value) : null,
+                  )
+                }
+              >
                 <option value="">No specific court</option>
-                {courts.map((court) => <option key={court.id} value={court.id}>{court.name}</option>)}
+                {courts.map((court) => (
+                  <option key={court.id} value={court.id}>
+                    {court.name}
+                  </option>
+                ))}
               </select>
             </label>
           )}
           <label>
             Location
-            <input type="text" value={location} onChange={(event) => { markLocationTouched("location"); setLocation(event.target.value); }} placeholder="e.g. north entrance" />
+            <input
+              type="text"
+              value={location}
+              onChange={(event) => {
+                markLocationTouched("location");
+                setLocation(event.target.value);
+              }}
+              placeholder="e.g. north entrance"
+            />
           </label>
           <label>
             Status
@@ -777,6 +985,24 @@ export default function TrainingFormPage() {
           </div>
         </div>
 
+        {errors.length > 0 && (
+          <div className="admin-error">
+            <ul>
+              {errors.map((message, index) => (
+                <li key={index}>{message}</li>
+              ))}
+            </ul>
+          </div>
+        )}
+
+        <TrainingFormActions
+          saving={saving}
+          isNew={isNew}
+          onCancel={() =>
+            navigate(isNew ? "/training" : `/training/${sessionId}`)
+          }
+        />
+
         <SkillFocusSelector
           disciplines={disciplines}
           skills={skills}
@@ -794,7 +1020,11 @@ export default function TrainingFormPage() {
         />
 
         {/* Group selector to seed roster from a group */}
-        <div className="training-editor-section" role="group" aria-label="Group roster">
+        <div
+          className="training-editor-section"
+          role="group"
+          aria-label="Group roster"
+        >
           <h3>Players</h3>
           <p className="related-item-meta">
             Seed the roster from a group, then add or remove players as needed.
@@ -805,7 +1035,9 @@ export default function TrainingFormPage() {
               <select
                 id="training-group-seed"
                 value={selectedGroupId ?? 0}
-                onChange={(e) => handleGroupSelect(Number(e.target.value) || null)}
+                onChange={(e) =>
+                  handleGroupSelect(Number(e.target.value) || null)
+                }
                 disabled={loadingGroup}
               >
                 <option value={0}>Select a group to add its members…</option>
@@ -821,9 +1053,9 @@ export default function TrainingFormPage() {
                 </span>
               )}
               <p className="field-hint">
-                Picking a group adds its active members to the roster. Membership
-                is not attendance — you can still remove anyone who did not show
-                up.
+                Picking a group adds its active members to the roster.
+                Membership is not attendance — you can still remove anyone who
+                did not show up.
               </p>
             </div>
           )}

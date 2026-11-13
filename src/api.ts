@@ -1485,6 +1485,8 @@ export interface TrainingSessionInput {
   coach_profile_id?: number | null;
   /** The series this session belongs to, if any; must match the organisation. */
   training_series_id?: number | null;
+  /** Optional template to pre-fill focuses, drills and settings. */
+  training_template_id?: number | null;
   status?: TrainingSessionStatus;
   visibility?: TrainingSessionVisibility;
   training_focuses_attributes?: TrainingFocusInput[];

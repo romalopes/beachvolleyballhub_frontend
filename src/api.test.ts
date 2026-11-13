@@ -94,6 +94,27 @@ describe("fetchAPI (GET helpers)", () => {
     });
   });
 
+  it("lists active organisations for the current user's scheduling seats", async () => {
+    const fetchMock = mockFetchOnce({
+      ok: true,
+      status: 200,
+      body: { data: [], meta: { page: 1, per_page: 100, total: 0, total_pages: 1 } },
+    });
+
+    await api.organisations(
+      "active",
+      undefined,
+      false,
+      true,
+      "owner,administrator,coach",
+    );
+
+    const [url] = fetchMock.mock.calls[0] as [string, RequestInit];
+    expect(url).toBe(
+      "/api/v1/organisations?status=active&mine=1&roles=owner%2Cadministrator%2Ccoach",
+    );
+  });
+
   it("requests the self-service joinable group catalogue", async () => {
     const fetchMock = mockFetchOnce({
       ok: true,

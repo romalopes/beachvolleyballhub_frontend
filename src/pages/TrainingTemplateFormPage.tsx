@@ -156,10 +156,12 @@ export default function TrainingTemplateFormPage() {
         if (!active) return;
         const nextLocations = response.locations ?? [];
         setLocations(nextLocations);
+        const defaultLocationId =
+          nextLocations.find((item) => item.default)?.id ?? "";
         setLocationId((current) =>
           current !== "" && nextLocations.some((item) => item.id === current)
             ? current
-            : "",
+            : defaultLocationId,
         );
       })
       .catch((err: Error) => {
@@ -204,7 +206,7 @@ export default function TrainingTemplateFormPage() {
       location:
         locationId === ""
           ? null
-          : locations.find((item) => item.id === locationId)?.name ?? null,
+          : (locations.find((item) => item.id === locationId)?.name ?? null),
       location_id: locationId === "" ? null : locationId,
       location_detail: locationDetail.trim() || null,
       level: level.trim() || null,
@@ -311,6 +313,53 @@ export default function TrainingTemplateFormPage() {
           </div>
         </div>
 
+        <div className="admin-field-row">
+          <div className="admin-field">
+            <label htmlFor="template-location">Location</label>
+            <select
+              id="template-location"
+              key={`${organisationId}-${locationsLoading}-${locations.length}`}
+              defaultValue={locationId === "" ? "" : String(locationId)}
+              onChange={(event) => {
+                const value = event.target.value;
+                const selectedId = value === "" ? "" : Number(value);
+                setLocationId(selectedId);
+              }}
+              required
+              disabled={organisationId === "" || locationsLoading}
+            >
+              <option value="">
+                {locationsLoading
+                  ? "Loading locations…"
+                  : organisationId === ""
+                    ? "Select an organisation first"
+                    : locations.length === 0
+                      ? "No locations linked"
+                      : "Select a location"}
+              </option>
+              {locations.map((item) => (
+                <option
+                  key={item.id}
+                  value={item.id}
+                  selected={item.id === locationId}
+                >
+                  {item.name}
+                  {item.locality ? ` — ${item.locality}` : ""}
+                </option>
+              ))}
+            </select>
+          </div>
+          <div className="admin-field">
+            <label htmlFor="template-location-detail">Location detail</label>
+            <input
+              id="template-location-detail"
+              value={locationDetail}
+              onChange={(event) => setLocationDetail(event.target.value)}
+              placeholder="Court 1"
+            />
+          </div>
+        </div>
+
         <div className="admin-field">
           <label htmlFor="template-coach">Coach (optional)</label>
           <select
@@ -332,48 +381,6 @@ export default function TrainingTemplateFormPage() {
               </option>
             ))}
           </select>
-        </div>
-
-        <div className="admin-field-row">
-          <div className="admin-field">
-            <label htmlFor="template-location">Location</label>
-            <select
-              id="template-location"
-              value={locationId}
-              onChange={(event) => {
-                const value = event.target.value;
-                const selectedId = value === "" ? "" : Number(value);
-                setLocationId(selectedId);
-              }}
-              required
-              disabled={organisationId === "" || locationsLoading}
-            >
-              <option value="">
-                {locationsLoading
-                  ? "Loading locations…"
-                  : organisationId === ""
-                    ? "Select an organisation first"
-                    : locations.length === 0
-                      ? "No locations linked"
-                      : "Select a location"}
-              </option>
-              {locations.map((item) => (
-                <option key={item.id} value={item.id}>
-                  {item.name}
-                  {item.locality ? ` — ${item.locality}` : ""}
-                </option>
-              ))}
-            </select>
-          </div>
-          <div className="admin-field">
-            <label htmlFor="template-location-detail">Location detail</label>
-            <input
-              id="template-location-detail"
-              value={locationDetail}
-              onChange={(event) => setLocationDetail(event.target.value)}
-              placeholder="Court 1"
-            />
-          </div>
         </div>
 
         <div className="admin-field-row">
