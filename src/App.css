@@ -1229,6 +1229,11 @@
   font-size: 1.125rem;
   font-weight: 700;
 }
+.weather-advisor-label--excellent { color: #16a34a; }
+.weather-advisor-label--good { color: #16a34a; }
+.weather-advisor-label--fair { color: #eab308; }
+.weather-advisor-label--poor { color: #f97316; }
+.weather-advisor-label--unsuitable { color: #ef4444; }
 
 .weather-advisor-value {
   color: var(--text-secondary);
@@ -15293,8 +15298,12 @@
 .weather-share-card__advisor-label {
   font-size: 20px;
   font-weight: 600;
-  color: #1e293b;
 }
+.weather-share-card__advisor-label--excellent { color: #16a34a; }
+.weather-share-card__advisor-label--good { color: #16a34a; }
+.weather-share-card__advisor-label--fair { color: #eab308; }
+.weather-share-card__advisor-label--poor { color: #f97316; }
+.weather-share-card__advisor-label--unsuitable { color: #ef4444; }
 
 .weather-share-card__advisor-value {
   font-size: 16px;

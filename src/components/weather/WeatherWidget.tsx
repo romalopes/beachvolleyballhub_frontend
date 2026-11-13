@@ -54,7 +54,9 @@ function Advisor({
   return (
     <div className={`weather-advisor ${severityClass(volleyball.label)}`}>
       <div className="weather-advisor-score">
-        <span className="weather-advisor-label">{volleyball.label}</span>
+        <span className={`weather-advisor-label weather-advisor-label--${volleyball.label.toLowerCase()}`}>
+          {volleyball.label}
+        </span>
         <span className="weather-advisor-value">
           {volleyball.score === null
             ? "No data"

@@ -238,7 +238,7 @@ export const WeatherShareCard: FC<WeatherShareCardProps> = ({ snapshot }) => {
         className={`weather-share-card__advisor ${severityClass(volleyball.label)}`}
       >
         <div className="weather-share-card__advisor-score">
-          <span className="weather-share-card__advisor-label">
+          <span className={`weather-share-card__advisor-label weather-share-card__advisor-label--${volleyball.label.toLowerCase()}`}>
             {volleyball.label}
           </span>
           <span className="weather-share-card__advisor-value">

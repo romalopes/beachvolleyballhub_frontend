@@ -173,7 +173,12 @@ function generateHTML(snapshot) {
     .weather-share-card__advisor--poor { border-left: 6px solid #f97316; }
     .weather-share-card__advisor--unsuitable { border-left: 6px solid #ef4444; }
     .weather-share-card__advisor-score { display: flex; flex-direction: column; gap: 8px; margin-bottom: 16px; }
-    .weather-share-card__advisor-label { font-size: 48px; font-weight: 700; color: #1e293b; }
+    .weather-share-card__advisor-label { font-size: 48px; font-weight: 700; }
+    .weather-share-card__advisor-label--excellent { color: #16a34a; }
+    .weather-share-card__advisor-label--good { color: #16a34a; }
+    .weather-share-card__advisor-label--fair { color: #eab308; }
+    .weather-share-card__advisor-label--poor { color: #f97316; }
+    .weather-share-card__advisor-label--unsuitable { color: #ef4444; }
     .weather-share-card__advisor-value { font-size: 36px; color: #475569; }
     .weather-share-card__advisor-note { font-size: 18px; color: #94a3b8; margin: 0 0 20px 0; }
     .weather-share-card__warnings { margin: 0 0 20px 0; }
@@ -252,7 +257,7 @@ function generateHTML(snapshot) {
 
     <div class="weather-share-card__advisor ${severityClass(volleyball.label)}">
       <div class="weather-share-card__advisor-score">
-        <span class="weather-share-card__advisor-label">${escapeHtml(volleyball.label)}</span>
+        <span class="weather-share-card__advisor-label weather-share-card__advisor-label--${volleyball.label.toLowerCase()}">${escapeHtml(volleyball.label)}</span>
         <span class="weather-share-card__advisor-value">${volleyball.score === null ? "No data" : volleyball.score + "/100 for beach volleyball"}</span>
       </div>
       <p class="weather-share-card__advisor-note">Playing-suitability estimate for coaching — not an official safety rating.</p>
