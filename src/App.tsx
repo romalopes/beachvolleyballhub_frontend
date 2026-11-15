@@ -75,6 +75,11 @@ import LogDetail from "./pages/settings/LogDetail";
 import ConfigurationSettings from "./pages/settings/ConfigurationSettings";
 import SystemLogs from "./pages/settings/SystemLogs";
 import ApiHealth from "./pages/settings/ApiHealth";
+import SubscriptionsSettings from "./pages/settings/Subscriptions";
+import Subscribe from "./pages/Subscribe";
+import Billing from "./pages/Billing";
+import BillingReturn from "./pages/BillingReturn";
+import OrganisationBilling from "./pages/OrganisationBilling";
 import VideoCategoriesSettings from "./pages/settings/VideoCategories";
 import VideoTagsSettings from "./pages/settings/VideoTags";
 import VideosDetail from "./pages/VideosDetail";
@@ -501,6 +506,14 @@ export default function App() {
                 <Route path="/organisations" element={<Organisations />} />
                 <Route path="/organisations/:id" element={<OrganisationDetail />} />
                 <Route
+                  path="/organisations/:id/billing"
+                  element={
+                    <AuthenticatedRoute>
+                      <OrganisationBilling />
+                    </AuthenticatedRoute>
+                  }
+                />
+                <Route
                   path="/assessment-definitions"
                   element={
                     <ManagerRoute>
@@ -561,6 +574,14 @@ export default function App() {
                   element={
                     <AdminRoute>
                       <SettingsDashboard />
+                    </AdminRoute>
+                  }
+                />
+                <Route
+                  path="/settings/subscriptions"
+                  element={
+                    <AdminRoute>
+                      <SubscriptionsSettings />
                     </AdminRoute>
                   }
                 />
@@ -733,6 +754,24 @@ export default function App() {
                   }
                 />
                 <Route path="/account" element={<AccountPage />} />
+                {/* Subscription pricing is public; billing settings require a session. */}
+                <Route path="/subscribe" element={<Subscribe />} />
+                <Route
+                  path="/billing"
+                  element={
+                    <AuthenticatedRoute>
+                      <Billing />
+                    </AuthenticatedRoute>
+                  }
+                />
+                <Route
+                  path="/billing/return"
+                  element={
+                    <AuthenticatedRoute>
+                      <BillingReturn />
+                    </AuthenticatedRoute>
+                  }
+                />
                 <Route
                   path="/notifications"
                   element={

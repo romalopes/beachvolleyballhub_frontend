@@ -24,6 +24,8 @@ import {
   Users,
   UsersRound,
   Volleyball,
+  CreditCard,
+  Sparkles,
   FileText,
   type LucideIcon,
   LayoutTemplate,
@@ -140,6 +142,9 @@ const userGroup: SidebarGroup = {
     { path: "/identity", label: "Identity", icon: UsersRound },
     { path: "/settings", label: "Settings", icon: Settings, adminOnly: true },
     { path: "/account", label: "Account", icon: UserCircle },
+    { path: "/subscribe", label: "Plans & pricing", icon: Sparkles },
+    { path: "/billing", label: "Billing", icon: CreditCard },
+    { path: "/settings/subscriptions", label: "Subscriptions", icon: CreditCard, adminOnly: true },
     { path: "/analyses", label: "Analysis", icon: FileText },
   ],
 };

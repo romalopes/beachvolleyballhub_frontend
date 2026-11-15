@@ -2562,6 +2562,214 @@ export interface WeatherAdvisorPreference {
   humidity_weight: number;
 }
 
+// ---------- Subscriptions and Stripe billing (IDENTITY-116) ----------
+//
+// Everything below mirrors the Rails billing API. Prices and features come from
+// the catalogue endpoint — never hardcode them in a component, and never treat a
+// hidden/frontend-only check as authorization.
+export type SubscriptionOwnerType = "personal" | "organisation";
+
+export interface BillingOwnerParams {
+  owner_type?: SubscriptionOwnerType;
+  owner_id?: number;
+}
+
+export interface SubscriptionFeature {
+  id: number;
+  name: string;
+  slug: string;
+  description: string | null;
+  active: boolean;
+  position: number;
+}
+
+export interface SubscriptionPlan {
+  id: number;
+  name: string;
+  slug: string;
+  description: string | null;
+  active: boolean;
+  visible: boolean;
+  popular: boolean;
+  default: boolean;
+  position: number;
+  currency: string;
+  yearly_price_cents: number;
+  /** Decimal string, e.g. "5.00". */
+  yearly_price: string;
+  /** Display label, e.g. "A$5.00/year" or "Free". */
+  price_label: string;
+  owner_scope: "personal" | "organisation" | "both";
+  /** null = unlimited, 0 = owner access only, n = explicit quota. */
+  included_users: number | null;
+  history_limit: number | null;
+  purchasable: boolean;
+  stripe_price_configured: boolean;
+  features: SubscriptionFeature[];
+}
+
+export interface SubscriptionCatalogueResponse {
+  data: SubscriptionPlan[];
+  meta: {
+    currency: string;
+    billing_configured: boolean;
+    enforcement_enabled: boolean;
+  };
+}
+
+export interface BillingLimit {
+  value: number | null;
+  unlimited: boolean;
+  label: string;
+}
+
+export interface BillingLimitUsage {
+  limit: number | null;
+  usage: number | null;
+  remaining: number | null;
+  unlimited: boolean;
+  exceeded: boolean;
+}
+
+export interface BillingPendingChange {
+  plan: { id: number; slug: string; name: string };
+  requested_at: string | null;
+  effective_at: string | null;
+}
+
+export interface BillingSubscriptionRecord {
+  id: number;
+  status: string;
+  stripe_customer_id: string | null;
+  stripe_subscription_id: string | null;
+  current_period_start: string | null;
+  current_period_end: string | null;
+  cancel_at_period_end: boolean;
+  canceled_at: string | null;
+  ended_at: string | null;
+  grace_period_ends_at: string | null;
+  last_synced_at: string | null;
+  pending_change: BillingPendingChange | null;
+}
+
+export interface BillingStatus {
+  owner: {
+    type: "Account" | "Organisation";
+    id: number;
+    name: string;
+    can_manage: boolean;
+  };
+  plan: SubscriptionPlan | null;
+  /** A Stripe status, or "free" when the owner has no paid subscription. */
+  status: string;
+  entitled: boolean;
+  free_fallback: boolean;
+  features: SubscriptionFeature[];
+  limits: { included_users: BillingLimit; history_limit: BillingLimit };
+  usage: { included_users: BillingLimitUsage; history_limit: BillingLimitUsage };
+  subscription: BillingSubscriptionRecord | null;
+  billing_customer: { present: boolean; email: string | null };
+  can_checkout: boolean;
+  can_open_portal: boolean;
+  can_change_plan: boolean;
+}
+
+export interface BillingHistoryEntry {
+  id: number;
+  plan: { id: number; slug: string; name: string } | null;
+  previous_plan: { id: number; slug: string; name: string } | null;
+  status: string;
+  source: string;
+  started_at: string | null;
+  ended_at: string | null;
+  canceled_at: string | null;
+  created_at: string;
+  stripe_subscription_id: string | null;
+  metadata: Record<string, unknown>;
+}
+
+export interface BillingHistoryResponse {
+  owner: { type: "Account" | "Organisation"; id: number };
+  data: BillingHistoryEntry[];
+}
+
+export interface CheckoutResponse {
+  checkout_url: string;
+  session_id: string;
+  reused: boolean;
+}
+
+export interface PortalResponse {
+  portal_url: string;
+}
+
+export interface PlanChangeResponse {
+  status: string;
+  action?: "upgrade" | "downgrade";
+  plan_slug?: string;
+  effective_at?: string | null;
+  message?: string;
+}
+
+export interface AdminBillingRecord {
+  id: number;
+  owner: { type: "Account" | "Organisation"; id: number; name: string };
+  plan: { id: number; slug: string; name: string };
+  status: string;
+  stripe_customer_id: string | null;
+  stripe_subscription_id: string | null;
+  current_period_end: string | null;
+  cancel_at_period_end: boolean;
+  grace_period_ends_at: string | null;
+  last_synced_at: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface AdminBillingEvent {
+  id: number;
+  stripe_event_id: string;
+  event_type: string;
+  stripe_object_id: string | null;
+  status: string;
+  attempts: number;
+  error_message: string | null;
+  received_at: string | null;
+  processed_at: string | null;
+  created_at: string;
+}
+
+export interface AdminBillingDiagnostics {
+  billing: {
+    secret_key_configured: boolean;
+    publishable_key_configured: boolean;
+    webhook_secret_configured: boolean;
+    configured: boolean;
+    enforcement_enabled: boolean;
+    grace_period_days: number;
+    frontend_url: string;
+    success_url: string;
+    cancel_url: string;
+    missing_settings: string[];
+    plans: Array<{
+      slug: string;
+      price_configured: boolean;
+      price_source: string | null;
+      currency: string;
+      yearly_price_cents: number;
+      active: boolean;
+    }>;
+  };
+  counts: {
+    billing_subscriptions: number;
+    billing_customers: number;
+    billing_events: number;
+    failed_events: number;
+    open_checkout_sessions: number;
+  };
+}
+
+
 export interface WeatherShareCreateRequest {
   lat: number;
   lon: number;
@@ -2591,6 +2799,26 @@ export interface WeatherShareMetadata {
   canonical_url: string;
   expires_at: string | null;
   created_at: string;
+}
+
+/**
+ * Owner-scoped billing query string. Personal billing needs no parameters — the
+ * API resolves it from the session — so `personal` deliberately adds nothing.
+ * There is no way to pass an owner id for a personal subscription, which is the
+ * point: one account cannot address another's billing.
+ */
+function billingOwnerQuery(params: BillingOwnerParams): string {
+  if (params.owner_type !== "organisation" || !params.owner_id) return "";
+  const query = new URLSearchParams({
+    owner_type: "organisation",
+    owner_id: String(params.owner_id),
+  });
+  return `?${query.toString()}`;
+}
+
+function billingOwnerBody(params: BillingOwnerParams): Record<string, unknown> {
+  if (params.owner_type !== "organisation" || !params.owner_id) return {};
+  return { owner_type: "organisation", owner_id: params.owner_id };
 }
 
 export const api = {
@@ -4728,10 +4956,111 @@ export const api = {
     metadata: (publicToken: string) =>
       fetchAPI<WeatherShareMetadata>(`/weather_shares/${encodeURIComponent(publicToken)}/metadata`),
     revoke: (publicToken: string) =>
-      postJSON<{}>(
+      postJSON<unknown>(
         `/weather_shares/${encodeURIComponent(publicToken)}`,
         {},
         "DELETE",
       ),
   },
+
+  // ===== Subscriptions and Stripe billing (IDENTITY-116) =====
+  // The catalogue is public. Everything else is owner-scoped and authenticated.
+  subscriptions: () => fetchAPI<SubscriptionCatalogueResponse>("/subscriptions"),
+  billingStatus: (params: BillingOwnerParams = {}) =>
+    fetchAPI<BillingStatus>(`/billing/status${billingOwnerQuery(params)}`),
+  billingHistory: (params: BillingOwnerParams = {}) =>
+    fetchAPI<BillingHistoryResponse>(`/billing/history${billingOwnerQuery(params)}`),
+  createCheckout: (params: BillingOwnerParams & { plan_slug: string }) =>
+    postJSON<CheckoutResponse>("/billing/checkout", {
+      plan_slug: params.plan_slug,
+      ...billingOwnerBody(params),
+    }),
+  createBillingPortal: (params: BillingOwnerParams = {}) =>
+    postJSON<PortalResponse>("/billing/portal", billingOwnerBody(params)),
+  changeSubscription: (
+    params: BillingOwnerParams & {
+      action: "change" | "cancel" | "resume";
+      plan_slug?: string;
+    },
+  ) =>
+    postJSON<PlanChangeResponse>("/billing/change_subscription", {
+      action: params.action,
+      plan_slug: params.plan_slug,
+      ...billingOwnerBody(params),
+    }),
+
+  // Admin catalogue management. Plan/feature payloads are wrapped in the model
+  // key the Rails controllers require.
+  adminSubscriptions: () =>
+    fetchAPI<{ data: SubscriptionPlan[] }>("/admin/subscriptions"),
+  adminCreateSubscription: (data: Partial<SubscriptionPlan>) =>
+    postJSON<{ subscription: SubscriptionPlan }>("/admin/subscriptions", {
+      subscription: data,
+    }),
+  adminUpdateSubscription: (id: number, data: Partial<SubscriptionPlan>) =>
+    postJSON<{ subscription: SubscriptionPlan }>(
+      `/admin/subscriptions/${id}`,
+      { subscription: data },
+      "PATCH",
+    ),
+  adminDeleteSubscription: (id: number) =>
+    postJSON<{ deactivated?: boolean }>(`/admin/subscriptions/${id}`, {}, "DELETE"),
+  adminSetSubscriptionFeatures: (id: number, featureIds: number[]) =>
+    postJSON<{ subscription: SubscriptionPlan }>(
+      `/admin/subscriptions/${id}/features`,
+      { feature_ids: featureIds },
+      "PUT",
+    ),
+  adminSubscriptionFeatures: () =>
+    fetchAPI<{ data: SubscriptionFeature[] }>("/admin/subscription_features"),
+  adminCreateSubscriptionFeature: (data: Partial<SubscriptionFeature>) =>
+    postJSON<{ feature: SubscriptionFeature }>(
+      "/admin/subscription_features",
+      { subscription_feature: data },
+    ),
+  adminUpdateSubscriptionFeature: (id: number, data: Partial<SubscriptionFeature>) =>
+    postJSON<{ feature: SubscriptionFeature }>(
+      `/admin/subscription_features/${id}`,
+      { subscription_feature: data },
+      "PATCH",
+    ),
+  adminDeleteSubscriptionFeature: (id: number) =>
+    postJSON<{ deactivated?: boolean }>(
+      `/admin/subscription_features/${id}`,
+      {},
+      "DELETE",
+    ),
+  adminAssignSubscription: (data: {
+    owner_type: "Account" | "Organisation";
+    owner_id: number;
+    plan_slug: string;
+    reason: string;
+  }) => postJSON<{ billing_subscription: unknown }>("/admin/billing/assignments", data),
+  adminBillingSubscriptions: (
+    params: { page?: number; per_page?: number; status?: string } = {},
+  ) => {
+    const query = new URLSearchParams();
+    if (params.page) query.set("page", String(params.page));
+    if (params.per_page) query.set("per_page", String(params.per_page));
+    if (params.status) query.set("status", params.status);
+    const suffix = query.toString() ? `?${query.toString()}` : "";
+    return fetchAPI<PaginatedResponse<AdminBillingRecord>>(
+      `/admin/billing/subscriptions${suffix}`,
+    );
+  },
+  adminBillingEvents: (
+    params: { page?: number; per_page?: number; status?: string; event_type?: string } = {},
+  ) => {
+    const query = new URLSearchParams();
+    if (params.page) query.set("page", String(params.page));
+    if (params.per_page) query.set("per_page", String(params.per_page));
+    if (params.status) query.set("status", params.status);
+    if (params.event_type) query.set("event_type", params.event_type);
+    const suffix = query.toString() ? `?${query.toString()}` : "";
+    return fetchAPI<PaginatedResponse<AdminBillingEvent>>(
+      `/admin/billing/events${suffix}`,
+    );
+  },
+  adminBillingDiagnostics: () =>
+    fetchAPI<AdminBillingDiagnostics>("/admin/billing/diagnostics"),
 };

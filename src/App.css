@@ -15715,3 +15715,472 @@
 .pwa-update-banner__btn--secondary:hover {
   background: rgba(255, 255, 255, 0.3);
 }
+
+/* ---------------------------------------------------------------------------
+   Subscriptions & billing (IDENTITY-116)
+   Pricing cards, billing status and admin catalogue. Uses the shared palette and
+   radii so these screens do not look like a separate application.
+--------------------------------------------------------------------------- */
+
+@keyframes bvb-spin {
+  to { transform: rotate(360deg); }
+}
+
+.spin {
+  animation: bvb-spin 900ms linear infinite;
+}
+
+.spin-slow {
+  animation: bvb-spin 2.4s linear infinite;
+}
+
+.pricing-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: 1.25rem;
+  margin-bottom: 1.5rem;
+}
+
+.plan-card {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  padding: 1.5rem;
+  background: var(--bg-secondary);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-sm);
+}
+
+.plan-card--popular {
+  border-color: var(--amber-500);
+  box-shadow: var(--shadow-md);
+}
+
+.plan-card--current {
+  outline: 2px solid var(--teal-500);
+  outline-offset: 2px;
+}
+
+.plan-card-header {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.plan-card-header h2 {
+  margin: 0;
+  font-size: 1.15rem;
+}
+
+.plan-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  padding: 0.15rem 0.5rem;
+  border-radius: 999px;
+  background: var(--amber-100);
+  color: var(--amber-700);
+  font-size: 0.72rem;
+  font-weight: 600;
+}
+
+.plan-badge--current {
+  background: var(--teal-100);
+  color: var(--teal-600);
+}
+
+.plan-price {
+  margin: 0;
+  font-size: 1.6rem;
+  font-weight: 700;
+  color: var(--text-primary);
+}
+
+.plan-description {
+  margin: 0;
+  color: var(--text-secondary);
+  font-size: 0.9rem;
+}
+
+.plan-features {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 0.4rem;
+  font-size: 0.9rem;
+}
+
+.plan-features li {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.4rem;
+}
+
+.plan-features svg {
+  flex-shrink: 0;
+  color: var(--teal-600);
+  margin-top: 0.15rem;
+}
+
+.plan-feature-empty {
+  color: var(--text-muted);
+  font-style: italic;
+}
+
+.plan-limits {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.5rem;
+  margin: 0;
+  padding-top: 0.5rem;
+  border-top: 1px solid var(--border-light);
+  font-size: 0.8rem;
+}
+
+.plan-limits dt {
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  font-size: 0.68rem;
+}
+
+.plan-limits dd {
+  margin: 0;
+  color: var(--text-secondary);
+}
+
+.plan-cta {
+  margin-top: auto;
+  width: 100%;
+  justify-content: center;
+  text-align: center;
+}
+
+.plan-cta-note {
+  margin-top: auto;
+  color: var(--text-secondary);
+  font-size: 0.85rem;
+}
+
+.plan-org-links {
+  margin-top: auto;
+  display: grid;
+  gap: 0.5rem;
+}
+
+.pricing-footnote {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.4rem;
+  color: var(--text-secondary);
+  font-size: 0.82rem;
+  max-width: 70ch;
+}
+
+
+/* Billing status ------------------------------------------------------------ */
+
+.billing-summary {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 1.25rem 1.5rem;
+  margin-bottom: 1rem;
+  background: var(--bg-secondary);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+}
+
+.billing-summary h2 {
+  margin: 0;
+}
+
+.billing-eyebrow {
+  margin: 0 0 0.25rem;
+  color: var(--text-muted);
+  font-size: 0.72rem;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
+.billing-price {
+  margin: 0.25rem 0 0;
+  color: var(--text-secondary);
+}
+
+.billing-summary-meta {
+  display: grid;
+  gap: 0.35rem;
+  text-align: right;
+  font-size: 0.9rem;
+}
+
+.billing-status-badge {
+  justify-self: end;
+  padding: 0.2rem 0.6rem;
+  border-radius: 999px;
+  background: var(--sand-200);
+  color: var(--text-secondary);
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-transform: capitalize;
+}
+
+.billing-status-badge--active {
+  background: var(--teal-100);
+  color: var(--teal-600);
+}
+
+.billing-warning {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 0.3rem;
+  color: var(--amber-700);
+  margin: 0;
+}
+
+.billing-pending {
+  color: var(--text-secondary);
+  margin: 0;
+}
+
+.billing-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  margin: 1rem 0 1.5rem;
+}
+
+.billing-limits {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 0.75rem;
+  margin: 1rem 0 0;
+}
+
+.billing-limits dt {
+  color: var(--text-muted);
+  font-size: 0.7rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.billing-limits dd {
+  margin: 0.15rem 0 0;
+  color: var(--text-secondary);
+}
+
+.billing-history-table {
+  overflow-x: auto;
+}
+
+.billing-history-table table,
+.admin-billing-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.85rem;
+}
+
+.billing-history-table th,
+.billing-history-table td,
+.admin-billing-table th,
+.admin-billing-table td {
+  padding: 0.5rem 0.6rem;
+  border-bottom: 1px solid var(--border-light);
+  text-align: left;
+  vertical-align: top;
+}
+
+.billing-history-table th,
+.admin-billing-table th {
+  color: var(--text-muted);
+  font-size: 0.7rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.billing-history-previous {
+  color: var(--text-muted);
+  font-size: 0.78rem;
+}
+
+.billing-return-state {
+  display: grid;
+  justify-items: center;
+  gap: 0.75rem;
+  padding: 2rem;
+  background: var(--bg-secondary);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  text-align: center;
+}
+
+.billing-return-icon {
+  color: var(--teal-600);
+}
+
+.billing-return-note {
+  color: var(--text-secondary);
+  font-size: 0.85rem;
+  max-width: 55ch;
+}
+
+.billing-back-link {
+  color: var(--text-secondary);
+  font-size: 0.85rem;
+  text-decoration: none;
+}
+
+.billing-back-link:hover {
+  color: var(--text-primary);
+}
+
+.page--flush {
+  padding-bottom: 0;
+}
+
+
+/* Admin catalogue ----------------------------------------------------------- */
+
+.section-heading-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 1rem;
+  margin-bottom: 0.75rem;
+}
+
+.admin-subscription-list {
+  display: grid;
+  gap: 0.75rem;
+}
+
+.admin-subscription-row {
+  padding: 1rem;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  background: var(--bg-secondary);
+}
+
+.admin-subscription-row-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem;
+  margin-bottom: 0.5rem;
+}
+
+.admin-subscription-row-head code {
+  color: var(--text-muted);
+  font-size: 0.78rem;
+}
+
+.admin-subscription-price {
+  margin-left: auto;
+  font-weight: 600;
+  color: var(--text-secondary);
+}
+
+.admin-inline-form {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: 0.6rem;
+}
+
+.admin-inline-form label {
+  display: grid;
+  gap: 0.2rem;
+  font-size: 0.72rem;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.admin-inline-form input,
+.admin-inline-form select {
+  padding: 0.4rem 0.5rem;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  font-size: 0.85rem;
+  min-width: 8rem;
+  text-transform: none;
+  letter-spacing: normal;
+  color: var(--text-primary);
+  background: var(--bg-primary);
+}
+
+.admin-inline-form-wide {
+  flex: 1 1 18rem;
+}
+
+.admin-checkbox {
+  display: inline-flex !important;
+  align-items: center;
+  gap: 0.35rem;
+  text-transform: none !important;
+  letter-spacing: normal !important;
+  font-size: 0.82rem !important;
+  color: var(--text-secondary) !important;
+}
+
+.admin-feature-picker {
+  margin: 0.75rem 0 0;
+  padding: 0.6rem 0.75rem;
+  border: 1px dashed var(--border);
+  border-radius: var(--radius-sm);
+}
+
+.admin-feature-picker legend {
+  padding: 0 0.3rem;
+  color: var(--text-muted);
+  font-size: 0.72rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.admin-feature-options {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem 1rem;
+  margin-bottom: 0.6rem;
+}
+
+.billing-diagnostics-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem 1.25rem;
+  list-style: none;
+  padding: 0;
+  margin: 0 0 0.75rem;
+  color: var(--text-secondary);
+  font-size: 0.85rem;
+}
+
+@media (max-width: 768px) {
+  .plan-card {
+    padding: 1.25rem;
+  }
+
+  .billing-summary-meta {
+    text-align: left;
+  }
+
+  .billing-status-badge {
+    justify-self: start;
+  }
+
+  .billing-warning {
+    justify-content: flex-start;
+  }
+
+  .admin-subscription-price {
+    margin-left: 0;
+  }
+}
+
