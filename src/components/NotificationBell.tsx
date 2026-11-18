@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { Bell } from "lucide-react";
+import { createPortal } from "react-dom";
 import { api, type AppNotification } from "../api";
 import { useAuth } from "../auth/AuthContext";
 import { emitNotificationsChanged, onNotificationsChanged } from "../services/notificationEvents";
@@ -39,7 +40,10 @@ export default function NotificationBell({
   const [recent, setRecent] = useState<AppNotification[]>([]);
   const [loadingRecent, setLoadingRecent] = useState(false);
   const [busy, setBusy] = useState(false);
+  const [dropdownPosition, setDropdownPosition] = useState<{ top: number; left?: number; right?: number } | null>(null);
   const containerRef = useRef<HTMLDivElement | null>(null);
+  const buttonRef = useRef<HTMLButtonElement | null>(null);
+  const dropdownRef = useRef<HTMLDivElement | null>(null);
 
   // Badge: refetch on route change, focus, visibility and read-state changes,
   // and poll only while the tab is visible. State is set only from the response
@@ -81,7 +85,10 @@ export default function NotificationBell({
   useEffect(() => {
     if (!open) return;
     const onPointerDown = (event: MouseEvent) => {
-      if (containerRef.current && !containerRef.current.contains(event.target as Node)) {
+      const target = event.target as Node;
+      const clickedInsideContainer = containerRef.current?.contains(target);
+      const clickedInsideDropdown = dropdownRef.current?.contains(target);
+      if (!clickedInsideContainer && !clickedInsideDropdown) {
         setOpen(false);
       }
     };
@@ -95,18 +102,62 @@ export default function NotificationBell({
       document.removeEventListener("keydown", onKeyDown);
     };
   }, [open]);
+
+  // Recalculate dropdown position on window resize while open
+  useEffect(() => {
+    if (!open || !buttonRef.current) return;
+    const handleResize = () => {
+      const rect = buttonRef.current!.getBoundingClientRect();
+      const gap = 8;
+      if (align === "left") {
+        setDropdownPosition({
+          top: rect.bottom + gap,
+          left: rect.left,
+        });
+      } else {
+        setDropdownPosition({
+          top: rect.bottom + gap,
+          right: window.innerWidth - rect.right,
+        });
+      }
+    };
+    window.addEventListener("resize", handleResize);
+    return () => window.removeEventListener("resize", handleResize);
+  }, [open, align]);
   const toggle = async () => {
     const next = !open;
     setOpen(next);
-    if (!next || !user) return;
-    setLoadingRecent(true);
-    try {
-      const page = await api.notifications({ per_page: 8 });
-      setRecent(page.data);
-    } catch {
-      setRecent([]);
-    } finally {
-      setLoadingRecent(false);
+    if (next) {
+      // Calculate dropdown position for portal rendering
+      if (buttonRef.current) {
+        const rect = buttonRef.current.getBoundingClientRect();
+        const gap = 8; // 0.5rem = 8px
+
+        if (align === "left") {
+          // Align left edge of dropdown with left edge of bell
+          setDropdownPosition({
+            top: rect.bottom + gap,
+            left: rect.left,
+          });
+        } else {
+          // Align right edge of dropdown with right edge of bell
+          setDropdownPosition({
+            top: rect.bottom + gap,
+            right: window.innerWidth - rect.right,
+          });
+        }
+      }
+      setLoadingRecent(true);
+      try {
+        const page = await api.notifications({ per_page: 8 });
+        setRecent(page.data);
+      } catch {
+        setRecent([]);
+      } finally {
+        setLoadingRecent(false);
+      }
+    } else {
+      setDropdownPosition(null);
     }
   };
 
@@ -141,6 +192,7 @@ export default function NotificationBell({
     <div className="notification-bell" ref={containerRef}>
       <button
         type="button"
+        ref={buttonRef}
         className="notification-bell-button"
         aria-label={unread > 0 ? `Notifications, ${unread} unread` : "Notifications"}
         aria-haspopup="true"
@@ -156,11 +208,19 @@ export default function NotificationBell({
         )}
       </button>
 
-      {open && (
+      {open && dropdownPosition && createPortal(
         <div
+          ref={dropdownRef}
           className={`notification-dropdown${align === "left" ? " notification-dropdown--align-left" : ""}`}
           role="dialog"
           aria-label="Recent notifications"
+          style={{
+            position: "fixed",
+            top: dropdownPosition.top,
+            left: dropdownPosition.left,
+            right: dropdownPosition.right,
+            zIndex: 2000,
+          }}
         >
           <div className="notification-dropdown-header">
             <span>Notifications</span>
@@ -207,7 +267,8 @@ export default function NotificationBell({
           >
             View all notifications
           </Link>
-        </div>
+        </div>,
+        document.body
       )}
     </div>
   );

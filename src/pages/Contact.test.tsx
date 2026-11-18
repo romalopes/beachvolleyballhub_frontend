@@ -36,25 +36,6 @@ const renderPage = () =>
     </MemoryRouter>,
   );
 
-async function fillValidForm(
-  { email = "jordan@example.com" as string | null } = {},
-) {
-  const user = userEvent.setup();
-  await user.type(screen.getByLabelText("Name"), "Jordan Smith");
-  // A signed-in visitor has no editable e-mail field to fill in.
-  if (email !== null) await user.type(screen.getByLabelText("Email"), email);
-  await user.selectOptions(
-    screen.getByLabelText("What is your enquiry about?"),
-    "coaching",
-  );
-  await user.type(screen.getByLabelText("Subject"), "Coaching sessions");
-  await user.type(
-    screen.getByLabelText("Message"),
-    "I would like more information about coaching.",
-  );
-  return user;
-}
-
 beforeEach(() => {
   vi.clearAllMocks();
   authState = { user: null, loading: false };
@@ -139,7 +120,18 @@ describe("Contact page", () => {
     });
 
     renderPage();
-    const user = await fillValidForm();
+    const user = userEvent.setup();
+    await user.type(screen.getByLabelText("Name"), "Jordan Smith");
+    await user.type(screen.getByLabelText("Email"), "jordan@example.com");
+    await user.selectOptions(
+      screen.getByLabelText("What is your enquiry about?"),
+      "coaching",
+    );
+    await user.type(screen.getByLabelText("Subject"), "Coaching sessions");
+    await user.type(
+      screen.getByLabelText("Message"),
+      "I would like more information about coaching.",
+    );
     await user.click(screen.getByRole("button", { name: "Send message" }));
 
     await waitFor(() =>
@@ -165,7 +157,18 @@ describe("Contact page", () => {
     );
 
     renderPage();
-    const user = await fillValidForm();
+    const user = userEvent.setup();
+    await user.type(screen.getByLabelText("Name"), "Jordan Smith");
+    await user.type(screen.getByLabelText("Email"), "jordan@example.com");
+    await user.selectOptions(
+      screen.getByLabelText("What is your enquiry about?"),
+      "coaching",
+    );
+    await user.type(screen.getByLabelText("Subject"), "Coaching sessions");
+    await user.type(
+      screen.getByLabelText("Message"),
+      "I would like more information about coaching.",
+    );
 
     const submit = screen.getByRole("button", { name: "Send message" });
     await user.click(submit);
@@ -187,7 +190,18 @@ describe("Contact page", () => {
     );
 
     renderPage();
-    const user = await fillValidForm();
+    const user = userEvent.setup();
+    await user.type(screen.getByLabelText("Name"), "Jordan Smith");
+    await user.type(screen.getByLabelText("Email"), "jordan@example.com");
+    await user.selectOptions(
+      screen.getByLabelText("What is your enquiry about?"),
+      "coaching",
+    );
+    await user.type(screen.getByLabelText("Subject"), "Coaching sessions");
+    await user.type(
+      screen.getByLabelText("Message"),
+      "I would like more information about coaching.",
+    );
     await user.click(screen.getByRole("button", { name: "Send message" }));
 
     await waitFor(() =>
@@ -206,7 +220,18 @@ describe("Contact page", () => {
     );
 
     renderPage();
-    const user = await fillValidForm();
+    const user = userEvent.setup();
+    await user.type(screen.getByLabelText("Name"), "Jordan Smith");
+    await user.type(screen.getByLabelText("Email"), "jordan@example.com");
+    await user.selectOptions(
+      screen.getByLabelText("What is your enquiry about?"),
+      "coaching",
+    );
+    await user.type(screen.getByLabelText("Subject"), "Coaching sessions");
+    await user.type(
+      screen.getByLabelText("Message"),
+      "I would like more information about coaching.",
+    );
     await user.click(screen.getByRole("button", { name: "Send message" }));
 
     await waitFor(() =>
@@ -269,7 +294,17 @@ describe("Contact page", () => {
     });
 
     renderPage();
-    const user = await fillValidForm({ email: null });
+    // For signed-in users, name/email are prefilled, just fill the rest
+    const user = userEvent.setup();
+    await user.selectOptions(
+      screen.getByLabelText("What is your enquiry about?"),
+      "coaching",
+    );
+    await user.type(screen.getByLabelText("Subject"), "Coaching sessions");
+    await user.type(
+      screen.getByLabelText("Message"),
+      "I would like more information about coaching.",
+    );
     await user.click(screen.getByRole("button", { name: "Send message" }));
 
     await waitFor(() =>
@@ -284,7 +319,75 @@ describe("Contact page", () => {
 
     renderPage();
 
-    expect(screen.getByText("Checking your account…")).toBeInTheDocument();
+    // "Checking your account…" appears for both email and name fields
+    expect(screen.getAllByText("Checking your account…")).toHaveLength(2);
+    expect(screen.queryByLabelText("Email")).not.toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Send message" })).toBeDisabled();
+  });
+
+  it("shows the account name instead of an editable field when signed in", () => {
+    authState = {
+      user: {
+        id: 5,
+        name: "Jordan Smith",
+        email_address: "jordan@example.com",
+        roles: ["player"],
+      },
+      loading: false,
+    };
+
+    renderPage();
+
+    expect(screen.queryByLabelText("Name")).not.toBeInTheDocument();
+    expect(screen.getByText("Jordan Smith")).toBeInTheDocument();
+    expect(
+      screen.getByText("We use the name from your account."),
+    ).toBeInTheDocument();
+  });
+
+  it("submits the account name for a signed-in visitor", async () => {
+    authState = {
+      user: {
+        id: 5,
+        name: "Jordan Smith",
+        email_address: "jordan@example.com",
+        roles: ["player"],
+      },
+      loading: false,
+    };
+    mockedApi.submitContactMessage.mockResolvedValue({
+      message: "Your message has been received.",
+    });
+
+    renderPage();
+    // For signed-in users, name/email are prefilled, just fill the rest
+    const user = userEvent.setup();
+    await user.selectOptions(
+      screen.getByLabelText("What is your enquiry about?"),
+      "coaching",
+    );
+    await user.type(screen.getByLabelText("Subject"), "Coaching sessions");
+    await user.type(
+      screen.getByLabelText("Message"),
+      "I would like more information about coaching.",
+    );
+    await user.click(screen.getByRole("button", { name: "Send message" }));
+
+    await waitFor(() =>
+      expect(mockedApi.submitContactMessage).toHaveBeenCalledWith(
+        expect.objectContaining({ name: "Jordan Smith" }),
+      ),
+    );
+  });
+
+  it("checks the session before deciding how to collect the name", () => {
+    authState = { user: null, loading: true };
+
+    renderPage();
+
+    // "Checking your account…" appears for both email and name fields
+    expect(screen.getAllByText("Checking your account…")).toHaveLength(2);
+    expect(screen.queryByLabelText("Name")).not.toBeInTheDocument();
     expect(screen.queryByLabelText("Email")).not.toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Send message" })).toBeDisabled();
   });

@@ -95,12 +95,13 @@ function mapServerErrors(errors: string[]): {
 export default function Contact() {
   const { user, loading: authLoading } = useAuth();
   /**
-   * A signed-in visitor does not need to retype an address we already hold: the
-   * account's e-mail is shown as read-only and used for the submission. Signed
-   * out, the field is editable as before. The API validates whatever arrives —
-   * this is a convenience, not a trust boundary.
+   * A signed-in visitor does not need to retype an address/name we already hold:
+   * the account's details are shown as read-only and used for the submission.
+   * Signed out, the fields are editable as before. The API validates whatever
+   * arrives — this is a convenience, not a trust boundary.
    */
   const accountEmail = user?.email_address?.trim() ?? "";
+  const accountName = user?.name?.trim() ?? "";
   const isSignedIn = accountEmail.length > 0;
 
   const [options, setOptions] = useState<ContactTypeOption[]>(CONTACT_TYPE_OPTIONS);
@@ -122,6 +123,8 @@ export default function Contact() {
 
   /** The address the message is sent from: the account's, or the typed one. */
   const contactEmail = isSignedIn ? accountEmail : email;
+  /** The name the message is sent from: the account's, or the typed one. */
+  const contactName = isSignedIn ? accountName : name;
 
   // The server owns the allowlist; the bundled list keeps the form usable if
   // this request cannot complete.
@@ -160,13 +163,13 @@ export default function Contact() {
     event.preventDefault();
     // Guards against a double click or an impatient retry while in flight.
     if (submitting) return;
-    // Until the session is known we cannot tell whether the e-mail is editable,
+    // Until the session is known we cannot tell whether the e-mail/name is editable,
     // so a submission now could validate the wrong field.
     if (authLoading) return;
 
     setError(null);
     const clientErrors = validate({
-      name,
+      name: contactName,
       email: contactEmail,
       contactType,
       subject,
@@ -183,7 +186,7 @@ export default function Contact() {
     setSubmitting(true);
     try {
       await api.submitContactMessage({
-        name: name.trim(),
+        name: contactName.trim(),
         // A signed-in visitor is contacted at the address on their account.
         email: contactEmail.trim(),
         contact_type: contactType as ContactMessageType,
@@ -270,21 +273,40 @@ export default function Contact() {
 
             <form className="auth-form" onSubmit={handleSubmit} noValidate>
               <div className="auth-field">
-                <label htmlFor="contact-name">Name</label>
-                <input
-                  id="contact-name"
-                  type="text"
-                  autoComplete="name"
-                  maxLength={MAX_NAME}
-                  value={name}
-                  onChange={(event) => setName(event.target.value)}
-                  aria-invalid={fieldErrors.name ? true : undefined}
-                  aria-describedby={fieldErrors.name ? "contact-name-error" : undefined}
-                />
-                {fieldErrors.name && (
-                  <span className="field-error" id="contact-name-error">
-                    {fieldErrors.name}
-                  </span>
+                {authLoading ? (
+                  <>
+                    <span className="contact-field-label">Name</span>
+                    <p className="contact-readonly-email" aria-busy="true">
+                      Checking your account…
+                    </p>
+                  </>
+                ) : isSignedIn ? (
+                  <>
+                    <span className="contact-field-label">Name</span>
+                    <p className="contact-readonly-email">{accountName}</p>
+                    <span className="contact-field-hint">
+                      We use the name from your account.
+                    </span>
+                  </>
+                ) : (
+                  <>
+                    <label htmlFor="contact-name">Name</label>
+                    <input
+                      id="contact-name"
+                      type="text"
+                      autoComplete="name"
+                      maxLength={MAX_NAME}
+                      value={name}
+                      onChange={(event) => setName(event.target.value)}
+                      aria-invalid={fieldErrors.name ? true : undefined}
+                      aria-describedby={fieldErrors.name ? "contact-name-error" : undefined}
+                    />
+                    {fieldErrors.name && (
+                      <span className="field-error" id="contact-name-error">
+                        {fieldErrors.name}
+                      </span>
+                    )}
+                  </>
                 )}
               </div>
 
