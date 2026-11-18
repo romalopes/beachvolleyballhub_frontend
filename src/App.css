@@ -16184,3 +16184,288 @@
   }
 }
 
+/* ---------- Contact form and inbox (IDENTITY-259) ---------- */
+
+.contact-card {
+  max-width: 560px;
+}
+
+/* Honeypot: off-screen rather than display:none so it stays in the form payload
+   for naive bots, but never visible, never focusable (tabIndex=-1) and hidden
+   from assistive technology (aria-hidden on the wrapper). */
+.contact-honeypot {
+  position: absolute;
+  left: -10000px;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+}
+
+.contact-turnstile {
+  min-height: 65px;
+}
+
+.contact-privacy {
+  display: flex;
+  gap: 0.5rem;
+  align-items: flex-start;
+  margin: 1.5rem 0 0;
+  font-size: 0.8125rem;
+  line-height: 1.5;
+  color: var(--text-secondary);
+}
+
+.contact-privacy svg {
+  flex-shrink: 0;
+  margin-top: 0.15rem;
+}
+
+.contact-success {
+  display: flex;
+  gap: 0.75rem;
+  padding: 1rem;
+  border: 1px solid var(--teal-100);
+  background: var(--teal-50);
+  border-radius: var(--radius-md);
+  color: var(--teal-600);
+  font-size: 0.9375rem;
+}
+
+.contact-success p {
+  margin: 0 0 0.5rem;
+}
+
+.contact-success .auth-submit {
+  margin-top: 0.5rem;
+}
+
+.field-error {
+  font-size: 0.8125rem;
+  color: var(--amber-600);
+}
+
+/* Read-only e-mail for a signed-in visitor: looks like a disabled field, reads
+   as plain text (there is no input to focus or edit). */
+.contact-field-label {
+  font-size: 0.8125rem;
+  font-weight: 600;
+  color: var(--charcoal);
+}
+
+.contact-readonly-email {
+  margin: 0;
+  padding: 0.625rem 0.75rem;
+  border: 1px dashed var(--border-dark);
+  border-radius: var(--radius-md);
+  background: var(--bg-tertiary, #f7f5f1);
+  color: var(--charcoal);
+  font-size: 0.9375rem;
+  overflow-wrap: anywhere;
+}
+
+.contact-field-hint {
+  font-size: 0.8125rem;
+  color: var(--text-secondary);
+}
+
+/* Standard screen-reader-only helper: labels stay announced without taking up
+   layout space. */
+.visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+.contact-unread-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.375rem;
+  padding: 0.375rem 0.75rem;
+  border-radius: 999px;
+  background: var(--amber-50);
+  border: 1px solid var(--amber-100);
+  color: var(--amber-700);
+  font-size: 0.8125rem;
+  font-weight: 600;
+}
+
+.contact-inbox-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 1rem;
+}
+
+.contact-status-tabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.25rem;
+}
+
+.contact-status-tab {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.375rem;
+  padding: 0.375rem 0.75rem;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--border);
+  background: var(--bg-secondary);
+  color: var(--charcoal);
+  font-size: 0.8125rem;
+  cursor: pointer;
+}
+
+.contact-status-tab.active {
+  border-color: var(--amber-500);
+  color: var(--amber-700);
+  font-weight: 600;
+}
+
+.contact-status-tab-count {
+  font-size: 0.75rem;
+  color: var(--text-secondary);
+}
+
+.contact-inbox-filters {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  align-items: center;
+}
+
+.contact-inbox-filters input[type="search"] {
+  min-width: 240px;
+}
+
+.contact-inbox-table td {
+  vertical-align: top;
+}
+
+.contact-sender {
+  display: block;
+  font-weight: 600;
+  color: var(--charcoal);
+}
+
+.contact-sender-email {
+  display: block;
+  font-size: 0.8125rem;
+  color: var(--text-secondary);
+}
+
+.contact-row-unread .contact-sender {
+  color: var(--amber-700);
+}
+
+.contact-status-badge {
+  display: inline-block;
+  padding: 0.125rem 0.5rem;
+  border-radius: 999px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  border: 1px solid var(--border);
+  color: var(--text-secondary);
+}
+
+.contact-status-badge.unread {
+  background: var(--amber-50);
+  border-color: var(--amber-100);
+  color: var(--amber-700);
+}
+
+.contact-status-badge.read {
+  background: var(--teal-50);
+  border-color: var(--teal-100);
+  color: var(--teal-600);
+}
+
+.contact-status-badge.archived {
+  background: var(--bg-secondary);
+  color: var(--slate-500);
+}
+
+.contact-detail-meta {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 1rem;
+  margin: 0 0 1.25rem;
+}
+
+.contact-detail-meta dt {
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--text-secondary);
+}
+
+.contact-detail-meta dd {
+  margin: 0.25rem 0 0;
+  color: var(--charcoal);
+}
+
+.contact-reply-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  margin-left: 0.5rem;
+  font-size: 0.8125rem;
+  color: var(--amber-700);
+}
+
+/* The message body is plain text: whitespace preserved, HTML never rendered. */
+.contact-detail-body {
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  padding: 1rem;
+  border: 1px solid var(--border);
+  border-left: 3px solid var(--amber-500);
+  border-radius: var(--radius-md);
+  background: var(--bg-secondary);
+  color: var(--charcoal);
+  line-height: 1.6;
+}
+
+.contact-detail-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-top: 1rem;
+}
+
+.contact-detail-actions .admin-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.375rem;
+}
+
+.contact-detail-note {
+  margin-top: 1rem;
+  font-size: 0.8125rem;
+  color: var(--text-secondary);
+}
+
+@media (max-width: 640px) {
+  .contact-inbox-toolbar {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .contact-inbox-filters input[type="search"] {
+    min-width: 0;
+    width: 100%;
+  }
+
+  .contact-card {
+    padding: 1.5rem;
+  }
+}
+
+

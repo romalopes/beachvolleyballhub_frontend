@@ -75,6 +75,51 @@ const renderCollapsedSidebar = (onExpandMenu = vi.fn()) =>
   );
 
 describe("Sidebar", () => {
+  describe("the Contact links", () => {
+    it("offers the public Contact page to a signed-out visitor", () => {
+      renderSidebar();
+
+      expect(screen.getByRole("link", { name: /^contact$/i })).toHaveAttribute(
+        "href",
+        "/contact",
+      );
+    });
+
+    it.each(["admin", "curator"])(
+      "offers the Contact Messages inbox to a platform %s",
+      (role) => {
+        signInAs([role]);
+
+        renderSidebar();
+
+        expect(
+          screen.getByRole("link", { name: /contact messages/i }),
+        ).toHaveAttribute("href", "/settings/contact-messages");
+      },
+    );
+
+    it.each(["coach", "player"])(
+      "hides the inbox from a %s (they would only get a 403)",
+      (role) => {
+        signInAs([role]);
+
+        renderSidebar();
+
+        expect(
+          screen.queryByRole("link", { name: /contact messages/i }),
+        ).not.toBeInTheDocument();
+      },
+    );
+
+    it("hides the inbox from a signed-out visitor", () => {
+      renderSidebar();
+
+      expect(
+        screen.queryByRole("link", { name: /contact messages/i }),
+      ).not.toBeInTheDocument();
+    });
+  });
+
   describe("the Organisations link", () => {
     it.each(["coach", "curator", "admin"])("appears for a %s", (role) => {
       // The page requires a training manager, so the link belongs to the staff

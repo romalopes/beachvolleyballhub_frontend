@@ -11,6 +11,7 @@ import {
   Layers,
   LogIn,
   LogOut,
+  Mail,
   Network,
   PlayCircle,
   Settings,
@@ -39,6 +40,12 @@ type SidebarLink = {
   label: string;
   icon: LucideIcon;
   adminOnly?: boolean;
+  /**
+   * Platform staff only (curator + admin). Used by the Contact Messages inbox,
+   * which is not an admin surface: curators answer public enquiries too. The API
+   * enforces the same rule, so hiding the link is never the only control.
+   */
+  platformStaffOnly?: boolean;
 };
 
 /**
@@ -141,6 +148,12 @@ const userGroup: SidebarGroup = {
   items: [
     { path: "/identity", label: "Identity", icon: UsersRound },
     { path: "/settings", label: "Settings", icon: Settings, adminOnly: true },
+    {
+      path: "/settings/contact-messages",
+      label: "Contact Messages",
+      icon: Mail,
+      platformStaffOnly: true,
+    },
     { path: "/account", label: "Account", icon: UserCircle },
     { path: "/subscribe", label: "Plans & pricing", icon: Sparkles },
     { path: "/billing", label: "Billing", icon: CreditCard },
@@ -157,6 +170,21 @@ const trainingSessionsLink: SidebarLink = {
   path: "/training",
   label: "Training Sessions",
   icon: ClipboardList,
+};
+
+/**
+ * Contact is a top-level public destination (IDENTITY-259).
+ *
+ * The plan's preferred position was "immediately before About", but this
+ * application has no About page. Rather than invent a neighbour or a
+ * single-item group, Contact joins the existing top-level public destinations
+ * (Home, Tournaments, Training Sessions), which is where visitors already look
+ * for site-wide information.
+ */
+const contactLink: SidebarLink = {
+  path: "/contact",
+  label: "Contact",
+  icon: Mail,
 };
 
 /**
@@ -242,6 +270,11 @@ export default function Sidebar({
     ),
   );
   const isAdmin = Boolean(user?.roles?.includes("admin"));
+  // Platform staff = the global curator/admin roles. Organisation-level roles
+  // live on memberships and must never grant the platform inbox.
+  const isPlatformStaff = Boolean(
+    user?.roles?.some((role) => role === "curator" || role === "admin"),
+  );
   const [collapsedGroups, setCollapsedGroups] =
     useState<CollapsedGroups>(readCollapsedGroups);
 
@@ -281,6 +314,7 @@ export default function Sidebar({
           link={trainingSessionsLink}
           menuCollapsed={menuCollapsed}
         />
+        <SidebarNavLink link={contactLink} menuCollapsed={menuCollapsed} />
         {groups.map((group) => {
           const GroupIcon = group.icon;
           const isCollapsed = collapsedGroups[group.id] === true;
@@ -330,6 +364,7 @@ export default function Sidebar({
               >
                 {group.items
                   .filter((item) => !item.adminOnly || isAdmin)
+                  .filter((item) => !item.platformStaffOnly || isPlatformStaff)
                   .map((item) => (
                     <SidebarNavLink
                       key={item.path}

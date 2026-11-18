@@ -82,6 +82,9 @@ import BillingReturn from "./pages/BillingReturn";
 import OrganisationBilling from "./pages/OrganisationBilling";
 import VideoCategoriesSettings from "./pages/settings/VideoCategories";
 import VideoTagsSettings from "./pages/settings/VideoTags";
+import ContactMessagesSettings from "./pages/settings/ContactMessages";
+import ContactMessageDetailPage from "./pages/settings/ContactMessageDetail";
+import ContactPage from "./pages/Contact";
 import VideosDetail from "./pages/VideosDetail";
 import AnalysisListPage from "./pages/AnalysisListPage";
 import AnalysisDetailPage from "./pages/AnalysisDetailPage";
@@ -134,6 +137,23 @@ function LocationOversightRoute({ children }: { children: React.ReactNode }) {
     (role) => role === "curator" || role === "admin",
   );
   if (!canOverseeLocations) return <Navigate to="/" replace />;
+  return <>{children}</>;
+}
+
+/**
+ * Platform-staff route (contact message inbox, IDENTITY-259).
+ *
+ * `curator` and `admin` are the platform-wide roles; organisation-level roles
+ * live on memberships and are unrelated. This guard only keeps the UI honest —
+ * the API authorises every request with ContactMessagePolicy.
+ */
+function PlatformStaffRoute({ children }: { children: React.ReactNode }) {
+  const { user, loading } = useAuth();
+  if (loading) return null;
+  const isPlatformStaff = user?.roles?.some(
+    (role) => role === "curator" || role === "admin",
+  );
+  if (!isPlatformStaff) return <Navigate to="/" replace />;
   return <>{children}</>;
 }
 
@@ -320,6 +340,7 @@ export default function App() {
                 <Route path="/reset-password" element={<ResetPassword />} />
                 <Route path="/verify-email" element={<VerifyEmail />} />
                 <Route path="/" element={<Home />} />
+                <Route path="/contact" element={<ContactPage />} />
                 <Route path="/skills" element={<Skills />} />
                 <Route path="/skills/:slug" element={<SkillDetail />} />
                 <Route path="/drills" element={<Drills />} />
@@ -735,6 +756,24 @@ export default function App() {
                     <AdminRoute>
                       <ApiHealth />
                     </AdminRoute>
+                  }
+                />
+                {/* Contact Messages inbox (IDENTITY-259): platform staff only.
+                    The API remains authoritative for every request. */}
+                <Route
+                  path="/settings/contact-messages"
+                  element={
+                    <PlatformStaffRoute>
+                      <ContactMessagesSettings />
+                    </PlatformStaffRoute>
+                  }
+                />
+                <Route
+                  path="/settings/contact-messages/:id"
+                  element={
+                    <PlatformStaffRoute>
+                      <ContactMessageDetailPage />
+                    </PlatformStaffRoute>
                   }
                 />
                 <Route

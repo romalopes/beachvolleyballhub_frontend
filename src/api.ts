@@ -2562,6 +2562,77 @@ export interface WeatherAdvisorPreference {
   humidity_weight: number;
 }
 
+// ---------- Contact messages (IDENTITY-259) ----------
+// The public Contact form and the internal Settings → Contact Messages inbox.
+// The categories are the server's allowlist (published by
+// GET /contact_messages/options); the server remains authoritative on every
+// submission, so a stale bundled list can never widen what is accepted.
+export type ContactMessageType =
+  | "general"
+  | "account_access"
+  | "coaching"
+  | "organisation"
+  | "training_tournament"
+  | "location"
+  | "technical_support"
+  | "partnership"
+  | "feedback"
+  | "other";
+
+export type ContactMessageStatus = "unread" | "read" | "archived";
+
+export interface ContactTypeOption {
+  value: ContactMessageType;
+  label: string;
+}
+
+/** One row of the inbox list (no message body). */
+export interface ContactMessageSummary {
+  id: number;
+  name: string;
+  email: string;
+  contact_type: ContactMessageType;
+  contact_type_label: string;
+  subject: string;
+  status: ContactMessageStatus;
+  created_at: string;
+  read_at: string | null;
+  archived_at: string | null;
+  emailed_at: string | null;
+  notified_at: string | null;
+}
+
+/** The detail payload, which includes the plain-text body. */
+export interface ContactMessageDetail extends ContactMessageSummary {
+  message: string;
+}
+
+export interface ContactMessageInput {
+  name: string;
+  email: string;
+  contact_type: ContactMessageType;
+  subject: string;
+  message: string;
+  /** Cloudflare Turnstile token; verified server-side, never trusted here. */
+  turnstile_token?: string;
+  /** Honeypot. Must stay empty; the server discards submissions that fill it. */
+  website?: string;
+}
+
+export interface ContactMessageFilters {
+  status?: ContactMessageStatus | "all";
+  contact_type?: ContactMessageType | "";
+  search?: string;
+  page?: number;
+  per_page?: number;
+  sort?: "created_at" | "status";
+  direction?: "asc" | "desc";
+}
+
+export interface ContactMessageInbox extends PaginatedResponse<ContactMessageSummary> {
+  counts: Record<"all" | ContactMessageStatus, number>;
+}
+
 // ---------- Subscriptions and Stripe billing (IDENTITY-116) ----------
 //
 // Everything below mirrors the Rails billing API. Prices and features come from
@@ -5063,4 +5134,46 @@ export const api = {
   },
   adminBillingDiagnostics: () =>
     fetchAPI<AdminBillingDiagnostics>("/admin/billing/diagnostics"),
+
+  // ---------- Contact messages (IDENTITY-259) ----------
+
+  /**
+   * The server's contact-category allowlist. The Contact page falls back to the
+   * bundled list if this cannot be loaded, but the API validates every
+   * submission against its own copy regardless.
+   */
+  contactMessageOptions: () =>
+    fetchAPI<{ contact_types: ContactTypeOption[] }>("/contact_messages/options"),
+
+  /** Public submission. No session required. */
+  submitContactMessage: (data: ContactMessageInput) =>
+    postJSON<{ message: string }>("/contact_messages", { contact_message: data }),
+
+  /** Protected inbox list (platform admin/curator only — the API enforces it). */
+  adminContactMessages: (filters: ContactMessageFilters = {}) => {
+    const query = new URLSearchParams();
+    if (filters.status && filters.status !== "all") query.set("status", filters.status);
+    if (filters.contact_type) query.set("contact_type", filters.contact_type);
+    if (filters.search) query.set("search", filters.search);
+    if (filters.page) query.set("page", String(filters.page));
+    if (filters.per_page) query.set("per_page", String(filters.per_page));
+    if (filters.sort) query.set("sort", filters.sort);
+    if (filters.direction) query.set("direction", filters.direction);
+    const suffix = query.toString() ? `?${query.toString()}` : "";
+    return fetchAPI<ContactMessageInbox>(`/admin/contact_messages${suffix}`);
+  },
+
+  adminContactMessage: (id: number) =>
+    fetchAPI<{ data: ContactMessageDetail }>(`/admin/contact_messages/${id}`),
+
+  adminContactMessageUnreadCount: () =>
+    fetchAPI<{ unread_count: number }>("/admin/contact_messages/unread_count"),
+
+  /** Only the status is writable; the API rejects anything else. */
+  adminUpdateContactMessage: (id: number, status: ContactMessageStatus) =>
+    postJSON<{ data: ContactMessageDetail }>(
+      `/admin/contact_messages/${id}`,
+      { contact_message: { status } },
+      "PATCH",
+    ),
 };

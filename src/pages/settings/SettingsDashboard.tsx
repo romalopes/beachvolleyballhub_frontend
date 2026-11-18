@@ -1,9 +1,15 @@
 import { Link } from "react-router-dom";
-import { Activity, Database, ShieldCheck, Tags, Target, Dumbbell, FileText, Shield, PlayCircle, Settings, MapPin } from "lucide-react";
+import { Activity, Database, ShieldCheck, Tags, Target, Dumbbell, FileText, Shield, PlayCircle, Settings, MapPin, Mail } from "lucide-react";
 import { useAuth } from "../../auth/AuthContext";
 import SettingsLayout from "../../components/settings/SettingsLayout";
 
 const RESOURCES = [
+  {
+    to: "/settings/contact-messages",
+    label: "Contact Messages",
+    desc: "Read, search and archive public contact enquiries.",
+    icon: Mail,
+  },
   {
     to: "/settings/disciplines",
     label: "Disciplines",
