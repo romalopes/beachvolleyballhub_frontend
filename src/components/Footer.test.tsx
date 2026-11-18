@@ -11,13 +11,13 @@ describe("Footer", () => {
     expect(screen.getByText(`Version ${APP_VERSION}`)).toBeInTheDocument();
   });
 
-  it("displays version 0.0.22", () => {
+  it("displays version 0.0.23", () => {
     render(<Footer />);
-    expect(screen.getByText("Version 0.0.22")).toBeInTheDocument();
+    expect(screen.getByText("Version 0.0.23")).toBeInTheDocument();
   });
 
   it("derives the version from APP_VERSION, not a hard-coded string", () => {
-    expect(APP_VERSION).toBe("0.0.22");
+    expect(APP_VERSION).toBe("0.0.23");
     render(<Footer />);
     expect(
       screen.getByText((_, el) => el?.textContent === `Version ${APP_VERSION}`),

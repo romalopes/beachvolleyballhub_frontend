@@ -41,7 +41,7 @@ describe("App", () => {
       expect(document.querySelector("footer.app-footer")).toBeInTheDocument();
     });
     expect(screen.getByText(`Version ${APP_VERSION}`)).toBeInTheDocument();
-    expect(screen.getByText("Version 0.0.22")).toBeInTheDocument();
+    expect(screen.getByText("Version 0.0.23")).toBeInTheDocument();
   });
 
   it("opens and closes the mobile sidebar without changing the desktop collapse preference", async () => {
