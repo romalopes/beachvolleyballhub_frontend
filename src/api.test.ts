@@ -155,7 +155,18 @@ describe("weather advisor preference helpers", () => {
     rain_weight: 25,
     uv_weight: 5,
     humidity_weight: 10,
-  };
+    conditions: {
+      temperature: { min_c: 5, ideal_min_c: 17, ideal_max_c: 28, max_c: 40 },
+      wind: { ideal_max_kph: 10, comfortable_max_kph: 20, high_kph: 40 },
+      rain: { preferred_max_percent: 20, comfortable_max_percent: 40, high_percent: 80 },
+      uv: { preferred_max: 3, comfortable_max: 6, high: 10 },
+      humidity: { preferred_max_percent: 60, comfortable_max_percent: 70, high_percent: 90 },
+    },
+    wind_direction_preferences: {
+      N: "neutral", NE: "neutral", E: "neutral", SE: "neutral",
+      S: "neutral", SW: "neutral", W: "neutral", NW: "neutral",
+    },
+  } as const;
 
   it("gets the authenticated preference", async () => {
     const fetchMock = mockFetchOnce({ ok: true, status: 200, body: preference });

@@ -2554,12 +2554,35 @@ export interface NotificationPreference {
   muted_event_types: string[];
 }
 
+export interface WeatherAdvisorConditions {
+  temperature: { min_c: number; ideal_min_c: number; ideal_max_c: number; max_c: number };
+  wind: { ideal_max_kph: number; comfortable_max_kph: number; high_kph: number };
+  rain: { preferred_max_percent: number; comfortable_max_percent: number; high_percent: number };
+  uv: { preferred_max: number; comfortable_max: number; high: number };
+  humidity: { preferred_max_percent: number; comfortable_max_percent: number; high_percent: number };
+}
+
+export type WeatherDirectionValue = "neutral" | "bad" | "very_bad";
+export type WeatherDirectionKey = "N" | "NE" | "E" | "SE" | "S" | "SW" | "W" | "NW";
+export interface WeatherDirectionPreferences {
+  N?: WeatherDirectionValue;
+  NE?: WeatherDirectionValue;
+  E?: WeatherDirectionValue;
+  SE?: WeatherDirectionValue;
+  S?: WeatherDirectionValue;
+  SW?: WeatherDirectionValue;
+  W?: WeatherDirectionValue;
+  NW?: WeatherDirectionValue;
+}
+
 export interface WeatherAdvisorPreference {
   wind_weight: number;
   temperature_weight: number;
   rain_weight: number;
   uv_weight: number;
   humidity_weight: number;
+  conditions: WeatherAdvisorConditions;
+  wind_direction_preferences: WeatherDirectionPreferences;
 }
 
 // ---------- Contact messages (IDENTITY-259) ----------

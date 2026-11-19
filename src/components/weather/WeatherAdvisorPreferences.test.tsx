@@ -5,9 +5,17 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import { api } from "../../api";
 import {
   DEFAULT_WEATHER_ADVISOR_PREFERENCE,
+  DEFAULT_WEATHER_ADVISOR_CONDITIONS,
+  DEFAULT_WEATHER_DIRECTION_PREFERENCES,
   WEATHER_PREFERENCE_CHANGED_EVENT,
 } from "../../utils/weatherAdvisorPreferences";
 import WeatherAdvisorPreferences from "./WeatherAdvisorPreferences";
+
+const fullDefaultPreference = {
+  ...DEFAULT_WEATHER_ADVISOR_PREFERENCE,
+  conditions: DEFAULT_WEATHER_ADVISOR_CONDITIONS,
+  wind_direction_preferences: DEFAULT_WEATHER_DIRECTION_PREFERENCES,
+} as const;
 
 vi.mock("../../api", async (importOriginal) => {
   const original = await importOriginal<typeof import("../../api")>();
@@ -36,9 +44,9 @@ function renderPanel(path = "/account") {
 
 beforeEach(() => {
   vi.clearAllMocks();
-  getPreference.mockResolvedValue(DEFAULT_WEATHER_ADVISOR_PREFERENCE);
+  getPreference.mockResolvedValue(fullDefaultPreference);
   updatePreference.mockImplementation(async (preference) => preference);
-  resetPreference.mockResolvedValue(DEFAULT_WEATHER_ADVISOR_PREFERENCE);
+  resetPreference.mockResolvedValue(fullDefaultPreference);
   Element.prototype.scrollIntoView = vi.fn();
 });
 
@@ -67,13 +75,13 @@ describe("WeatherAdvisorPreferences", () => {
     expect(screen.getByText("Total:").parentElement).toHaveTextContent("100%");
 
     await userEvent.click(screen.getByRole("button", { name: "Save preferences" }));
-    expect(updatePreference).toHaveBeenCalledWith({
+    expect(updatePreference).toHaveBeenCalledWith(expect.objectContaining({
       wind_weight: 33,
       temperature_weight: 22,
       rain_weight: 28,
       uv_weight: 6,
       humidity_weight: 11,
-    });
+    }));
     expect(await screen.findByText("Weather advisor preferences saved.")).toBeInTheDocument();
     expect(listener).toHaveBeenCalledOnce();
     window.removeEventListener(WEATHER_PREFERENCE_CHANGED_EVENT, listener);
