@@ -10,9 +10,9 @@ export interface AuthContextValue {
   user: User | null;
   loading: boolean;
   /** Resolves to the signed-in user, or null when verification is pending. */
-  login: (email: string, password: string) => Promise<User | null>;
+  login: (email: string, password: string, turnstileToken?: string | null) => Promise<User | null>;
   /** Resolves to the created user, or null when verification is pending. */
-  register: (firstName: string, lastName: string, email: string, password: string, confirmation: string) => Promise<User | null>;
+  register: (firstName: string, lastName: string, email: string, password: string, confirmation: string, turnstileToken?: string | null) => Promise<User | null>;
   resetPassword: (token: string, password: string, confirmation: string) => Promise<void>;
   logout: () => Promise<void>;
   impersonation: ImpersonationState;

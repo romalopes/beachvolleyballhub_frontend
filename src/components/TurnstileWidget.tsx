@@ -6,19 +6,25 @@ import {
 } from "../services/turnstile";
 
 /**
- * Cloudflare Turnstile widget for the public Contact form (IDENTITY-259).
+ * Cloudflare Turnstile widget for the public Contact form (IDENTITY-259) and
+ * authentication forms (signup, login, forgot password).
  *
  * The component only renders the widget and reports the token it produces. It
  * never treats a client-side success as verification: the API validates the
  * token server-side (see TurnstileVerifier).
  *
- * Rendered with `render=explicit` and `action: "contact"`, so the API can reject
- * a token minted for a different form. The script is loaded once per page.
+ * Rendered with `render=explicit` and a form-specific `action`, so the API can
+ * reject a token minted for a different form. The script is loaded once per page.
  *
  * Tests mock this module rather than loading Cloudflare's script.
  */
 interface TurnstileWidgetProps {
   onToken: (token: string | null) => void;
+  /**
+   * The Turnstile action to render the widget with. Defaults to "contact".
+   * Use "signup", "login", or "forgot_password" for authentication forms.
+   */
+  action?: string;
   /**
    * Increment to reset the widget after a failed or successful submit: a
    * Turnstile token is single-use.
@@ -28,6 +34,7 @@ interface TurnstileWidgetProps {
 
 export default function TurnstileWidget({
   onToken,
+  action = TURNSTILE_ACTION,
   resetKey = 0,
 }: TurnstileWidgetProps) {
   const containerRef = useRef<HTMLDivElement | null>(null);
@@ -54,7 +61,7 @@ export default function TurnstileWidget({
         widgetIdRef.current =
           window.turnstile.render(containerRef.current, {
             sitekey: siteKey,
-            action: TURNSTILE_ACTION,
+            action,
             theme: "auto",
             callback: (token: string) => onTokenRef.current(token),
             "error-callback": () => onTokenRef.current(null),
@@ -75,7 +82,7 @@ export default function TurnstileWidget({
       }
       widgetIdRef.current = null;
     };
-  }, []);
+  }, [action]);
 
   // A Turnstile token is single-use, so a new submission needs a new token.
   useEffect(() => {

@@ -7,6 +7,8 @@ import {
   clearClaimInvitationPath,
   safeInternalReturnPath,
 } from "../auth/invitationReturnPath";
+import TurnstileWidget from "../components/TurnstileWidget";
+import { turnstileEnabled, TURNSTILE_LOGIN_ACTION } from "../services/turnstile";
 
 export default function Login() {
   const { login } = useAuth();
@@ -18,6 +20,8 @@ export default function Login() {
   const [submitting, setSubmitting] = useState(false);
   const [pendingEmail, setPendingEmail] = useState<string | null>(null);
   const [resent, setResent] = useState(false);
+  const [turnstileToken, setTurnstileToken] = useState<string | null>(null);
+  const [resetKey, setResetKey] = useState(0);
 
   const from = safeInternalReturnPath(
     (location.state as { from?: string } | null)?.from ||
@@ -30,7 +34,7 @@ export default function Login() {
     setResent(false);
     setSubmitting(true);
     try {
-      const user = await login(email, password);
+      const user = await login(email, password, turnstileToken);
       if (user === null) {
         // Email verification pending — stay on the login page with guidance.
         setPendingEmail(email);
@@ -41,6 +45,8 @@ export default function Login() {
       navigate(from, { replace: true });
     } catch (err) {
       setError(err instanceof Error ? err.message : "Sign in failed.");
+      // Turnstile token is single-use; reset widget for retry.
+      setResetKey((k) => k + 1);
     } finally {
       setSubmitting(false);
     }
@@ -130,6 +136,13 @@ export default function Login() {
               onChange={(e) => setPassword(e.target.value)}
             />
           </div>
+          {turnstileEnabled() && (
+            <TurnstileWidget
+              onToken={setTurnstileToken}
+              action={TURNSTILE_LOGIN_ACTION}
+              resetKey={resetKey}
+            />
+          )}
           <button type="submit" className="auth-submit" disabled={submitting}>
             {submitting ? "Signing in..." : "Sign in"}
           </button>

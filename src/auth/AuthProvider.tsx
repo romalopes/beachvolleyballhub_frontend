@@ -27,8 +27,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       .finally(() => setLoading(false));
   }, []);
 
-  const login = async (email: string, password: string) => {
-    const result = await api.login(email, password);
+  const login = async (email: string, password: string, turnstileToken?: string | null) => {
+    const result = await api.login(email, password, turnstileToken);
     // Unverified accounts get HTTP 202 "pending_verification" — no session was
     // created, so the user must NOT enter the app until the email is verified.
     if (result.status === "pending_verification") {
@@ -40,8 +40,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return currentUser;
   };
 
-  const register = async (firstName: string, lastName: string, email: string, password: string, confirmation: string) => {
-    const result = await api.register(firstName, lastName, email, password, confirmation);
+  const register = async (firstName: string, lastName: string, email: string, password: string, confirmation: string, turnstileToken?: string | null) => {
+    const result = await api.register(firstName, lastName, email, password, confirmation, turnstileToken);
     // Unverified signups get HTTP 202 "pending_verification" — no session was
     // created, so the user must verify their email before entering the app.
     if (result.status === "pending_verification") {

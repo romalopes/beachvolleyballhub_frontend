@@ -82,7 +82,8 @@ describe("Login page", () => {
     await waitFor(() =>
       expect(mockedApi.login).toHaveBeenCalledWith(
         "bea@example.com",
-        "password123"
+        "password123",
+        null // turnstileToken (not provided when Turnstile is disabled in tests)
       )
     );
   });

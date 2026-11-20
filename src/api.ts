@@ -4594,10 +4594,11 @@ export const api = {
   healthDetailed: () => fetchAPI<HealthDetailed>("/health/detailed"),
 
   me: () => fetchAPI<User | null>("/me"),
-  login: (email_address: string, password: string) =>
+  login: (email_address: string, password: string, turnstile_token?: string | null) =>
     postJSON<UserWithToken>("/sessions", {
       email_address,
       password,
+      turnstile_token: turnstile_token ?? undefined,
       api: true,
     }).then((data) => {
       // Pending verification never carries an email token or session token.
@@ -4616,6 +4617,7 @@ export const api = {
     email_address: string,
     password: string,
     password_confirmation: string,
+    turnstile_token?: string | null,
   ) =>
     postJSON<UserWithToken>("/registrations", {
       user: {
@@ -4624,6 +4626,7 @@ export const api = {
         email_address,
         password,
         password_confirmation,
+        turnstile_token: turnstile_token ?? undefined,
       },
       api: true,
     }).then((data) => {
@@ -4641,8 +4644,8 @@ export const api = {
     fetchAPI<{ status: string; email_address: string; name: string }>(
       `/email-verifications/${encodeURIComponent(token)}`,
     ),
-  requestPasswordReset: (email_address: string) =>
-    postJSON<void>("/passwords", { email_address }),
+  requestPasswordReset: (email_address: string, turnstile_token?: string | null) =>
+    postJSON<void>("/passwords", { email_address, turnstile_token: turnstile_token ?? undefined }),
   resetPassword: (
     token: string,
     password: string,

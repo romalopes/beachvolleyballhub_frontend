@@ -1,22 +1,28 @@
 import { useState, type FormEvent } from 'react';
 import { Link } from 'react-router-dom';
 import { api } from '../api';
+import TurnstileWidget from '../components/TurnstileWidget';
+import { turnstileEnabled, TURNSTILE_FORGOT_PASSWORD_ACTION } from '../services/turnstile';
 
 export default function ForgotPassword() {
   const [email, setEmail] = useState('');
   const [sent, setSent] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
+  const [turnstileToken, setTurnstileToken] = useState<string | null>(null);
+  const [resetKey, setResetKey] = useState(0);
 
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
     setError(null);
     setSubmitting(true);
     try {
-      await api.requestPasswordReset(email);
+      await api.requestPasswordReset(email, turnstileToken);
       setSent(true);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Request failed.');
+      // Turnstile token is single-use; reset widget for retry.
+      setResetKey((k) => k + 1);
     } finally {
       setSubmitting(false);
     }
@@ -56,6 +62,13 @@ export default function ForgotPassword() {
                   onChange={(e) => setEmail(e.target.value)}
                 />
               </div>
+              {turnstileEnabled() && (
+                <TurnstileWidget
+                  onToken={setTurnstileToken}
+                  action={TURNSTILE_FORGOT_PASSWORD_ACTION}
+                  resetKey={resetKey}
+                />
+              )}
               <button type="submit" className="auth-submit" disabled={submitting}>
                 {submitting ? 'Sending...' : 'Email reset instructions'}
               </button>

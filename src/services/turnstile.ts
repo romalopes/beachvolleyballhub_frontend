@@ -1,6 +1,6 @@
 /**
  * Cloudflare Turnstile browser integration for the public Contact form
- * (IDENTITY-259).
+ * (IDENTITY-259) and authentication forms (signup, login, forgot password).
  *
  * Only the PUBLIC site key reaches the browser (`VITE_TURNSTILE_SITE_KEY`). The
  * secret key lives exclusively on the API, which performs Siteverify — nothing
@@ -19,6 +19,15 @@ export const TURNSTILE_SCRIPT_SRC =
  * minted for a different form cannot be replayed against the contact endpoint.
  */
 export const TURNSTILE_ACTION = "contact";
+
+/** Action for the signup form. */
+export const TURNSTILE_SIGNUP_ACTION = "signup";
+
+/** Action for the login form. */
+export const TURNSTILE_LOGIN_ACTION = "login";
+
+/** Action for the forgot password form. */
+export const TURNSTILE_FORGOT_PASSWORD_ACTION = "forgot_password";
 
 export interface TurnstileApi {
   render: (

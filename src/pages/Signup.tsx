@@ -7,6 +7,8 @@ import {
   rememberClaimInvitationPath,
   safeInternalReturnPath,
 } from "../auth/invitationReturnPath";
+import TurnstileWidget from "../components/TurnstileWidget";
+import { turnstileEnabled, TURNSTILE_SIGNUP_ACTION } from "../services/turnstile";
 
 export default function Signup() {
   const { register } = useAuth();
@@ -24,6 +26,8 @@ export default function Signup() {
   const [submitting, setSubmitting] = useState(false);
   const [pendingEmail, setPendingEmail] = useState<string | null>(null);
   const [resent, setResent] = useState(false);
+  const [turnstileToken, setTurnstileToken] = useState<string | null>(null);
+  const [resetKey, setResetKey] = useState(0);
 
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
@@ -39,6 +43,7 @@ export default function Signup() {
         email,
         password,
         confirmation,
+        turnstileToken,
       );
       if (user === null) {
         // Email verification pending — stay here with guidance.
@@ -49,6 +54,8 @@ export default function Signup() {
       navigate(from, { replace: true });
     } catch (err) {
       setError(err instanceof Error ? err.message : "Sign up failed.");
+      // Turnstile token is single-use; reset widget for retry.
+      setResetKey((k) => k + 1);
     } finally {
       setSubmitting(false);
     }
@@ -211,6 +218,13 @@ export default function Signup() {
               onChange={(e) => setConfirmation(e.target.value)}
             />
           </div>
+          {turnstileEnabled() && (
+            <TurnstileWidget
+              onToken={setTurnstileToken}
+              action={TURNSTILE_SIGNUP_ACTION}
+              resetKey={resetKey}
+            />
+          )}
           <button type="submit" className="auth-submit" disabled={submitting}>
             {submitting ? "Creating account..." : "Sign up"}
           </button>

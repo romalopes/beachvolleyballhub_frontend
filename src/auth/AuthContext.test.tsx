@@ -90,7 +90,8 @@ describe("AuthProvider", () => {
     );
     expect(mockedApi.login).toHaveBeenCalledWith(
       "bea@example.com",
-      "password123"
+      "password123",
+      undefined // turnstileToken (not provided in this test)
     );
   });
 
