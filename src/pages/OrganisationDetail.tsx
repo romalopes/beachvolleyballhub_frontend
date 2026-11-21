@@ -38,6 +38,19 @@ const MEMBERSHIP_ROLES: Array<{ value: OrganisationMembershipRole; label: string
 const LOGO_ACCEPT = "image/png,image/jpeg,image/gif,image/webp,image/svg+xml";
 const MAX_LOGO_BYTES = 10 * 1024 * 1024;
 
+/**
+ * A website stored without a scheme ("www.fivb.com") is treated by the browser
+ * as a *relative* path inside an anchor's href, resolving under the current
+ * route (e.g. /organisations/www.fivb.com) instead of leaving the app. Prepend
+ * https:// unless an explicit scheme (or mailto:/tel:) is already present. The
+ * server normalises new saves, but this keeps older bare values linkable.
+ */
+function websiteHref(website: string): string {
+  return /^[a-z][a-z0-9+.-]*:\/\//i.test(website) || /^(mailto|tel):/i.test(website)
+    ? website
+    : `https://${website}`;
+}
+
 export default function OrganisationDetail() {
   const { user } = useAuth();
   const { id } = useParams<{ id: string }>();
@@ -171,6 +184,16 @@ export default function OrganisationDetail() {
           <div>
             <h1>{organisation.name}</h1>
             <p>{organisation.description || organisation.organisation_type.replaceAll("_", " ")}</p>
+            {organisation.website && (
+              <a
+                href={websiteHref(organisation.website)}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="identity-link"
+              >
+                {organisation.website}
+              </a>
+            )}
           </div>
         </div>
         <Link className="admin-btn" to="/organisations">Back to organisations</Link>
@@ -223,6 +246,7 @@ export default function OrganisationDetail() {
             <dt>Status</dt><dd>{organisation.status_label}</dd>
             <dt>Slug</dt><dd><code>{organisation.slug}</code></dd>
             {organisation.acronym && <><dt>Acronym</dt><dd>{organisation.acronym}</dd></>}
+            {organisation.website && <><dt>Website</dt><dd><a href={websiteHref(organisation.website)} target="_blank" rel="noopener noreferrer" className="identity-link">{organisation.website}</a></dd></>}
             {organisation.parent_organisation && <><dt>Parent organisation</dt><dd><Link className="identity-link" to={`/organisations/${organisation.parent_organisation.slug}`}>{organisation.parent_organisation.name}</Link></dd></>}
             <dt>Children</dt><dd>{organisation.child_count}</dd>
           </dl>
@@ -436,6 +460,7 @@ function OrganisationEditForm({
   const [acronym, setAcronym] = useState(organisation.acronym ?? "");
   const [type, setType] = useState<OrganisationType>(organisation.organisation_type);
   const [description, setDescription] = useState(organisation.description ?? "");
+  const [website, setWebsite] = useState(organisation.website ?? "");
   const [parentId, setParentId] = useState<number | null>(organisation.parent_organisation_id);
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
@@ -461,6 +486,7 @@ function OrganisationEditForm({
         acronym: acronym.trim() || null,
         organisation_type: type,
         description: description.trim() || null,
+        website: website.trim() || null,
         parent_organisation_id: parentId,
       });
       onSaved(saved);
@@ -479,6 +505,7 @@ function OrganisationEditForm({
       <div className="form-row"><label htmlFor="org-acronym">Acronym</label><input id="org-acronym" value={acronym} onChange={(e) => setAcronym(e.target.value)} disabled={busy} /></div>
       <div className="form-row"><label htmlFor="org-type">Type</label><select id="org-type" value={type} onChange={(e) => setType(e.target.value as OrganisationType)} disabled={busy}>{ORGANISATION_TYPES.map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}</select></div>
       <div className="form-row"><label htmlFor="org-description">Description</label><textarea id="org-description" value={description} rows={3} onChange={(e) => setDescription(e.target.value)} disabled={busy} /></div>
+      <div className="form-row"><label htmlFor="org-website">Website</label><input id="org-website" value={website} onChange={(e) => setWebsite(e.target.value)} disabled={busy} /></div>
       <div className="form-row"><label htmlFor="org-parent">Parent organisation</label><select id="org-parent" value={parentId ?? ""} onChange={(e) => setParentId(e.target.value ? Number(e.target.value) : null)} disabled={busy}><option value="">— No parent (top level) —</option>{candidates.map((candidate) => <option key={candidate.id} value={candidate.id}>{candidate.name}</option>)}</select></div>
       <div className="form-actions"><button type="button" className="admin-btn" onClick={onCancel} disabled={busy}>Cancel</button><button type="submit" className="admin-btn admin-btn-primary" disabled={busy}>{busy ? "Saving…" : "Save changes"}</button></div>
     </form>

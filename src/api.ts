@@ -1055,6 +1055,8 @@ export interface Organisation {
   organisation_type: OrganisationType;
   status: "active" | "archived";
   status_label: string;
+  /** Public website URL, or null when not set. */
+  website: string | null;
   parent_organisation_id: number | null;
   parent_organisation: { id: number; name: string; slug: string } | null;
   /** Immediate children only; the full subtree is deliberately not inlined. */
@@ -1154,6 +1156,11 @@ export interface OrganisationInput {
   description?: string | null;
   /** Omit to leave unchanged on an edit; null or "" clears it. */
   acronym?: string | null;
+  /**
+   * Public website. A scheme-less value ("www.fivb.com") is normalised to
+   * https://… server-side; null or "" clears it.
+   */
+  website?: string | null;
   organisation_type?: OrganisationType;
   parent_organisation_id?: number | null;
   /**

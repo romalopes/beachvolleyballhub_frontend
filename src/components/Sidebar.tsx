@@ -157,7 +157,12 @@ const userGroup: SidebarGroup = {
     { path: "/account", label: "Account", icon: UserCircle },
     { path: "/subscribe", label: "Plans & pricing", icon: Sparkles },
     { path: "/billing", label: "Billing", icon: CreditCard },
-    { path: "/settings/subscriptions", label: "Subscriptions", icon: CreditCard, adminOnly: true },
+    {
+      path: "/settings/subscriptions",
+      label: "Subscriptions",
+      icon: CreditCard,
+      adminOnly: true,
+    },
     { path: "/analyses", label: "Analysis", icon: FileText },
   ],
 };
@@ -170,6 +175,11 @@ const trainingSessionsLink: SidebarLink = {
   path: "/training",
   label: "Training Sessions",
   icon: ClipboardList,
+};
+const organisationsLink: SidebarLink = {
+  path: "/organisations",
+  label: "Organisations",
+  icon: Building2,
 };
 
 /**
@@ -312,6 +322,10 @@ export default function Sidebar({
         <SidebarNavLink link={tournamentsLink} menuCollapsed={menuCollapsed} />
         <SidebarNavLink
           link={trainingSessionsLink}
+          menuCollapsed={menuCollapsed}
+        />
+        <SidebarNavLink
+          link={organisationsLink}
           menuCollapsed={menuCollapsed}
         />
         <SidebarNavLink link={contactLink} menuCollapsed={menuCollapsed} />
