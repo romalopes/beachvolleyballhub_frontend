@@ -8,6 +8,45 @@ import { registerSW } from "virtual:pwa-register";
 import { featureFlags } from "./config/featureFlags";
 import { initializeCapacitor } from "./services/capacitor";
 
+const FRONTEND_RECOVERY_KEY = "bvb_frontend_recovery_attempt";
+
+function isStaleFrontendError(error: unknown): boolean {
+  const message = error instanceof Error ? error.message : String(error);
+  return /chunk|dynamically imported module|manifest|loading css chunk|failed to fetch/i.test(message);
+}
+
+async function recoverFromStaleFrontend(): Promise<void> {
+  try {
+    if (sessionStorage.getItem(FRONTEND_RECOVERY_KEY) === "1") return;
+    sessionStorage.setItem(FRONTEND_RECOVERY_KEY, "1");
+
+    const registrations = await navigator.serviceWorker?.getRegistrations?.() ?? [];
+    await Promise.all(registrations.map((registration) => registration.unregister()));
+
+    if ("caches" in window) {
+      const cacheNames = await caches.keys();
+      await Promise.all(cacheNames.map((cacheName) => caches.delete(cacheName)));
+    }
+
+    window.location.reload();
+  } catch {
+    // A browser may block storage, service-worker, or cache access. The original
+    // error remains visible rather than creating a recovery loop.
+  }
+}
+
+window.addEventListener("error", (event) => {
+  if (isStaleFrontendError(event.error ?? event.message)) {
+    void recoverFromStaleFrontend();
+  }
+});
+
+window.addEventListener("unhandledrejection", (event) => {
+  if (isStaleFrontendError(event.reason)) {
+    void recoverFromStaleFrontend();
+  }
+});
+
 if (featureFlags.pwaEnabled) {
   const updateServiceWorker = registerSW({
     immediate: true,
@@ -16,6 +55,9 @@ if (featureFlags.pwaEnabled) {
     },
     onNeedRefresh() {
       window.dispatchEvent(new CustomEvent("bvb-update-available"));
+      // Activate the new worker immediately so mobile users do not keep an old
+      // application shell until they manually clear site data.
+      void updateServiceWorker(true);
     },
     onRegistered(r) {
       console.log("SW Registered:", r);
