@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { Link, useParams } from "react-router-dom";
 import { Mail, ShieldCheck, Users } from "lucide-react";
-import { api, type Account, type AdminUser } from "../api";
+import { api, API_BASE_URL, getToken, type Account, type AdminUser } from "../api";
 import AdminUserRoleControls from "../components/AdminUserRoleControls";
 import { adminUserDisplayName } from "../utils/adminUsers";
 import EmptyState from "../components/EmptyState";
@@ -94,7 +94,7 @@ export default function AdminUserDetail() {
     setInviteStatus({ message: "", type: "success" });
 
     try {
-      await api.requestPasswordReset(normalizedInviteEmail);
+      await api.sendInvitation(userId);
       setInviteStatus({
         message: `Invitation email sent to ${normalizedInviteEmail}. The user can now set their password.`,
         type: "success",

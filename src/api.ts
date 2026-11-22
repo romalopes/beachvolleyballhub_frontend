@@ -55,7 +55,7 @@ export class ApiValidationError extends Error {
 // ---------- API token (bearer auth for cross-origin SPA) ----------
 const TOKEN_KEY = "bvb_api_token";
 
-function getToken(): string | null {
+export function getToken(): string | null {
   try {
     return localStorage.getItem(TOKEN_KEY);
   } catch {
@@ -4653,6 +4653,11 @@ export const api = {
     ),
   requestPasswordReset: (email_address: string, turnstile_token?: string | null) =>
     postJSON<void>("/passwords", { email_address, turnstile_token: turnstile_token ?? undefined }),
+
+  /** Email password-setup instructions to an unverified user (admin only) */
+  sendInvitation: (userId: number) =>
+    postJSON<void>(`/admin/users/${userId}/send_invitation`, {}),
+
   resetPassword: (
     token: string,
     password: string,

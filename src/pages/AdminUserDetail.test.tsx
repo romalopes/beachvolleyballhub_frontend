@@ -13,7 +13,7 @@ vi.mock("../api", async (importOriginal) => {
     api: {
       ...actual.api,
       adminUser: vi.fn(),
-      requestPasswordReset: vi.fn(),
+      sendInvitation: vi.fn(),
     },
   };
 });
@@ -87,7 +87,7 @@ function renderPage() {
 beforeEach(() => {
   vi.clearAllMocks();
   mockedApi.adminUser.mockResolvedValue(adminUser);
-  mockedApi.requestPasswordReset.mockResolvedValue(undefined);
+  mockedApi.sendInvitation.mockResolvedValue(undefined);
 });
 
 describe("AdminUserDetail", () => {
@@ -147,9 +147,7 @@ describe("AdminUserDetail", () => {
     await user.type(email, " New.Address@Example.com ");
     await user.click(screen.getByRole("button", { name: "Send invitation" }));
 
-    expect(mockedApi.requestPasswordReset).toHaveBeenCalledWith(
-      "new.address@example.com",
-    );
+    expect(mockedApi.sendInvitation).toHaveBeenCalledWith(12);
     expect(
       await screen.findByText(
         "Invitation email sent to new.address@example.com. The user can now set their password.",
@@ -160,7 +158,7 @@ describe("AdminUserDetail", () => {
   it("shows an error when invitation delivery fails", async () => {
     const user = userEvent.setup();
     mockedApi.adminUser.mockResolvedValue(pendingUser());
-    mockedApi.requestPasswordReset.mockRejectedValue(new Error("Delivery unavailable"));
+    mockedApi.sendInvitation.mockRejectedValue(new Error("Delivery unavailable"));
 
     renderPage();
 
@@ -178,7 +176,7 @@ describe("AdminUserDetail", () => {
     const user = userEvent.setup();
     let resolveRequest!: () => void;
     mockedApi.adminUser.mockResolvedValue(pendingUser());
-    mockedApi.requestPasswordReset.mockImplementation(
+    mockedApi.sendInvitation.mockImplementation(
       () => new Promise<void>((resolve) => { resolveRequest = resolve; }),
     );
 
@@ -187,7 +185,7 @@ describe("AdminUserDetail", () => {
     const email = await screen.findByRole("textbox", { name: "Email address" });
     await user.click(screen.getByRole("button", { name: "Send invitation" }));
 
-    expect(screen.getByRole("button", { name: "Sending…" })).toBeDisabled();
+    expect(await screen.findByRole("button", { name: "Sending…" })).toBeDisabled();
     expect(email).toBeDisabled();
 
     resolveRequest();
