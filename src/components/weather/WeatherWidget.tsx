@@ -203,7 +203,11 @@ export default function WeatherWidget({
       )}
       {error && (
         <p className="home-weather-error" role="alert">
-          Weather is temporarily unavailable. {error}
+          {/* The backend's generic 502 message would read as a duplicate
+              here, so only surface non-generic details. */}
+          {error === "Weather forecast is temporarily unavailable"
+            ? "Weather is temporarily unavailable."
+            : `Weather is temporarily unavailable. ${error}`}
         </p>
       )}
 

@@ -150,7 +150,7 @@ describe("AdminUserDetail", () => {
     expect(mockedApi.sendInvitation).toHaveBeenCalledWith(12);
     expect(
       await screen.findByText(
-        "Invitation email sent to new.address@example.com. The user can now set their password.",
+        "Invitation sent to new.address@example.com. They can now set their password to join BVBhub.",
       ),
     ).toBeInTheDocument();
   });

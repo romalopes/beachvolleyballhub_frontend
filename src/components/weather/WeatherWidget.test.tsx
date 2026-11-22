@@ -399,6 +399,21 @@ describe("WeatherWidget", () => {
     );
   });
 
+  it("does not duplicate the generic provider-outage message", () => {
+    render(
+      <WeatherWidget
+        weather={null}
+        loading={false}
+        error="Weather forecast is temporarily unavailable"
+        locationName="Coogee Beach, Sydney"
+      />,
+    );
+
+    expect(screen.getByRole("alert")).toHaveTextContent(
+      "Weather is temporarily unavailable.",
+    );
+  });
+
   it("does not crash when a runtime response is missing weather data", () => {
     render(
       <WeatherWidget

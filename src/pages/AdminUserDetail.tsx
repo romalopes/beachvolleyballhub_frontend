@@ -96,7 +96,7 @@ export default function AdminUserDetail() {
     try {
       await api.sendInvitation(userId);
       setInviteStatus({
-        message: `Invitation email sent to ${normalizedInviteEmail}. The user can now set their password.`,
+        message: `Invitation sent to ${normalizedInviteEmail}. They can now set their password to join BVBhub.`,
         type: "success",
       });
     } catch (err: unknown) {
