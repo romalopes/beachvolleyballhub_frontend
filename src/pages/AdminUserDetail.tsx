@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { Link, useParams } from "react-router-dom";
 import { Mail, ShieldCheck, Users } from "lucide-react";
-import { api, API_BASE_URL, getToken, type Account, type AdminUser } from "../api";
+import { api, type Account, type AdminUser } from "../api";
 import AdminUserRoleControls from "../components/AdminUserRoleControls";
 import { adminUserDisplayName } from "../utils/adminUsers";
 import EmptyState from "../components/EmptyState";

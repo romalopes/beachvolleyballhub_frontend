@@ -50,6 +50,7 @@ const organisation = (overrides: Partial<Organisation> = {}): Organisation => ({
   name: "FIVB",
   slug: "fivb",
   description: null,
+  website: null,
   acronym: null,
   organisation_type: "international_federation",
   status: "active",

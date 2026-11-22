@@ -23,6 +23,7 @@ const organisation = (overrides: Partial<Organisation> = {}): Organisation => ({
   name: "Confederação Brasileira de Vôlei de Areia",
   slug: "cbva",
   description: null,
+  website: null,
   acronym: "CBVA",
   organisation_type: "club",
   status: "active",
