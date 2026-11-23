@@ -278,6 +278,118 @@ export interface DisciplineCustom {
   created_by?: { id: number; name: string } | null;
 }
 
+/** One analysis request row (IDENTITY-265). Detail responses add videos,
+ * messages, deliverables and — for staff only — internal notes and the
+ * submitter's contact details. */
+export interface AnalysisRequestRecord {
+  id: number;
+  reference: string;
+  title: string;
+  description: string | null;
+  package_key: string | null;
+  price_cents: number;
+  price_aud: string;
+  workflow_status: string;
+  payment_status: string;
+  submitted_at: string | null;
+  accepted_at: string | null;
+  completed_at: string | null;
+  assigned_coach: { id: number; display_name: string | null } | null;
+  account_id?: number | null;
+  guest_name?: string | null;
+  guest_email?: string | null;
+  submitter_email?: string | null;
+  guest_access_token?: string | null;
+  videos?: Array<{
+    id: number;
+    source_type: string;
+    position: number;
+    external_url?: string | null;
+    video_id?: number | null;
+    file_url: string | null;
+    video?: { id: number; title: string | null } | null;
+  }>;
+  messages?: Array<{
+    id: number;
+    body: string;
+    from_submitter: boolean;
+    internal: boolean;
+    created_at: string;
+    author?: { id: number; name: string } | null;
+  }>;
+  deliverables?: Array<{
+    id: number;
+    title: string;
+    file_url: string | null;
+    created_at: string;
+  }>;
+  internal_notes?: Array<{
+    id: number;
+    body: string;
+    created_at: string;
+    author: { id: number; name: string };
+  }>;
+  /** Staff-only: invoices issued against this request. */
+  invoices?: AnalysisRequestInvoiceRecord[];
+}
+
+/** One conversation message (IDENTITY-265). */
+export interface AnalysisRequestMessageRecord {
+  id: number;
+  body: string;
+  from_submitter: boolean;
+  internal: boolean;
+  created_at: string;
+  author?: { id: number; name: string } | null;
+}
+
+export interface AnalysisRequestListMeta {
+  current_page: number;
+  per_page: number;
+  total_pages: number;
+  total_count: number;
+}
+
+/** One row of the invoice ledger (`/admin/invoices`). */
+export interface AnalysisRequestInvoiceRecord {
+  id: number;
+  number: string;
+  amount_cents: number;
+  amount_aud: string;
+  currency: string;
+  status: "pending" | "sent" | "paid" | "overdue" | "cancelled" | "refunded";
+  external_reference: string | null;
+  sent_at: string | null;
+  paid_at: string | null;
+  emailed_at: string | null;
+  created_at: string;
+  analysis_request?: {
+    id: number;
+    reference: string;
+    title: string;
+    workflow_status: string;
+    payment_status: string;
+  };
+  submitter?: { name: string | null; email: string | null };
+}
+
+export interface InvoiceLedger {
+  data: AnalysisRequestInvoiceRecord[];
+  meta: AnalysisRequestListMeta;
+  totals: { count: number; amount_cents: number; amount_aud: string };
+}
+
+export interface InvoiceFilters {
+  status?: string;
+  q?: string;
+  /** ISO date (YYYY-MM-DD); filters on the invoice issue date. */
+  from?: string;
+  to?: string;
+  overdueOnly?: boolean;
+  page?: number;
+  per_page?: number;
+}
+
 /** Guest view of an analysis request (IDENTITY-265), fetched with the secure
  * token from the confirmation email. Internal notes are never included. */
 export interface GuestAnalysisRequest {
@@ -5290,5 +5402,156 @@ export const api = {
   guestAnalysisRequest: (token: string) =>
     fetchAPI<{ analysis_request: GuestAnalysisRequest }>(
       `/analysis_requests/guest_access/${encodeURIComponent(token)}`,
+    ),
+
+  // ---------- Analysis requests (IDENTITY-265) ----------
+
+  /** The caller's own requests; staff see every request instead. */
+  analysisRequests: (filters: {
+    status?: string;
+    payment_status?: string;
+    coach_id?: number;
+    page?: number;
+    per?: number;
+  } = {}) => {
+    const query = new URLSearchParams();
+    if (filters.status) query.set("status", filters.status);
+    if (filters.payment_status) query.set("payment_status", filters.payment_status);
+    if (filters.coach_id) query.set("coach_id", String(filters.coach_id));
+    if (filters.page) query.set("page", String(filters.page));
+    if (filters.per) query.set("per", String(filters.per));
+    const suffix = query.toString() ? `?${query.toString()}` : "";
+    return fetchAPI<{ data: AnalysisRequestRecord[]; meta: AnalysisRequestListMeta }>(
+      `/analysis_requests${suffix}`,
+    );
+  },
+
+  /** Staff triage list (admin/curator). `q` matches the reference. */
+  adminAnalysisRequests: (filters: {
+    status?: string;
+    payment_status?: string;
+    coach_id?: number;
+    q?: string;
+    page?: number;
+    per?: number;
+  } = {}) => {
+    const query = new URLSearchParams();
+    if (filters.status) query.set("status", filters.status);
+    if (filters.payment_status) query.set("payment_status", filters.payment_status);
+    if (filters.coach_id) query.set("coach_id", String(filters.coach_id));
+    if (filters.q) query.set("q", filters.q);
+    if (filters.page) query.set("page", String(filters.page));
+    if (filters.per) query.set("per", String(filters.per));
+    const suffix = query.toString() ? `?${query.toString()}` : "";
+    return fetchAPI<{ data: AnalysisRequestRecord[]; meta: AnalysisRequestListMeta }>(
+      `/admin/analysis_requests${suffix}`,
+    );
+  },
+
+  analysisRequest: (id: number) =>
+    fetchAPI<{ analysis_request: AnalysisRequestRecord }>(`/analysis_requests/${id}`),
+
+  acceptAnalysisRequest: (id: number, price_cents?: number) =>
+    postJSON<{ analysis_request: AnalysisRequestRecord }>(
+      `/analysis_requests/${id}/accept`,
+      { price_cents },
+    ),
+
+  rejectAnalysisRequest: (id: number, reason: string) =>
+    postJSON<{ analysis_request: AnalysisRequestRecord }>(
+      `/analysis_requests/${id}/reject`,
+      { reason },
+    ),
+
+  quoteAnalysisRequest: (id: number, price_cents: number) =>
+    postJSON<{ analysis_request: AnalysisRequestRecord }>(
+      `/analysis_requests/${id}/quote`,
+      { price_cents },
+    ),
+
+  assignAnalysisRequestCoach: (id: number, coach_profile_id: number) =>
+    postJSON<{ analysis_request: AnalysisRequestRecord }>(
+      `/analysis_requests/${id}/assign_coach`,
+      { coach_profile_id },
+    ),
+
+  markAnalysisRequestInvoiceSent: (id: number, external_reference?: string) =>
+    postJSON<{ analysis_request: AnalysisRequestRecord }>(
+      `/analysis_requests/${id}/mark_invoice_sent`,
+      { external_reference },
+    ),
+
+  markAnalysisRequestPaid: (id: number) =>
+    postJSON<{ analysis_request: AnalysisRequestRecord }>(
+      `/analysis_requests/${id}/mark_paid`,
+      {},
+    ),
+
+  startAnalysisRequestWork: (id: number) =>
+    postJSON<{ analysis_request: AnalysisRequestRecord }>(
+      `/analysis_requests/${id}/start_work`,
+      {},
+    ),
+
+  completeAnalysisRequest: (id: number) =>
+    postJSON<{ analysis_request: AnalysisRequestRecord }>(
+      `/analysis_requests/${id}/complete`,
+      {},
+    ),
+
+  cancelAnalysisRequest: (id: number) =>
+    postJSON<{ analysis_request: AnalysisRequestRecord }>(
+      `/analysis_requests/${id}/cancel`,
+      {},
+    ),
+
+  addAnalysisRequestInternalNote: (id: number, body: string) =>
+    postJSON<{ internal_note: { id: number; body: string } }>(
+      `/analysis_requests/${id}/internal_notes`,
+      { body },
+    ),
+
+  /** Staff: email the latest invoice (created if missing) as a PDF. */
+  emailAnalysisRequestInvoice: (id: number) =>
+    postJSON<{ queued: boolean; invoice: AnalysisRequestInvoiceRecord }>(
+      `/analysis_requests/${id}/email_invoice`,
+      {},
+    ),
+
+  /** Send a message on a request (owner, assigned coach or staff). */
+  createAnalysisRequestMessage: (id: number, body: string) =>
+    postJSON<{ message: AnalysisRequestMessageRecord }>(
+      `/analysis_requests/${id}/messages`,
+      { body },
+    ),
+
+  /** Guest reply via the secure token (no session). */
+  createGuestAnalysisRequestMessage: (token: string, body: string) =>
+    postJSON<{ message: AnalysisRequestMessageRecord }>(
+      `/analysis_requests/guest_access/${encodeURIComponent(token)}/messages`,
+      { body },
+    ),
+
+  // ---------- Invoice ledger (IDENTITY-265) ----------
+
+  /** Admin/curator invoice list with filters + filtered totals. */
+  adminInvoices: (filters: InvoiceFilters = {}) => {
+    const query = new URLSearchParams();
+    if (filters.status && filters.status !== "all") query.set("status", filters.status);
+    if (filters.q) query.set("q", filters.q);
+    if (filters.from) query.set("from", filters.from);
+    if (filters.to) query.set("to", filters.to);
+    if (filters.overdueOnly) query.set("overdue", "1");
+    if (filters.page) query.set("page", String(filters.page));
+    if (filters.per_page) query.set("per_page", String(filters.per_page));
+    const suffix = query.toString() ? `?${query.toString()}` : "";
+    return fetchAPI<InvoiceLedger>(`/admin/invoices${suffix}`);
+  },
+
+  /** Staff: email one specific invoice (re-sending is allowed). */
+  emailAdminInvoice: (id: number) =>
+    postJSON<{ queued: boolean; invoice: AnalysisRequestInvoiceRecord }>(
+      `/admin/invoices/${id}/email`,
+      {},
     ),
 };

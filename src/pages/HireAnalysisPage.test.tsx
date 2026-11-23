@@ -1,4 +1,5 @@
 import { render, screen } from "@testing-library/react";
+import { MemoryRouter } from "react-router-dom";
 import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { api, type AnalysisPackage } from "../api";
@@ -55,7 +56,11 @@ beforeEach(() => {
 
 describe("HireAnalysisPage", () => {
   it("lists the packages from the API with their prices", async () => {
-    render(<HireAnalysisPage />);
+    render(
+      <MemoryRouter>
+        <HireAnalysisPage />
+      </MemoryRouter>,
+    );
 
     expect(await screen.findByText("Single Match Analysis")).toBeInTheDocument();
     expect(screen.getByText("Complimentary Review")).toBeInTheDocument();
@@ -66,7 +71,11 @@ describe("HireAnalysisPage", () => {
 
   it("moves to the submission form when a package is selected", async () => {
     const user = userEvent.setup();
-    render(<HireAnalysisPage />);
+    render(
+      <MemoryRouter>
+        <HireAnalysisPage />
+      </MemoryRouter>,
+    );
 
     await user.click(
       await screen.findByRole("button", { name: "Select Single Match Analysis" }),
@@ -87,7 +96,11 @@ describe("HireAnalysisPage", () => {
 
   it("returns to package selection when step one is clicked", async () => {
     const user = userEvent.setup();
-    render(<HireAnalysisPage />);
+    render(
+      <MemoryRouter>
+        <HireAnalysisPage />
+      </MemoryRouter>,
+    );
 
     await user.click(
       await screen.findByRole("button", { name: "Select Single Match Analysis" }),
@@ -104,7 +117,11 @@ describe("HireAnalysisPage", () => {
 
   it("validates the form before opening the review step", async () => {
     const user = userEvent.setup();
-    render(<HireAnalysisPage />);
+    render(
+      <MemoryRouter>
+        <HireAnalysisPage />
+      </MemoryRouter>,
+    );
 
     await user.click(
       await screen.findByRole("button", { name: "Select Single Match Analysis" }),
@@ -121,7 +138,11 @@ describe("HireAnalysisPage", () => {
 
   it("keeps the form open when a video URL is added", async () => {
     const user = userEvent.setup();
-    render(<HireAnalysisPage />);
+    render(
+      <MemoryRouter>
+        <HireAnalysisPage />
+      </MemoryRouter>,
+    );
 
     await user.click(
       await screen.findByRole("button", { name: "Select Single Match Analysis" }),
@@ -146,10 +167,16 @@ describe("HireAnalysisPage", () => {
 
   it("submits from the review step and shows the success screen", async () => {
     const user = userEvent.setup();
-    mockedApi.postFormData.mockResolvedValue({});
+    mockedApi.postFormData.mockResolvedValue({
+      analysis_request: { id: 9, reference: "ANL-2026-0009" },
+    });
     vi.spyOn(window, "alert").mockImplementation(() => {});
 
-    render(<HireAnalysisPage />);
+    render(
+      <MemoryRouter>
+        <HireAnalysisPage />
+      </MemoryRouter>,
+    );
 
     await user.click(
       await screen.findByRole("button", { name: "Select Single Match Analysis" }),
@@ -180,6 +207,11 @@ describe("HireAnalysisPage", () => {
       await screen.findByRole("heading", { name: "Request Submitted!" }),
     ).toBeInTheDocument();
     expect(mockedApi.postFormData).toHaveBeenCalledTimes(1);
+    expect(screen.getByText("ANL-2026-0009")).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "View request" })).toHaveAttribute(
+      "href",
+      "/analysis-requests/9",
+    );
 
     const [endpoint, body] = mockedApi.postFormData.mock.calls[0];
     expect(endpoint).toBe("/analysis_requests");
@@ -206,7 +238,11 @@ describe("HireAnalysisPage", () => {
 
   it("opens the review step once the required fields are filled", async () => {
     const user = userEvent.setup();
-    render(<HireAnalysisPage />);
+    render(
+      <MemoryRouter>
+        <HireAnalysisPage />
+      </MemoryRouter>,
+    );
 
     await user.click(
       await screen.findByRole("button", { name: "Select Single Match Analysis" }),

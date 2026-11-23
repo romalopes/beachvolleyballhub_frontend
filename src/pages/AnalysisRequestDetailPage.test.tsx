@@ -1,0 +1,207 @@
+import { render, screen } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
+import { beforeEach, describe, expect, it, vi } from "vitest";
+import { MemoryRouter, Route, Routes } from "react-router-dom";
+import { api, type AnalysisRequestRecord } from "../api";
+import AnalysisRequestDetailPage from "./AnalysisRequestDetailPage";
+
+const mockUseAuth = vi.fn();
+
+vi.mock("../auth/AuthContext", () => ({
+  useAuth: () => mockUseAuth(),
+}));
+
+vi.mock("../api", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("../api")>();
+  return {
+    ...actual,
+    api: {
+      ...actual.api,
+      analysisRequest: vi.fn(),
+      coaches: vi.fn(),
+      markAnalysisRequestPaid: vi.fn(),
+      emailAnalysisRequestInvoice: vi.fn(),
+      createAnalysisRequestMessage: vi.fn(),
+      addAnalysisRequestInternalNote: vi.fn(),
+    },
+  };
+});
+
+const mockedApi = vi.mocked(api, true);
+
+const detail: AnalysisRequestRecord = {
+  id: 3,
+  reference: "ANL-2026-0003",
+  title: "Serve consistency review",
+  description: "Toss and contact point",
+  package_key: "single_match",
+  price_cents: 4900,
+  price_aud: "$49.00 AUD",
+  workflow_status: "accepted",
+  payment_status: "invoice_sent",
+  submitted_at: "2026-11-20T10:00:00Z",
+  accepted_at: "2026-11-20T12:00:00Z",
+  completed_at: null,
+  assigned_coach: { id: 3, display_name: "Coach Ana" },
+  videos: [
+    {
+      id: 1,
+      source_type: "external",
+      position: 0,
+      external_url: "https://youtu.be/example",
+      file_url: null,
+    },
+  ],
+  messages: [
+    {
+      id: 5,
+      body: "Thanks, reviewing this week.",
+      from_submitter: false,
+      internal: false,
+      created_at: "2026-11-21T09:00:00Z",
+    },
+  ],
+  deliverables: [],
+  internal_notes: [],
+};
+
+function renderPage() {
+  return render(
+    <MemoryRouter initialEntries={["/analysis-requests/3"]}>
+      <Routes>
+        <Route path="/analysis-requests/:id" element={<AnalysisRequestDetailPage />} />
+      </Routes>
+    </MemoryRouter>,
+  );
+}
+
+beforeEach(() => {
+  vi.clearAllMocks();
+  mockUseAuth.mockReturnValue({
+    user: { id: 1, roles: ["player"] },
+    loading: false,
+  });
+  mockedApi.analysisRequest.mockResolvedValue({ analysis_request: detail });
+  mockedApi.coaches.mockResolvedValue({ data: [], meta: {} } as never);
+});
+
+describe("AnalysisRequestDetailPage", () => {
+  it("renders the reference, statuses, videos and conversation", async () => {
+    renderPage();
+
+    expect(
+      await screen.findByRole("heading", {
+        name: "ANL-2026-0003 — Serve consistency review",
+      }),
+    ).toBeInTheDocument();
+    expect(screen.getByText("Accepted")).toBeInTheDocument();
+    expect(screen.getByText("Invoice sent")).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: /https:\/\/youtu.be\/example/ })).toBeInTheDocument();
+    expect(screen.getByText(/Thanks, reviewing this week./)).toBeInTheDocument();
+  });
+
+  it("hides staff actions from submitters", async () => {
+    renderPage();
+    await screen.findByText("Accepted");
+
+    expect(screen.queryByRole("heading", { name: "Staff actions" })).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole("heading", { name: "Internal notes (staff only)" }),
+    ).not.toBeInTheDocument();
+  });
+
+  it("lets staff mark a request paid", async () => {
+    mockUseAuth.mockReturnValue({
+      user: { id: 2, roles: ["admin"] },
+      loading: false,
+    });
+    mockedApi.markAnalysisRequestPaid.mockResolvedValue({
+      analysis_request: { ...detail, payment_status: "paid", workflow_status: "in_progress" },
+    });
+    const user = userEvent.setup();
+    renderPage();
+
+    await user.click(await screen.findByRole("button", { name: "Mark paid" }));
+
+    expect(mockedApi.markAnalysisRequestPaid).toHaveBeenCalledWith(3);
+    expect(await screen.findByText("In progress")).toBeInTheDocument();
+    expect(screen.getByText("Paid")).toBeInTheDocument();
+  });
+
+  it("lets the submitter send a message to the team", async () => {
+    mockedApi.createAnalysisRequestMessage.mockResolvedValue({
+      message: {
+        id: 11,
+        body: "Any update?",
+        from_submitter: true,
+        internal: false,
+        created_at: "2026-11-23T12:00:00Z",
+      },
+    });
+    const user = userEvent.setup();
+    renderPage();
+
+    await user.type(await screen.findByLabelText("Reply"), "Any update?");
+    await user.click(screen.getByRole("button", { name: "Send message" }));
+
+    expect(mockedApi.createAnalysisRequestMessage).toHaveBeenCalledWith(3, "Any update?");
+    expect(
+      await screen.findByText(/Message sent — the other side has been notified and emailed/),
+    ).toBeInTheDocument();
+  });
+
+  it("emails the invoice as a PDF from the staff panel", async () => {
+    mockUseAuth.mockReturnValue({
+      user: { id: 2, roles: ["admin"] },
+      loading: false,
+    });
+    mockedApi.emailAnalysisRequestInvoice.mockResolvedValue({
+      queued: true,
+      invoice: {
+        id: 8,
+        number: "INV-0008",
+        amount_cents: 4900,
+        amount_aud: "$49.00 AUD",
+        currency: "AUD",
+        status: "pending",
+        external_reference: null,
+        sent_at: null,
+        paid_at: null,
+        emailed_at: null,
+        created_at: "2026-11-23T09:00:00Z",
+      },
+    });
+    const user = userEvent.setup();
+    renderPage();
+
+    await user.click(await screen.findByRole("button", { name: "Email invoice (PDF)" }));
+
+    expect(mockedApi.emailAnalysisRequestInvoice).toHaveBeenCalledWith(3);
+    expect(await screen.findByText(/INV-0008 queued for email/)).toBeInTheDocument();
+  });
+
+  it("shows internal notes to staff", async () => {
+    mockUseAuth.mockReturnValue({
+      user: { id: 2, roles: ["curator"] },
+      loading: false,
+    });
+    mockedApi.analysisRequest.mockResolvedValue({
+      analysis_request: {
+        ...detail,
+        internal_notes: [
+          {
+            id: 1,
+            body: "VIP submitter",
+            created_at: "2026-11-21T10:00:00Z",
+            author: { id: 9, name: "Curator Kim" },
+          },
+        ],
+      },
+    });
+    renderPage();
+
+    expect(await screen.findByText("Internal notes (staff only)")).toBeInTheDocument();
+    expect(screen.getByText("VIP submitter")).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "Staff actions" })).toBeInTheDocument();
+  });
+});

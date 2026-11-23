@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { Link } from "react-router-dom";
 import { Video, ArrowRight, Loader2, CheckCircle, Check, Sparkles } from "lucide-react";
 import { api } from "../api";
 import PageHeader from "../components/PageHeader";
@@ -42,6 +43,11 @@ export default function HireAnalysisPage() {
 
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [videoUrl, setVideoUrl] = useState("");
+  const [submitted, setSubmitted] = useState<{
+    id: number;
+    reference: string;
+    guest_access_token?: string | null;
+  } | null>(null);
 
   // Mirrors Subscribe.tsx: state is only touched from async callbacks, never
   // synchronously in the effect body.
@@ -169,9 +175,11 @@ export default function HireAnalysisPage() {
         }
       }
 
-      await api.postFormData("/analysis_requests", formDataToSend);
+      const response = await api.postFormData<{
+        analysis_request: { id: number; reference: string; guest_access_token?: string | null };
+      }>("/analysis_requests", formDataToSend);
+      setSubmitted(response.analysis_request);
       setStep("success");
-      alert("Analysis request submitted successfully!");
     } catch (error: unknown) {
       // Both ApiValidationError (`errors: string[]`) and generic Error shapes
       // arrive here, so narrow rather than trust the throw type.
@@ -545,14 +553,40 @@ export default function HireAnalysisPage() {
         <div className="success-content">
           <CheckCircle size={64} className="success-icon" />
           <h2>Your analysis request has been submitted</h2>
-          <p>You'll receive a confirmation email with your secure access link shortly.</p>
-          <p className="reference">Reference: <strong>{formData.title}</strong></p>
+          {submitted?.guest_access_token ? (
+            <p>We emailed you a secure link. You can open it now on this device too.</p>
+          ) : (
+            <p>You can follow progress from your analysis requests page.</p>
+          )}
+          <p className="reference">
+            Reference: <strong>{submitted?.reference ?? formData.title}</strong>
+          </p>
+          <div className="contact-detail-actions">
+            {submitted?.guest_access_token ? (
+              <Link
+                className="auth-submit"
+                to={`/analysis/guest/${submitted.guest_access_token}`}
+              >
+                View request
+              </Link>
+            ) : (
+              submitted && (
+                <Link className="auth-submit" to={`/analysis-requests/${submitted.id}`}>
+                  View request
+                </Link>
+              )
+            )}
+            <Link className="secondary-button" to="/my/analysis-requests">
+              My analysis requests
+            </Link>
+          </div>
           <button
             type="button"
-            className="auth-submit"
+            className="secondary-button"
             onClick={() => {
               setStep("packages");
               setSelectedPackage(null);
+              setSubmitted(null);
               setFormData({ title: "", description: "", guest_name: "", guest_email: "", videos: [] });
             }}
           >

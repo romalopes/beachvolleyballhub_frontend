@@ -19,6 +19,9 @@ export default function GuestAnalysisRequestPage() {
   const [status, setStatus] = useState<"loading" | "ready" | "invalid">(
     token ? "loading" : "invalid",
   );
+  const [messageBody, setMessageBody] = useState("");
+  const [sendingMessage, setSendingMessage] = useState(false);
+  const [messageError, setMessageError] = useState<string | null>(null);
 
   useEffect(() => {
     if (!token) return;
@@ -39,6 +42,24 @@ export default function GuestAnalysisRequestPage() {
       active = false;
     };
   }, [token]);
+
+  /** Guest replies through the token; the API notifies and emails the team. */
+  const sendMessage = async () => {
+    const body = messageBody.trim();
+    if (!token || !request || !body) return;
+
+    setSendingMessage(true);
+    setMessageError(null);
+    try {
+      const { message } = await api.createGuestAnalysisRequestMessage(token, body);
+      setRequest({ ...request, messages: [...request.messages, message] });
+      setMessageBody("");
+    } catch (e: unknown) {
+      setMessageError(e instanceof Error ? e.message : "The message could not be sent.");
+    } finally {
+      setSendingMessage(false);
+    }
+  };
 
   if (status === "loading") {
     return (
@@ -168,6 +189,31 @@ export default function GuestAnalysisRequestPage() {
             ))}
           </ul>
         )}
+
+        {messageError && (
+          <p className="error-banner" role="alert">
+            {messageError}
+          </p>
+        )}
+
+        <div className="form-group">
+          <label htmlFor="guest-message-body">Send a message</label>
+          <textarea
+            id="guest-message-body"
+            rows={3}
+            value={messageBody}
+            onChange={(event) => setMessageBody(event.target.value)}
+            placeholder="Ask the team a question about your analysis…"
+          />
+          <button
+            type="button"
+            className="auth-submit"
+            disabled={sendingMessage || !messageBody.trim()}
+            onClick={() => void sendMessage()}
+          >
+            {sendingMessage ? "Sending…" : "Send message"}
+          </button>
+        </div>
       </section>
 
       <p className="pricing-footnote">

@@ -1,9 +1,15 @@
 import { Link } from "react-router-dom";
-import { Activity, Database, ShieldCheck, Tags, Target, Dumbbell, FileText, Shield, PlayCircle, Settings, MapPin, Mail } from "lucide-react";
+import { Activity, Database, Receipt, ShieldCheck, Tags, Target, Dumbbell, FileText, Shield, PlayCircle, Settings, MapPin, Mail } from "lucide-react";
 import { useAuth } from "../../auth/AuthContext";
 import SettingsLayout from "../../components/settings/SettingsLayout";
 
 const RESOURCES = [
+  {
+    to: "/settings/invoices",
+    label: "Invoices",
+    desc: "Filter analysis-request invoices and email the PDF copy.",
+    icon: Receipt,
+  },
   {
     to: "/settings/contact-messages",
     label: "Contact Messages",

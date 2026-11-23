@@ -408,6 +408,53 @@
 }
 
 
+/* ---------- Submitter list / staff inbox (IDENTITY-265) ---------- */
+
+.analysis-request-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.analysis-request-row-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-bottom: 0.5rem;
+}
+
+.analysis-request-row-header h3 {
+  margin: 0 0 0.25rem;
+  font-size: 1rem;
+  color: var(--charcoal);
+}
+
+.analysis-request-badges {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+/* Stacked sections on the detail page need breathing room; `.review-content`
+ * itself has no vertical margin because the wizard controls its own gaps. */
+.page > .review-content + .review-content,
+.page > .review-content + .analysis-request-list {
+  margin-top: 1.25rem;
+}
+
+/* The detail page renders `.selected-videos` directly as a <ul>. */
+ul.selected-videos {
+  list-style: none;
+  margin: 1rem 0 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
 /* ---------- Review and success ---------- */
 
 .review-content {

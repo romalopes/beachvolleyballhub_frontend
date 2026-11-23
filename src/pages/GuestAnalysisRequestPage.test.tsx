@@ -1,4 +1,5 @@
 import { render, screen } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
 import { MemoryRouter, Route, Routes } from "react-router-dom";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { api, type GuestAnalysisRequest } from "../api";
@@ -11,6 +12,7 @@ vi.mock("../api", async (importOriginal) => {
     api: {
       ...actual.api,
       guestAnalysisRequest: vi.fn(),
+      createGuestAnalysisRequestMessage: vi.fn(),
     },
   };
 });
@@ -84,6 +86,35 @@ describe("GuestAnalysisRequestPage", () => {
     ).toBeInTheDocument();
 
     expect(mockedApi.guestAnalysisRequest).toHaveBeenCalledWith("tok-123");
+  });
+
+  it("lets the guest reply and shows the new message immediately", async () => {
+    mockedApi.guestAnalysisRequest.mockResolvedValue({ analysis_request: request });
+    mockedApi.createGuestAnalysisRequestMessage.mockResolvedValue({
+      message: {
+        id: 12,
+        body: "One more question about the toss.",
+        from_submitter: true,
+        internal: false,
+        created_at: "2026-11-23T03:00:00Z",
+      },
+    });
+    const user = userEvent.setup();
+    renderPage();
+
+    await user.type(
+      await screen.findByLabelText("Send a message"),
+      "One more question about the toss.",
+    );
+    await user.click(screen.getByRole("button", { name: "Send message" }));
+
+    expect(mockedApi.createGuestAnalysisRequestMessage).toHaveBeenCalledWith(
+      "tok-123",
+      "One more question about the toss.",
+    );
+    expect(
+      await screen.findByText(/One more question about the toss/),
+    ).toBeInTheDocument();
   });
 
   it("explains the link is invalid when the token is unknown", async () => {

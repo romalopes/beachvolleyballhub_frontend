@@ -63,6 +63,8 @@ type SidebarGroup = {
   items: SidebarLink[];
   staffOnly?: boolean;
   adminOnly?: boolean;
+  /** Curator + admin pages (e.g. analysis-request triage). */
+  platformStaffOnly?: boolean;
 };
 
 /**
@@ -140,6 +142,19 @@ const navGroups: SidebarGroup[] = [
       },
     ],
   },
+  {
+    id: "analysis_requests",
+    label: "Analysis Requests",
+    icon: FileText,
+    platformStaffOnly: true,
+    items: [
+      {
+        path: "/admin/analysis-requests",
+        label: "Manage Requests",
+        icon: ClipboardList,
+      },
+    ],
+  },
 ];
 
 const userGroup: SidebarGroup = {
@@ -165,6 +180,11 @@ const userGroup: SidebarGroup = {
       adminOnly: true,
     },
     { path: "/analyses", label: "Analysis", icon: FileText },
+    {
+      path: "/my/analysis-requests",
+      label: "My Analysis Requests",
+      icon: ClipboardList,
+    },
   ],
 };
 const tournamentsLink: SidebarLink = {
@@ -302,6 +322,7 @@ export default function Sidebar({
   const visibleGroups = navGroups.filter((group) => {
     if (group.adminOnly) return isAdmin;
     if (group.staffOnly) return isStaff;
+    if (group.platformStaffOnly) return isPlatformStaff;
     return true;
   });
 

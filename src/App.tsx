@@ -83,6 +83,7 @@ import OrganisationBilling from "./pages/OrganisationBilling";
 import VideoCategoriesSettings from "./pages/settings/VideoCategories";
 import VideoTagsSettings from "./pages/settings/VideoTags";
 import ContactMessagesSettings from "./pages/settings/ContactMessages";
+import InvoicesSettings from "./pages/settings/Invoices";
 import ContactMessageDetailPage from "./pages/settings/ContactMessageDetail";
 import ContactPage from "./pages/Contact";
 import VideosDetail from "./pages/VideosDetail";
@@ -91,6 +92,9 @@ import AnalysisDetailPage from "./pages/AnalysisDetailPage";
 import AnalysisFormPage from "./pages/AnalysisFormPage";
 import HireAnalysisPage from "./pages/HireAnalysisPage";
 import GuestAnalysisRequestPage from "./pages/GuestAnalysisRequestPage";
+import MyAnalysisRequestsPage from "./pages/MyAnalysisRequestsPage";
+import AnalysisRequestDetailPage from "./pages/AnalysisRequestDetailPage";
+import AdminAnalysisRequestsPage from "./pages/AdminAnalysisRequestsPage";
 
 import AccountPage from "./pages/Account";
 import AccountDetail from "./pages/AccountDetail";
@@ -778,6 +782,16 @@ export default function App() {
                     </PlatformStaffRoute>
                   }
                 />
+                {/* Invoice ledger (IDENTITY-265): the API allows admin/curator,
+                    so the guard matches rather than the admin-only dashboard. */}
+                <Route
+                  path="/settings/invoices"
+                  element={
+                    <PlatformStaffRoute>
+                      <InvoicesSettings />
+                    </PlatformStaffRoute>
+                  }
+                />
                 <Route
                   path="/settings/video-categories"
                   element={
@@ -832,6 +846,51 @@ export default function App() {
                 <Route path="/analyses/:id" element={<AnalysisDetailPage />} />
                 <Route path="/analyses/:id/edit" element={<AnalysisFormPage />} />
                 <Route path="/hire-analysis" element={<HireAnalysisPage />} />
+                {/* Analysis requests (IDENTITY-265): submitter list/detail and
+                    the staff triage inbox linked from notifications. */}
+                <Route
+                  path="/my/analysis-requests"
+                  element={
+                    <AuthenticatedRoute>
+                      <MyAnalysisRequestsPage />
+                    </AuthenticatedRoute>
+                  }
+                />
+                <Route
+                  path="/analysis-requests/:id"
+                  element={
+                    <AuthenticatedRoute>
+                      <AnalysisRequestDetailPage />
+                    </AuthenticatedRoute>
+                  }
+                />
+                <Route
+                  path="/admin/analysis-requests"
+                  element={
+                    <PlatformStaffRoute>
+                      <AdminAnalysisRequestsPage />
+                    </PlatformStaffRoute>
+                  }
+                />
+                {/* Notification target aliases (workflow_events.rb): staff and
+                    coach bells deep-link with their own prefixes. Both render
+                    the shared detail page, which authorises on the server. */}
+                <Route
+                  path="/admin/analysis-requests/:id"
+                  element={
+                    <PlatformStaffRoute>
+                      <AnalysisRequestDetailPage />
+                    </PlatformStaffRoute>
+                  }
+                />
+                <Route
+                  path="/coach/analysis-requests/:id"
+                  element={
+                    <AuthenticatedRoute>
+                      <AnalysisRequestDetailPage />
+                    </AuthenticatedRoute>
+                  }
+                />
                 {/* Secure guest view linked from the confirmation email
                     (IDENTITY-265). Static segment wins over /analysis/:id. */}
                 <Route path="/analysis/guest/:token" element={<GuestAnalysisRequestPage />} />
