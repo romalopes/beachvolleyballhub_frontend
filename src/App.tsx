@@ -90,6 +90,7 @@ import AnalysisListPage from "./pages/AnalysisListPage";
 import AnalysisDetailPage from "./pages/AnalysisDetailPage";
 import AnalysisFormPage from "./pages/AnalysisFormPage";
 import HireAnalysisPage from "./pages/HireAnalysisPage";
+import GuestAnalysisRequestPage from "./pages/GuestAnalysisRequestPage";
 
 import AccountPage from "./pages/Account";
 import AccountDetail from "./pages/AccountDetail";
@@ -101,6 +102,7 @@ import ResetPassword from "./pages/ResetPassword";
 import VerifyEmail from "./pages/VerifyEmail";
 import TestAccessPage from "./pages/TestAccess";
 import "./App.css";
+import "./hire-analysis.css";
 
 /**
  * Private test-access gate: while the app is not authenticated for testing,
@@ -830,6 +832,9 @@ export default function App() {
                 <Route path="/analyses/:id" element={<AnalysisDetailPage />} />
                 <Route path="/analyses/:id/edit" element={<AnalysisFormPage />} />
                 <Route path="/hire-analysis" element={<HireAnalysisPage />} />
+                {/* Secure guest view linked from the confirmation email
+                    (IDENTITY-265). Static segment wins over /analysis/:id. */}
+                <Route path="/analysis/guest/:token" element={<GuestAnalysisRequestPage />} />
                 <Route path="/offline" element={<OfflinePage />} />
                 <Route path="*" element={<Navigate to="/" replace />} />
               </Route>

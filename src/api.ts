@@ -278,6 +278,54 @@ export interface DisciplineCustom {
   created_by?: { id: number; name: string } | null;
 }
 
+/** Guest view of an analysis request (IDENTITY-265), fetched with the secure
+ * token from the confirmation email. Internal notes are never included. */
+export interface GuestAnalysisRequest {
+  id: number;
+  reference: string;
+  title: string;
+  description: string | null;
+  package_key: string | null;
+  price_cents: number;
+  price_aud: string;
+  workflow_status: string;
+  payment_status: string;
+  submitted_at: string | null;
+  accepted_at: string | null;
+  completed_at: string | null;
+  guest_name?: string | null;
+  guest_email?: string | null;
+  videos: Array<{
+    id: number;
+    source_type: string;
+    external_url?: string | null;
+    file_url?: string | null;
+    video?: { id: number; title: string | null } | null;
+  }>;
+  deliverables: Array<{ id: number; title: string; file_url: string | null }>;
+  messages: Array<{
+    id: number;
+    body: string;
+    from_submitter: boolean;
+    internal: boolean;
+    created_at: string;
+  }>;
+}
+
+export interface AnalysisPackage {
+  key: string;
+  name: string;
+  description: string;
+  price_cents: number;
+  price_aud: string;
+  max_videos: number;
+  max_duration_minutes: number;
+  includes_annotated_video: boolean;
+  includes_written_report: boolean;
+  includes_consultation: boolean;
+  turnaround_days: number;
+}
+
 export type AssessmentDefinitionStatus = "draft" | "active" | "archived";
 export type AssessmentCategorySource = "discipline" | "custom_discipline";
 
@@ -5213,5 +5261,34 @@ export const api = {
       `/admin/contact_messages/${id}`,
       { contact_message: { status } },
       "PATCH",
+    ),
+
+  /** Multipart form upload (for file uploads). */
+  postFormData: async <T>(endpoint: string, form: FormData): Promise<T> => {
+    const response = await fetch(`${API_BASE_URL}${endpoint}`, {
+      method: "POST",
+      headers: authHeaders(),
+      body: form,
+    });
+    if (!response.ok) {
+      const data = await response.json().catch(() => null);
+      throw throwApiError(response.status, data, `API Error: ${response.status}`);
+    }
+    if (response.status === 204) return undefined as T;
+    return response.json();
+  },
+
+  // ---------- Analysis Packages (IDENTITY-265) ----------
+  /** Public pricing page. No authentication required. */
+  getAnalysisPackages: () =>
+    fetchAPI<{ data: AnalysisPackage[] }>("/analysis_packages"),
+
+  /**
+   * Secure guest view of one request. The token, not the reference, is the
+   * credential; an unknown token is a 404.
+   */
+  guestAnalysisRequest: (token: string) =>
+    fetchAPI<{ analysis_request: GuestAnalysisRequest }>(
+      `/analysis_requests/guest_access/${encodeURIComponent(token)}`,
     ),
 };

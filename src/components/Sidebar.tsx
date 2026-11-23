@@ -81,6 +81,7 @@ const navGroups: SidebarGroup[] = [
       { path: "/drills", label: "Drills", icon: Dumbbell },
       { path: "/videos", label: "Videos", icon: PlayCircle },
       { path: "/analyses", label: "Analysis", icon: FileText },
+      { path: "/hire-analysis", label: "Hire Analysis", icon: Sparkles },
     ],
   },
   {
