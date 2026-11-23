@@ -3,6 +3,7 @@ import { Link, useParams } from "react-router-dom";
 import { Loader2, FileWarning, ExternalLink, Download } from "lucide-react";
 import { api, type GuestAnalysisRequest } from "../api";
 import PageHeader from "../components/PageHeader";
+import AnalysisProgress from "../components/analysisRequest/AnalysisProgress";
 
 /**
  * Secure guest view of an analysis request (IDENTITY-265).
@@ -131,8 +132,12 @@ export default function GuestAnalysisRequestPage() {
             <p style={{ whiteSpace: "pre-wrap" }}>{request.description}</p>
           </>
         )}
+      </section>
 
-        <h3>Videos</h3>
+      <AnalysisProgress analysis={request.analysis} />
+
+      <section className="review-content" aria-label="Request details">
+        <h3 id="request-videos">Videos</h3>
         {request.videos.length === 0 ? (
           <p className="hint">No videos on file.</p>
         ) : (

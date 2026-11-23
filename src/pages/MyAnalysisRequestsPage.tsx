@@ -44,7 +44,7 @@ export default function MyAnalysisRequestsPage() {
   }, [load]);
 
   return (
-    <div className="page">
+    <div className="page analysis-requests-page">
       <PageHeader
         title="My analysis requests"
         description="Follow every video analysis you have hired, from review through delivery."
@@ -54,25 +54,31 @@ export default function MyAnalysisRequestsPage() {
         </Link>
       </PageHeader>
 
-      <div className="contact-inbox-filters">
-        <label className="visually-hidden" htmlFor="my-requests-status">
-          Filter by status
-        </label>
-        <select
-          id="my-requests-status"
-          value={status}
-          onChange={(event) => {
-            setStatus(event.target.value);
-            setPage(1);
-          }}
-        >
-          <option value="">All statuses</option>
-          {WORKFLOW_OPTIONS.map((option) => (
-            <option key={option.value} value={option.value}>
-              {option.label}
-            </option>
-          ))}
-        </select>
+      <div className="analysis-requests-toolbar">
+        <div className="analysis-requests-filter">
+          <label htmlFor="my-requests-status">Status</label>
+          <select
+            id="my-requests-status"
+            value={status}
+            onChange={(event) => {
+              setStatus(event.target.value);
+              setPage(1);
+            }}
+          >
+            <option value="">All statuses</option>
+            {WORKFLOW_OPTIONS.map((option) => (
+              <option key={option.value} value={option.value}>
+                {option.label}
+              </option>
+            ))}
+          </select>
+        </div>
+
+        {meta && (
+          <span className="analysis-requests-count" aria-live="polite">
+            {meta.total_count} request{meta.total_count === 1 ? "" : "s"}
+          </span>
+        )}
       </div>
 
       {error && <div className="error-banner" role="alert">{error}</div>}

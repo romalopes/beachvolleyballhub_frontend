@@ -89,7 +89,7 @@ export default function AnalysisDetailPage() {
 
       <header className="analysis-hero">
         <div className="analysis-hero-copy">
-          <div className="analysis-hero-kicker"><StatusBadge status={analysis.status} /><span>Analysis #{analysis.id}</span></div>
+          <div className="analysis-hero-kicker"><StatusBadge status={analysis.status} /><span>Analysis #{analysis.id}</span>{analysis.analysis_request && (<Link to={`/analysis-requests/${analysis.analysis_request.id}`} className="analysis-video-request-link">Request {analysis.analysis_request.reference}</Link>)}</div>
           <h1>{analysis.title}</h1>
           <p>{analysis.summary || "No summary has been added to this analysis yet."}</p>
         </div>
@@ -134,6 +134,7 @@ export default function AnalysisDetailPage() {
             videos={analysis.videos}
             participants={analysis.participants}
             canManage={analysis.can_manage}
+            request={analysis.analysis_request ?? null}
             onChanged={refresh}
           />
 

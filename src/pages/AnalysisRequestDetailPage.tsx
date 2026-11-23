@@ -4,6 +4,7 @@ import { Download, ExternalLink, Loader2 } from "lucide-react";
 import { api, type AnalysisRequestRecord, type Coach } from "../api";
 import { useAuth } from "../auth/AuthContext";
 import PageHeader from "../components/PageHeader";
+import AnalysisProgress from "../components/analysisRequest/AnalysisProgress";
 import {
   formatDate,
   paymentLabel,
@@ -24,13 +25,25 @@ export default function AnalysisRequestDetailPage() {
   const isStaff = Boolean(
     user?.roles?.some((role) => role === "admin" || role === "curator"),
   );
+  // Coaches can be assigned to the request; the API still checks that this coach
+  // is the assigned one before creating the analysis.
+  const isManager = Boolean(
+    user?.roles?.some(
+      (role) => role === "coach" || role === "curator" || role === "admin",
+    ),
+  );
 
   const [request, setRequest] = useState<AnalysisRequestRecord | null>(null);
   const [status, setStatus] = useState<"loading" | "ready" | "missing">("loading");
   const [coaches, setCoaches] = useState<Coach[]>([]);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [notice, setNotice] = useState<string | null>(null);
+  // Feedback is scoped to the area that produced it, so it renders next to the
+  // control the staff member just used instead of at the top of the page.
+  const [notice, setNotice] = useState<{
+    text: string;
+    area: "staff" | "message" | "analysis";
+  } | null>(null);
 
   const [priceInput, setPriceInput] = useState("");
   const [rejectReason, setRejectReason] = useState("");
@@ -39,6 +52,7 @@ export default function AnalysisRequestDetailPage() {
   const [noteBody, setNoteBody] = useState("");
   const [messageBody, setMessageBody] = useState("");
   const [sendingMessage, setSendingMessage] = useState(false);
+  const [startingAnalysis, setStartingAnalysis] = useState(false);
 
   const load = useCallback(async () => {
     if (!id) {
@@ -75,13 +89,17 @@ export default function AnalysisRequestDetailPage() {
     };
   }, [isStaff]);
 
-  const run = async (action: () => Promise<{ analysis_request: AnalysisRequestRecord }>) => {
+  const run = async (
+    action: () => Promise<{ analysis_request: AnalysisRequestRecord }>,
+    successMessage: string,
+  ) => {
     setBusy(true);
     setError(null);
     setNotice(null);
     try {
       const { analysis_request } = await action();
       setRequest(analysis_request);
+      setNotice({ text: successMessage, area: "staff" });
     } catch (e: unknown) {
       setError(e instanceof Error ? e.message : "That action could not be completed.");
     } finally {
@@ -96,9 +114,10 @@ export default function AnalysisRequestDetailPage() {
     setNotice(null);
     try {
       const { invoice } = await api.emailAnalysisRequestInvoice(requestId);
-      setNotice(
-        `${invoice.number} queued for email — the submitter receives it with the PDF attached.`,
-      );
+      setNotice({
+        text: `${invoice.number} queued for email — the submitter receives it with the PDF attached.`,
+        area: "staff",
+      });
       await load();
     } catch (e: unknown) {
       setError(e instanceof Error ? e.message : "The invoice could not be emailed.");
@@ -118,7 +137,10 @@ export default function AnalysisRequestDetailPage() {
     try {
       await api.createAnalysisRequestMessage(requestId, body);
       setMessageBody("");
-      setNotice("Message sent — the other side has been notified and emailed.");
+      setNotice({
+        text: "Message sent — the other side has been notified and emailed.",
+        area: "message",
+      });
       await load();
     } catch (e: unknown) {
       setError(e instanceof Error ? e.message : "The message could not be sent.");
@@ -126,6 +148,32 @@ export default function AnalysisRequestDetailPage() {
       setSendingMessage(false);
     }
   };
+
+  /** Creates the linked Analysis and opens the request for production. */
+  const startAnalysis = async (requestId: number) => {
+    setStartingAnalysis(true);
+    setError(null);
+    setNotice(null);
+    try {
+      const { analysis_request } = await api.startAnalysisRequest(requestId);
+      setRequest(analysis_request);
+      setNotice({
+        text: "Analysis created — the team can now work on it.",
+        area: "analysis",
+      });
+    } catch (e: unknown) {
+      setError(e instanceof Error ? e.message : "The analysis could not be started.");
+    } finally {
+      setStartingAnalysis(false);
+    }
+  };
+
+  const noticeFor = (area: "staff" | "message" | "analysis") =>
+    notice?.area === area ? (
+      <p className="action-notice" role="status">
+        {notice.text}
+      </p>
+    ) : null;
 
   if (status === "loading") {
     return (
@@ -176,7 +224,6 @@ export default function AnalysisRequestDetailPage() {
       </PageHeader>
 
       {error && <div className="error-banner" role="alert">{error}</div>}
-      {notice && <p className="invoice-notice" role="status">{notice}</p>}
 
       <section className="review-content" aria-labelledby="request-summary">
         <h3 id="request-summary">Summary</h3>
@@ -212,6 +259,25 @@ export default function AnalysisRequestDetailPage() {
           </>
         )}
       </section>
+
+      <AnalysisProgress
+        analysis={request.analysis}
+        canStart={
+          isManager &&
+          !request.analysis &&
+          ["accepted", "awaiting_payment", "in_progress"].includes(
+            request.workflow_status,
+          )
+        }
+        starting={startingAnalysis}
+        onStart={() => void startAnalysis(request.id)}
+        editorHref={
+          isManager && request.analysis
+            ? `/analyses/${request.analysis.id}/edit`
+            : undefined
+        }
+      />
+      {noticeFor("analysis")}
 
       <section className="review-content" aria-labelledby="request-videos">
         <h3 id="request-videos">Videos</h3>
@@ -296,6 +362,7 @@ export default function AnalysisRequestDetailPage() {
             {sendingMessage ? "Sending…" : "Send message"}
           </button>
         </div>
+        {noticeFor("message")}
       </section>
 
       {isStaff && (
@@ -338,7 +405,10 @@ export default function AnalysisRequestDetailPage() {
               className="auth-submit"
               disabled={busy}
               onClick={() =>
-                run(() => api.acceptAnalysisRequest(request.id, acceptPriceCents))
+                run(
+                  () => api.acceptAnalysisRequest(request.id, acceptPriceCents),
+                  "Request accepted — the submitter has been notified.",
+                )
               }
             >
               Accept
@@ -348,7 +418,10 @@ export default function AnalysisRequestDetailPage() {
               className="secondary-button"
               disabled={busy || !coachId}
               onClick={() =>
-                run(() => api.assignAnalysisRequestCoach(request.id, Number(coachId)))
+                run(
+                  () => api.assignAnalysisRequestCoach(request.id, Number(coachId)),
+                  "Coach assigned to this request.",
+                )
               }
             >
               Assign coach
@@ -358,7 +431,10 @@ export default function AnalysisRequestDetailPage() {
               className="secondary-button"
               disabled={busy || !priceInput}
               onClick={() =>
-                run(() => api.quoteAnalysisRequest(request.id, Number(priceInput)))
+                run(
+                  () => api.quoteAnalysisRequest(request.id, Number(priceInput)),
+                  "Quote sent to the submitter.",
+                )
               }
             >
               Send quote
@@ -368,8 +444,13 @@ export default function AnalysisRequestDetailPage() {
               className="secondary-button"
               disabled={busy}
               onClick={() =>
-                run(() =>
-                  api.markAnalysisRequestInvoiceSent(request.id, invoiceReference || undefined),
+                run(
+                  () =>
+                    api.markAnalysisRequestInvoiceSent(
+                      request.id,
+                      invoiceReference || undefined,
+                    ),
+                  "Invoice marked as sent.",
                 )
               }
             >
@@ -387,7 +468,12 @@ export default function AnalysisRequestDetailPage() {
               type="button"
               className="secondary-button"
               disabled={busy}
-              onClick={() => run(() => api.markAnalysisRequestPaid(request.id))}
+              onClick={() =>
+                run(
+                  () => api.markAnalysisRequestPaid(request.id),
+                  "Payment recorded — the request is ready for production.",
+                )
+              }
             >
               Mark paid
             </button>
@@ -395,7 +481,12 @@ export default function AnalysisRequestDetailPage() {
               type="button"
               className="secondary-button"
               disabled={busy}
-              onClick={() => run(() => api.startAnalysisRequestWork(request.id))}
+              onClick={() =>
+                run(
+                  () => api.startAnalysisRequestWork(request.id),
+                  "Work started on this request.",
+                )
+              }
             >
               Start work
             </button>
@@ -403,7 +494,12 @@ export default function AnalysisRequestDetailPage() {
               type="button"
               className="secondary-button"
               disabled={busy}
-              onClick={() => run(() => api.completeAnalysisRequest(request.id))}
+              onClick={() =>
+                run(
+                  () => api.completeAnalysisRequest(request.id),
+                  "Request completed — the submitter can now see the analysis.",
+                )
+              }
             >
               Complete
             </button>
@@ -413,13 +509,17 @@ export default function AnalysisRequestDetailPage() {
               disabled={busy}
               onClick={() => {
                 if (window.confirm("Cancel this request?")) {
-                  void run(() => api.cancelAnalysisRequest(request.id));
+                  void run(
+                    () => api.cancelAnalysisRequest(request.id),
+                    "Request cancelled.",
+                  );
                 }
               }}
             >
               Cancel
             </button>
           </div>
+          {noticeFor("staff")}
 
           <div className="form-group">
             <label htmlFor="invoice-reference">Invoice reference (optional)</label>
@@ -445,7 +545,12 @@ export default function AnalysisRequestDetailPage() {
               type="button"
               className="secondary-button"
               disabled={busy || !rejectReason.trim()}
-              onClick={() => run(() => api.rejectAnalysisRequest(request.id, rejectReason.trim()))}
+              onClick={() =>
+                run(
+                  () => api.rejectAnalysisRequest(request.id, rejectReason.trim()),
+                  "Request rejected — the submitter has been notified.",
+                )
+              }
             >
               Reject request
             </button>

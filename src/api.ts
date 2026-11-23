@@ -278,6 +278,36 @@ export interface DisciplineCustom {
   created_by?: { id: number; name: string } | null;
 }
 
+/** Progress of the Analysis the team creates for an approved request. */
+export interface AnalysisRequestAnalysis {
+  id: number;
+  title: string;
+  status: "draft" | "published" | "archived";
+  /** Content is readable only once shared/completed. */
+  available: boolean;
+  percent: number;
+  steps: Array<{ key: string; label: string; done: boolean; current: boolean }>;
+  video_count: number;
+  comment_count: number;
+  summary: string | null;
+  videos: Array<{
+    id: number;
+    title: string | null;
+    source_type: string;
+    /** Request video this analysis video was copied from. */
+    request_video_id?: number | null;
+    external_url: string | null;
+    embed_url: string | null;
+    playback_url: string | null;
+  }>;
+  comments: Array<{
+    id: number;
+    body: string;
+    created_at: string;
+    author: { id: number; name: string };
+  }>;
+}
+
 /** One analysis request row (IDENTITY-265). Detail responses add videos,
  * messages, deliverables and — for staff only — internal notes and the
  * submitter's contact details. */
@@ -331,6 +361,8 @@ export interface AnalysisRequestRecord {
   }>;
   /** Staff-only: invoices issued against this request. */
   invoices?: AnalysisRequestInvoiceRecord[];
+  /** Linked analysis progress (and content once shared). */
+  analysis?: AnalysisRequestAnalysis | null;
 }
 
 /** One conversation message (IDENTITY-265). */
@@ -422,6 +454,8 @@ export interface GuestAnalysisRequest {
     internal: boolean;
     created_at: string;
   }>;
+  /** Progress of the analysis; content appears once the team shares it. */
+  analysis?: AnalysisRequestAnalysis | null;
 }
 
 export interface AnalysisPackage {
@@ -2612,6 +2646,8 @@ export interface AnalysisParticipant {
 export interface AnalysisVideo {
   id: number;
   source_type: "external" | "upload";
+  /** Set when the video was copied from an analysis-request submission. */
+  analysis_request_video_id?: number | null;
   title: string | null;
   description: string | null;
   position: number;
@@ -2679,6 +2715,8 @@ export interface AnalysisSummary {
   tournament: { id: number; name: string } | null;
   participants: AnalysisParticipant[];
   video_count: number;
+  /** Set when this analysis came from "Hire an Analysis". */
+  analysis_request?: { id: number; reference: string } | null;
 }
 
 export interface AnalysisDetail extends AnalysisSummary {
@@ -5530,6 +5568,13 @@ export const api = {
     postJSON<{ message: AnalysisRequestMessageRecord }>(
       `/analysis_requests/guest_access/${encodeURIComponent(token)}/messages`,
       { body },
+    ),
+
+  /** Staff/coach: create the linked analysis and start production. */
+  startAnalysisRequest: (id: number) =>
+    postJSON<{ analysis_request: AnalysisRequestRecord }>(
+      `/analysis_requests/${id}/start_analysis`,
+      {},
     ),
 
   // ---------- Invoice ledger (IDENTITY-265) ----------

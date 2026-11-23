@@ -395,6 +395,39 @@
   font-size: 1.0625rem;
 }
 
+/* Headers with actions (buttons/badges) lay out as copy + action column. */
+.page-header--with-actions {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1rem 2rem;
+  flex-wrap: wrap;
+}
+
+.page-header-copy {
+  min-width: 0;
+}
+
+.page-header-copy h1 {
+  margin-bottom: 0.75rem;
+}
+
+.page-header-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+  flex-shrink: 0;
+  padding-top: 0.35rem;
+}
+
+@media (max-width: 640px) {
+  .page-header-actions {
+    width: 100%;
+    padding-top: 0;
+  }
+}
+
 /* Home Page */
 .home-hero {
   padding: 0 0 0rem;
@@ -12361,6 +12394,17 @@
   margin-right: 0.9rem;
 }
 
+/* Link back to the analysis request a video was copied from (IDENTITY-265). */
+.analysis-video-request-link {
+  color: var(--teal-600, var(--teal-500));
+  font-weight: 600;
+  text-decoration: none;
+}
+
+.analysis-video-request-link:hover {
+  text-decoration: underline;
+}
+
 .analysis-play-button {
   display: inline-flex;
   flex: 0 0 auto;
@@ -16357,7 +16401,8 @@
   white-space: nowrap;
 }
 
-.invoice-notice {
+.invoice-notice,
+.action-notice {
   margin: 0.75rem 0;
   padding: 0.6rem 0.85rem;
   border: 1px solid var(--teal-500);
@@ -16365,6 +16410,11 @@
   background: var(--bg-secondary);
   color: var(--charcoal);
   font-size: 0.85rem;
+}
+
+/* Feedback for a button row sits tight under the buttons that produced it. */
+.contact-detail-actions + .action-notice {
+  margin-top: 0.4rem;
 }
 
 /* Stored statuses are lowercase; the badge reads as a label. */

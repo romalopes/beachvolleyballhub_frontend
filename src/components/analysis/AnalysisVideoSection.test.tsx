@@ -1,5 +1,6 @@
 import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
+import { MemoryRouter } from "react-router-dom";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { api, type AnalysisVideo } from "../../api";
 import AnalysisVideoSection from "./AnalysisVideoSection";
@@ -44,14 +45,16 @@ const video: AnalysisVideo = {
 const renderSection = (overrides: Partial<Parameters<typeof AnalysisVideoSection>[0]> = {}) => {
   const onChanged = vi.fn().mockResolvedValue(undefined);
   render(
-    <AnalysisVideoSection
-      analysisId={7}
-      videos={[video]}
-      participants={[{ id: 1, player_profile_id: 5, name: "Jo Player" }]}
-      canManage
-      onChanged={onChanged}
-      {...overrides}
-    />,
+    <MemoryRouter>
+      <AnalysisVideoSection
+        analysisId={7}
+        videos={[video]}
+        participants={[{ id: 1, player_profile_id: 5, name: "Jo Player" }]}
+        canManage
+        onChanged={onChanged}
+        {...overrides}
+      />
+    </MemoryRouter>,
   );
   return onChanged;
 };
@@ -65,6 +68,23 @@ beforeEach(() => {
 });
 
 describe("AnalysisVideoSection", () => {
+  it("links a copied video back to its analysis request", () => {
+    renderSection({
+      videos: [{ ...video, analysis_request_video_id: 42 }],
+      request: { id: 3, reference: "ANL-2026-0003" },
+    });
+
+    expect(
+      screen.getByRole("link", { name: "From request ANL-2026-0003" }),
+    ).toHaveAttribute("href", "/analysis-requests/3");
+  });
+
+  it("does not link videos added directly in the editor", () => {
+    renderSection({ request: { id: 3, reference: "ANL-2026-0003" } });
+
+    expect(screen.queryByRole("link", { name: /From request/ })).not.toBeInTheDocument();
+  });
+
   it("adds an external video and refreshes the analysis", async () => {
     const user = userEvent.setup();
     const onChanged = renderSection();

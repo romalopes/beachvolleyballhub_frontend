@@ -58,6 +58,8 @@ describe("MyAnalysisRequestsPage", () => {
     expect(screen.getByText("In progress", { selector: "span" })).toBeInTheDocument();
     expect(screen.getByText("Paid", { selector: "span" })).toBeInTheDocument();
     expect(screen.getByText(/Coach: Coach Ana/)).toBeInTheDocument();
+    expect(screen.getByLabelText("Status")).toBeInTheDocument();
+    expect(screen.getByText("1 request")).toBeInTheDocument();
   });
 
   it("links each row to the request detail page", async () => {

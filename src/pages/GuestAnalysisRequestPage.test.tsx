@@ -117,6 +117,86 @@ describe("GuestAnalysisRequestPage", () => {
     ).toBeInTheDocument();
   });
 
+  it("shows analysis progress while the team works", async () => {
+    mockedApi.guestAnalysisRequest.mockResolvedValue({
+      analysis_request: {
+        ...request,
+        workflow_status: "in_progress",
+        analysis: {
+          id: 5,
+          title: "Jump serve review",
+          status: "draft",
+          available: false,
+          percent: 25,
+          steps: [
+            { key: "started", label: "Analysis started", done: true, current: false },
+            { key: "review", label: "Coach review", done: false, current: true },
+          ],
+          video_count: 1,
+          comment_count: 0,
+          summary: null,
+          videos: [],
+          comments: [],
+        },
+      },
+    });
+    renderPage();
+
+    expect(await screen.findByRole("progressbar")).toHaveAttribute("aria-valuenow", "25");
+    expect(screen.getByText("Coach review")).toBeInTheDocument();
+    expect(
+      screen.getByText(/It will appear here as soon as it is shared/),
+    ).toBeInTheDocument();
+  });
+
+  it("shows the finished analysis when it is shared", async () => {
+    mockedApi.guestAnalysisRequest.mockResolvedValue({
+      analysis_request: {
+        ...request,
+        workflow_status: "completed",
+        analysis: {
+          id: 5,
+          title: "Jump serve review",
+          status: "published",
+          available: true,
+          percent: 100,
+          steps: [],
+          video_count: 1,
+          comment_count: 1,
+          summary: "Keep the toss higher and contact in front.",
+          videos: [
+            {
+              id: 1,
+              title: "Jump serve",
+              source_type: "external",
+              external_url: "https://youtu.be/abc123",
+              embed_url: null,
+              playback_url: null,
+            },
+          ],
+          comments: [
+            {
+              id: 3,
+              body: "Great improvement on the second set.",
+              created_at: "2026-11-23T04:00:00Z",
+              author: { id: 9, name: "Coach Ana" },
+            },
+          ],
+        },
+      },
+    });
+    renderPage();
+
+    expect(
+      await screen.findByText("Keep the toss higher and contact in front."),
+    ).toBeInTheDocument();
+    expect(screen.getByText("Great improvement on the second set.")).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "Watch" })).toHaveAttribute(
+      "href",
+      "https://youtu.be/abc123",
+    );
+  });
+
   it("explains the link is invalid when the token is unknown", async () => {
     mockedApi.guestAnalysisRequest.mockRejectedValue(new Error("Not found"));
 

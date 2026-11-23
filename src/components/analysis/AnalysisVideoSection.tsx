@@ -1,4 +1,5 @@
 import { useRef, useState } from "react";
+import { Link } from "react-router-dom";
 import { FileUp, Link2, MessageSquarePlus, Plus, Trash2, Upload, X } from "lucide-react";
 import {
   api,
@@ -12,6 +13,8 @@ interface AnalysisVideoSectionProps {
   videos: AnalysisVideo[];
   participants: AnalysisParticipant[];
   canManage: boolean;
+  /** Request the analysis came from, so copied videos can link back. */
+  request?: { id: number; reference: string } | null;
   onChanged: () => Promise<void> | void;
 }
 
@@ -44,6 +47,7 @@ export default function AnalysisVideoSection({
   videos,
   participants,
   canManage,
+  request,
   onChanged,
 }: AnalysisVideoSectionProps) {
   const [adding, setAdding] = useState(false);
@@ -225,7 +229,22 @@ export default function AnalysisVideoSection({
             <div className="analysis-video-number">{String(index + 1).padStart(2, "0")}</div>
             <div className="analysis-video-body">
               <div className="analysis-video-header">
-                <div><h3>{video.title || `Video ${video.position + 1}`}</h3><div className="analysis-video-meta"><span>{video.source_type === "upload" ? "Uploaded video" : "External video"}</span>{video.duration_seconds != null && <span>{formatDuration(video.duration_seconds)}</span>}<span>{video.annotations.length} notes</span></div></div>
+                <div>
+                  <h3>{video.title || `Video ${video.position + 1}`}</h3>
+                  <div className="analysis-video-meta">
+                    <span>{video.source_type === "upload" ? "Uploaded video" : "External video"}</span>
+                    {video.duration_seconds != null && <span>{formatDuration(video.duration_seconds)}</span>}
+                    <span>{video.annotations.length} notes</span>
+                    {video.analysis_request_video_id && request && (
+                      <Link
+                        to={`/analysis-requests/${request.id}`}
+                        className="analysis-video-request-link"
+                      >
+                        From request {request.reference}
+                      </Link>
+                    )}
+                  </div>
+                </div>
                 <div className="analysis-video-actions">
                   {video.playback_url && <a href={video.playback_url} target="_blank" rel="noreferrer noopener" className="analysis-play-button">Play video</a>}
                   {canManage && <button type="button" className="analysis-icon-button danger" aria-label={`Remove ${video.title || "video"}`} onClick={() => deleteVideo(video)}><Trash2 size={15} /></button>}

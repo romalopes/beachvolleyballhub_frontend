@@ -1,4 +1,4 @@
-import { render, screen } from "@testing-library/react";
+import { render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { MemoryRouter, Route, Routes } from "react-router-dom";
@@ -22,6 +22,7 @@ vi.mock("../api", async (importOriginal) => {
       markAnalysisRequestPaid: vi.fn(),
       emailAnalysisRequestInvoice: vi.fn(),
       createAnalysisRequestMessage: vi.fn(),
+      startAnalysisRequest: vi.fn(),
       addAnalysisRequestInternalNote: vi.fn(),
     },
   };
@@ -126,6 +127,9 @@ describe("AnalysisRequestDetailPage", () => {
     expect(mockedApi.markAnalysisRequestPaid).toHaveBeenCalledWith(3);
     expect(await screen.findByText("In progress")).toBeInTheDocument();
     expect(screen.getByText("Paid")).toBeInTheDocument();
+    expect(
+      screen.getByText(/Payment recorded — the request is ready for production/),
+    ).toBeInTheDocument();
   });
 
   it("lets the submitter send a message to the team", async () => {
@@ -148,6 +152,90 @@ describe("AnalysisRequestDetailPage", () => {
     expect(
       await screen.findByText(/Message sent — the other side has been notified and emailed/),
     ).toBeInTheDocument();
+  });
+
+  it("lets staff start the analysis and then shows its progress", async () => {
+    mockUseAuth.mockReturnValue({ user: { id: 2, roles: ["admin"] }, loading: false });
+    const analysis = {
+      id: 44,
+      title: "Serve consistency review",
+      status: "draft" as const,
+      available: false,
+      percent: 25,
+      steps: [
+        { key: "started", label: "Analysis started", done: true, current: false },
+        { key: "review", label: "Coach review", done: false, current: true },
+      ],
+      video_count: 0,
+      comment_count: 0,
+      summary: null,
+      videos: [],
+      comments: [],
+    };
+    mockedApi.startAnalysisRequest.mockResolvedValue({
+      analysis_request: { ...detail, workflow_status: "in_progress", analysis },
+    });
+    const user = userEvent.setup();
+    renderPage();
+
+    await user.click(await screen.findByRole("button", { name: "Start analysis" }));
+
+    expect(mockedApi.startAnalysisRequest).toHaveBeenCalledWith(3);
+    expect(await screen.findByText(/Analysis created/)).toBeInTheDocument();
+    expect(screen.getByRole("progressbar")).toHaveAttribute("aria-valuenow", "25");
+    expect(screen.getByText("Coach review")).toBeInTheDocument();
+    expect(
+      screen.getByText(/It will appear here as soon as it is shared/),
+    ).toBeInTheDocument();
+  });
+
+  it("shows the shared analysis to the submitter", async () => {
+    mockedApi.analysisRequest.mockResolvedValue({
+      analysis_request: {
+        ...detail,
+        workflow_status: "completed",
+        analysis: {
+          id: 44,
+          title: "Serve consistency review",
+          status: "published",
+          available: true,
+          percent: 100,
+          steps: [],
+          video_count: 1,
+          comment_count: 1,
+          summary: "Toss height improved.",
+          videos: [
+            {
+              id: 1,
+              title: "Serve clip",
+              source_type: "external",
+              external_url: "https://youtu.be/example",
+              embed_url: null,
+              playback_url: null,
+            },
+          ],
+          comments: [
+            {
+              id: 2,
+              body: "Keep the toss higher.",
+              created_at: "2026-11-23T10:00:00Z",
+              author: { id: 9, name: "Coach Ana" },
+            },
+          ],
+        },
+      },
+    });
+    renderPage();
+
+    expect(await screen.findByText("Toss height improved.")).toBeInTheDocument();
+    expect(screen.getByText("Keep the toss higher.")).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "Watch" })).toHaveAttribute(
+      "href",
+      "https://youtu.be/example",
+    );
+    expect(
+      screen.queryByRole("button", { name: "Start analysis" }),
+    ).not.toBeInTheDocument();
   });
 
   it("emails the invoice as a PDF from the staff panel", async () => {
@@ -177,7 +265,14 @@ describe("AnalysisRequestDetailPage", () => {
     await user.click(await screen.findByRole("button", { name: "Email invoice (PDF)" }));
 
     expect(mockedApi.emailAnalysisRequestInvoice).toHaveBeenCalledWith(3);
-    expect(await screen.findByText(/INV-0008 queued for email/)).toBeInTheDocument();
+    const notice = await screen.findByText(/INV-0008 queued for email/);
+    expect(notice).toBeInTheDocument();
+    // The feedback belongs to the staff action that produced it, not the page top.
+    expect(
+      within(screen.getByRole("region", { name: "Staff actions" })).getByText(
+        /INV-0008 queued for email/,
+      ),
+    ).toBe(notice);
   });
 
   it("shows internal notes to staff", async () => {
