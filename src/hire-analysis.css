@@ -681,3 +681,116 @@ ul.selected-videos {
   }
 }
 
+
+/* --- Review-step account gate (login / signup / guest) --------------------- */
+
+.hire-auth-prompt {
+  margin-top: 1.5rem;
+  padding: 1.5rem;
+  border: 1px solid var(--border, #e2e8f0);
+  border-radius: 12px;
+  background: var(--surface-muted, #f8fafc);
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.hire-auth-prompt h2 {
+  margin: 0;
+  font-size: 1.25rem;
+}
+
+.hire-auth-lede {
+  margin: 0;
+  color: var(--text-muted, #475569);
+}
+
+.hire-auth-columns {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: 1.5rem;
+  align-items: start;
+}
+
+.hire-auth-fields {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.hire-auth-name-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.75rem;
+}
+
+.hire-auth-benefits {
+  padding: 1rem 1.25rem;
+  border-radius: 10px;
+  background: var(--surface, #ffffff);
+  border: 1px solid var(--border, #e2e8f0);
+}
+
+.hire-auth-benefits h3 {
+  margin: 0 0 0.5rem;
+  font-size: 1rem;
+}
+
+.hire-auth-benefits ul {
+  margin: 0;
+  padding-left: 1.1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+  color: var(--text-muted, #475569);
+  font-size: 0.925rem;
+}
+
+.hire-auth-error {
+  margin: 0;
+  color: var(--danger, #b91c1c);
+  font-size: 0.9rem;
+}
+
+.hire-auth-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+}
+
+.hire-auth-back {
+  align-self: flex-start;
+  background: none;
+  border: none;
+  padding: 0;
+  color: var(--text-muted, #475569);
+  font: inherit;
+  font-size: 0.9rem;
+  cursor: pointer;
+}
+
+.hire-auth-back:hover {
+  text-decoration: underline;
+}
+
+@media (max-width: 720px) {
+  .hire-auth-columns {
+    grid-template-columns: 1fr;
+  }
+
+  .hire-auth-name-row {
+    grid-template-columns: 1fr;
+  }
+
+  .hire-auth-actions {
+    flex-direction: column-reverse;
+  }
+
+  .hire-auth-actions > * {
+    width: 100%;
+    justify-content: center;
+  }
+}
+
+

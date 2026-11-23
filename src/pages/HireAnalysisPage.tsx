@@ -2,7 +2,14 @@ import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { Video, ArrowRight, Loader2, CheckCircle, Check, Sparkles } from "lucide-react";
 import { api } from "../api";
+import { useAuth } from "../auth/AuthContext";
 import PageHeader from "../components/PageHeader";
+import TurnstileWidget from "../components/TurnstileWidget";
+import {
+  turnstileEnabled,
+  TURNSTILE_LOGIN_ACTION,
+  TURNSTILE_SIGNUP_ACTION,
+} from "../services/turnstile";
 
 interface AnalysisPackage {
   key: string;
@@ -26,7 +33,17 @@ interface VideoInput {
   title?: string;
 }
 
+/** ApiValidationError (`errors: string[]`) and generic Error shapes both arrive. */
+const messageOf = (error: unknown, fallback: string): string => {
+  const failure = error as { message?: string; errors?: string[] } | null;
+  if (failure && Array.isArray(failure.errors) && failure.errors.length > 0) {
+    return failure.errors.join(" ");
+  }
+  return failure?.message || fallback;
+};
+
 export default function HireAnalysisPage() {
+  const { login, register } = useAuth();
   const [step, setStep] = useState<"packages" | "form" | "review" | "success">("packages");
   const [selectedPackage, setSelectedPackage] = useState<AnalysisPackage | null>(null);
   const [packages, setPackages] = useState<AnalysisPackage[]>([]);
@@ -48,6 +65,24 @@ export default function HireAnalysisPage() {
     reference: string;
     guest_access_token?: string | null;
   } | null>(null);
+
+  // Wine Words-style auth gate (see /trade/submit): before a guest submission
+  // is sent, the email is probed against registered accounts. A known email
+  // opens the inline login card; an unknown one opens the inline signup card
+  // with the account benefits. Both keep a "continue as guest" escape hatch so
+  // the flow never dead-ends.
+  const [authPrompt, setAuthPrompt] = useState<null | "login" | "signup">(null);
+  const [promptEmail, setPromptEmail] = useState("");
+  const [authFields, setAuthFields] = useState({
+    first_name: "",
+    last_name: "",
+    password: "",
+    confirm: "",
+  });
+  const [authBusy, setAuthBusy] = useState(false);
+  const [authError, setAuthError] = useState<string | null>(null);
+  const [loginTurnstileToken, setLoginTurnstileToken] = useState<string | null>(null);
+  const [signupTurnstileToken, setSignupTurnstileToken] = useState<string | null>(null);
 
   // Mirrors Subscribe.tsx: state is only touched from async callbacks, never
   // synchronously in the effect body.
@@ -143,9 +178,11 @@ export default function HireAnalysisPage() {
     if (validateForm()) setStep("review");
   };
 
-  const handleSubmit = async () => {
-    if (!validateForm()) return;
-
+  // The actual API submission. Runs once the submitter has confirmed — either
+  // straight away (signed in), as a guest, or right after the inline login or
+  // signup succeeded. A signed-in submission never carries guest fields: the
+  // backend links the account (and the submitter's player profile) itself.
+  const performSubmit = async () => {
     setLoading(true);
     setErrors({});
 
@@ -202,6 +239,263 @@ export default function HireAnalysisPage() {
       setLoading(false);
     }
   };
+
+  // The gate from the Wine Words trade flow: signed-in submitters go straight
+  // through; guests are first asked whether their email already has an account
+  // so the request can be linked to it instead of becoming an orphan guest row.
+  const handleSubmit = async () => {
+    if (!validateForm()) return;
+
+    if (localStorage.getItem("bvb_api_token")) {
+      return performSubmit();
+    }
+
+    const email = formData.guest_email.trim();
+    try {
+      const { registered } = await api.checkEmail(email);
+      setPromptEmail(email);
+      setAuthFields({ first_name: "", last_name: "", password: "", confirm: "" });
+      setAuthError(null);
+      setAuthPrompt(registered ? "login" : "signup");
+    } catch {
+      // The probe is advisory — an unreachable check must never block the
+      // submission, so fall through to the plain guest flow.
+      return performSubmit();
+    }
+  };
+
+  const handleAuthSubmit = async () => {
+    if (!authPrompt || authBusy) return;
+    setAuthError(null);
+
+    if (authPrompt === "login") {
+      if (!authFields.password) {
+        setAuthError("Enter your password to log in.");
+        return;
+      }
+      setAuthBusy(true);
+      try {
+        const user = await login(promptEmail, authFields.password, loginTurnstileToken);
+        if (!user) {
+          // 202 pending_verification: no session was created.
+          setAuthError(
+            "Please verify your email address before logging in, or continue as a guest.",
+          );
+          return;
+        }
+        setAuthPrompt(null);
+        await performSubmit();
+      } catch (error: unknown) {
+        setAuthError(messageOf(error, "Invalid email address or password."));
+      } finally {
+        setAuthBusy(false);
+      }
+      return;
+    }
+
+    if (!authFields.first_name.trim() || !authFields.last_name.trim()) {
+      setAuthError("First and last name are required.");
+      return;
+    }
+    if (authFields.password.length < 8) {
+      setAuthError("Password must be at least 8 characters.");
+      return;
+    }
+    if (authFields.password !== authFields.confirm) {
+      setAuthError("Passwords do not match.");
+      return;
+    }
+    setAuthBusy(true);
+    try {
+      const user = await register(
+        authFields.first_name.trim(),
+        authFields.last_name.trim(),
+        promptEmail,
+        authFields.password,
+        authFields.confirm,
+        signupTurnstileToken,
+      );
+      if (!user) {
+        // 202 pending_verification: the account exists but cannot log in yet.
+        setAuthError(
+          "Account created — check your email to verify it. You can continue as a guest meanwhile.",
+        );
+        return;
+      }
+      setAuthPrompt(null);
+      await performSubmit();
+    } catch (error: unknown) {
+      setAuthError(messageOf(error, "Could not create the account."));
+    } finally {
+      setAuthBusy(false);
+    }
+  };
+
+  const continueAsGuest = () => {
+    setAuthPrompt(null);
+    setAuthError(null);
+    void performSubmit();
+  };
+
+  const closeAuthPrompt = () => {
+    setAuthPrompt(null);
+    setAuthError(null);
+  };
+
+  // Inline auth step, modelled on Wine Words' TradeSubmit: fields on the left,
+  // the "why create an account" benefits on the right, and a guest escape hatch.
+  const renderAuthPrompt = () => (
+    <section className="hire-auth-prompt">
+      {authPrompt === "login" ? (
+        <>
+          <h2>Welcome back</h2>
+          <p className="hire-auth-lede">
+            <strong>{promptEmail}</strong> already has a Beach Volleyball Hub account. Log in to
+            link this request to it — your player profile and request history stay in one place.
+          </p>
+          <form
+            className="hire-auth-fields"
+            onSubmit={e => {
+              e.preventDefault();
+              void handleAuthSubmit();
+            }}
+          >
+            <div className="form-group">
+              <label htmlFor="hire-auth-password">Password</label>
+              <input
+                id="hire-auth-password"
+                type="password"
+                autoComplete="current-password"
+                maxLength={72}
+                value={authFields.password}
+                onChange={e => setAuthFields(prev => ({ ...prev, password: e.target.value }))}
+              />
+            </div>
+            {turnstileEnabled() && (
+              <TurnstileWidget
+                onToken={setLoginTurnstileToken}
+                action={TURNSTILE_LOGIN_ACTION}
+                resetKey={authError ? 1 : 0}
+              />
+            )}
+            {authError && (
+              <p className="hire-auth-error" role="alert">
+                {authError}
+              </p>
+            )}
+            <div className="hire-auth-actions">
+              <button type="button" className="secondary-button" onClick={continueAsGuest} disabled={authBusy}>
+                Continue as guest
+              </button>
+              <button type="submit" className="auth-submit" disabled={authBusy}>
+                {authBusy ? "Working…" : "Log in & submit request"}
+              </button>
+            </div>
+          </form>
+        </>
+      ) : (
+        <>
+          <h2>Create your Beach Volleyball Hub account</h2>
+          <p className="hire-auth-lede">
+            No account found for <strong>{promptEmail}</strong>. Create one to save your submission
+            and track its progress.
+          </p>
+          <div className="hire-auth-columns">
+            <form
+              className="hire-auth-fields"
+              onSubmit={e => {
+                e.preventDefault();
+                void handleAuthSubmit();
+              }}
+            >
+              <div className="hire-auth-name-row">
+                <div className="form-group">
+                  <label htmlFor="hire-auth-first-name">First name</label>
+                  <input
+                    id="hire-auth-first-name"
+                    type="text"
+                    required
+                    autoComplete="given-name"
+                    value={authFields.first_name}
+                    onChange={e => setAuthFields(prev => ({ ...prev, first_name: e.target.value }))}
+                  />
+                </div>
+                <div className="form-group">
+                  <label htmlFor="hire-auth-last-name">Last name</label>
+                  <input
+                    id="hire-auth-last-name"
+                    type="text"
+                    required
+                    autoComplete="family-name"
+                    value={authFields.last_name}
+                    onChange={e => setAuthFields(prev => ({ ...prev, last_name: e.target.value }))}
+                  />
+                </div>
+              </div>
+              <div className="form-group">
+                <label htmlFor="hire-auth-password">Password</label>
+                <input
+                  id="hire-auth-password"
+                  type="password"
+                  required
+                  minLength={8}
+                  autoComplete="new-password"
+                  value={authFields.password}
+                  onChange={e => setAuthFields(prev => ({ ...prev, password: e.target.value }))}
+                />
+              </div>
+              <div className="form-group">
+                <label htmlFor="hire-auth-confirm">Confirm password</label>
+                <input
+                  id="hire-auth-confirm"
+                  type="password"
+                  required
+                  minLength={8}
+                  autoComplete="new-password"
+                  value={authFields.confirm}
+                  onChange={e => setAuthFields(prev => ({ ...prev, confirm: e.target.value }))}
+                />
+              </div>
+              {turnstileEnabled() && (
+                <TurnstileWidget
+                  onToken={setSignupTurnstileToken}
+                  action={TURNSTILE_SIGNUP_ACTION}
+                  resetKey={authError ? 1 : 0}
+                />
+              )}
+              {authError && (
+                <p className="hire-auth-error" role="alert">
+                  {authError}
+                </p>
+              )}
+              <div className="hire-auth-actions">
+                <button type="button" className="secondary-button" onClick={continueAsGuest} disabled={authBusy}>
+                  Continue as guest
+                </button>
+                <button type="submit" className="auth-submit" disabled={authBusy}>
+                  {authBusy ? "Working…" : "Create account & submit"}
+                </button>
+              </div>
+            </form>
+            <aside className="hire-auth-benefits">
+              <h3>Why create an account?</h3>
+              <ul>
+                <li>Save time – your contact details are stored for quicker future requests.</li>
+                <li>Manage requests – keep every analysis you have hired in one place.</li>
+                <li>Track progress – follow each request from submission through delivery.</li>
+                <li>Get notified – receive updates at every step of the workflow.</li>
+                <li>Access your analysis – watch the finished analysis and its deliverables anytime.</li>
+                <li>Message the team – talk directly with the crew and your coach about each request.</li>
+              </ul>
+            </aside>
+          </div>
+        </>
+      )}
+      <button type="button" className="hire-auth-back" onClick={closeAuthPrompt}>
+        ← Back to summary
+      </button>
+    </section>
+  );
 
   const packageBadge = (pkg: AnalysisPackage) => {
     if (pkg.price_cents === 0) return { label: "Complimentary", className: "plan-badge" };
@@ -531,15 +825,19 @@ export default function HireAnalysisPage() {
             {formData.guest_name && <><dt>Name</dt><dd>{formData.guest_name}</dd></>}
             {formData.guest_email && <><dt>Email</dt><dd>{formData.guest_email}</dd></>}
           </dl>
-          <div className="form-actions">
-            <button type="button" className="secondary-button" onClick={() => setStep("form")}>
-              <ArrowRight size={16} className="reverse" /> Back
-            </button>
-            <button type="button" className="auth-submit form-actions-primary" onClick={handleSubmit}>
-              Confirm & Submit
-              <ArrowRight size={16} />
-            </button>
-          </div>
+          {authPrompt === null ? (
+            <div className="form-actions">
+              <button type="button" className="secondary-button" onClick={() => setStep("form")}>
+                <ArrowRight size={16} className="reverse" /> Back
+              </button>
+              <button type="button" className="auth-submit form-actions-primary" onClick={handleSubmit}>
+                Confirm & Submit
+                <ArrowRight size={16} />
+              </button>
+            </div>
+          ) : (
+            renderAuthPrompt()
+          )}
         </div>
       </div>
     );

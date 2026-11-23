@@ -4799,6 +4799,12 @@ export const api = {
   healthDetailed: () => fetchAPI<HealthDetailed>("/health/detailed"),
 
   me: () => fetchAPI<User | null>("/me"),
+  // Public probe for the hire-analysis flow (IDENTITY-265): is this email
+  // already registered? Drives the login / create-account / guest prompt.
+  checkEmail: (email_address: string) =>
+    fetchAPI<{ email_address: string; registered: boolean }>(
+      `/email_check?email=${encodeURIComponent(email_address)}`,
+    ),
   login: (email_address: string, password: string, turnstile_token?: string | null) =>
     postJSON<UserWithToken>("/sessions", {
       email_address,

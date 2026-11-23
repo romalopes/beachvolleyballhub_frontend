@@ -13,9 +13,31 @@ vi.mock("../api", async (importOriginal) => {
       ...actual.api,
       getAnalysisPackages: vi.fn(),
       postFormData: vi.fn(),
+      checkEmail: vi.fn(),
     },
   };
 });
+
+// The page pulls login/register from the AuthContext; these tests render it
+// without a provider, so the hook is replaced with controllable mocks.
+const { loginMock, registerMock } = vi.hoisted(() => ({
+  loginMock: vi.fn(),
+  registerMock: vi.fn(),
+}));
+
+vi.mock("../auth/AuthContext", () => ({
+  useAuth: () => ({
+    user: null,
+    loading: false,
+    login: loginMock,
+    register: registerMock,
+    resetPassword: vi.fn(),
+    logout: vi.fn(),
+    impersonation: { active: false, realAdmin: null },
+    startImpersonating: vi.fn(),
+    stopImpersonating: vi.fn(),
+  }),
+}));
 
 const mockedApi = vi.mocked(api, true);
 
@@ -52,6 +74,12 @@ beforeEach(() => {
   vi.clearAllMocks();
   localStorage.clear();
   mockedApi.getAnalysisPackages.mockResolvedValue({ data: packages });
+  // Default: the probed email is not registered, so the flow offers the
+  // signup card; individual tests override this.
+  mockedApi.checkEmail.mockResolvedValue({
+    email_address: "jane@example.com",
+    registered: false,
+  });
 });
 
 describe("HireAnalysisPage", () => {
@@ -203,6 +231,15 @@ describe("HireAnalysisPage", () => {
 
     await user.click(screen.getByRole("button", { name: /Confirm & Submit/i }));
 
+    // Unknown email: the signup card appears first; nothing is sent yet.
+    expect(
+      await screen.findByRole("heading", { name: "Create your Beach Volleyball Hub account" }),
+    ).toBeInTheDocument();
+    expect(mockedApi.postFormData).not.toHaveBeenCalled();
+
+    // The guest escape hatch submits without an account.
+    await user.click(screen.getByRole("button", { name: "Continue as guest" }));
+
     expect(
       await screen.findByRole("heading", { name: "Request Submitted!" }),
     ).toBeInTheDocument();
@@ -234,7 +271,153 @@ describe("HireAnalysisPage", () => {
         "analysis_request[analysis_request_videos_attributes][0][video_id]",
       ),
     ).toBeNull();
+    // A guest submission still carries the guest contact fields.
+    expect((body as FormData).get("analysis_request[guest_name]")).toBe("Jane Smith");
+    expect((body as FormData).get("analysis_request[guest_email]")).toBe("jane@example.com");
   });
+
+  it("asks a returning submitter to log in when the email is registered", async () => {
+    const user = userEvent.setup();
+    mockedApi.checkEmail.mockResolvedValue({
+      email_address: "jane@example.com",
+      registered: true,
+    });
+    mockedApi.postFormData.mockResolvedValue({
+      analysis_request: { id: 9, reference: "ANL-2026-0009" },
+    });
+    loginMock.mockImplementation(async () => {
+      // The real AuthContext.login stores the API token as a side effect.
+      localStorage.setItem("bvb_api_token", "api-token");
+      return { id: 7, name: "Jane Smith", email_address: "jane@example.com", roles: [] };
+    });
+    vi.spyOn(window, "alert").mockImplementation(() => {});
+
+    render(
+      <MemoryRouter>
+        <HireAnalysisPage />
+      </MemoryRouter>,
+    );
+
+    await user.click(
+      await screen.findByRole("button", { name: "Select Single Match Analysis" }),
+    );
+    await user.type(screen.getByLabelText("Title *"), "Jump serve review");
+    await user.type(screen.getByLabelText("Description / Analysis Goals *"), "Focus on toss height.");
+    await user.type(screen.getByLabelText("Name *"), "Jane Smith");
+    await user.type(screen.getByLabelText("Email *"), "jane@example.com");
+    await user.type(screen.getByLabelText("Video URL"), "https://www.youtube.com/watch?v=abc123");
+    await user.click(screen.getByRole("button", { name: "Add URL" }));
+    await user.click(screen.getByRole("button", { name: "Submit Request" }));
+    await user.click(screen.getByRole("button", { name: /Confirm & Submit/i }));
+
+    // Registered email: the inline login card is offered, not the signup one.
+    expect(await screen.findByRole("heading", { name: "Welcome back" })).toBeInTheDocument();
+    expect(screen.getAllByText("jane@example.com").length).toBeGreaterThan(0);
+    expect(mockedApi.postFormData).not.toHaveBeenCalled();
+
+    await user.type(screen.getByLabelText("Password"), "secret-password");
+    await user.click(screen.getByRole("button", { name: "Log in & submit request" }));
+
+    expect(
+      await screen.findByRole("heading", { name: "Request Submitted!" }),
+    ).toBeInTheDocument();
+    expect(loginMock).toHaveBeenCalledWith("jane@example.com", "secret-password", null);
+    // Signed-in submissions carry no guest fields — the backend links the
+    // account (and its player profile) itself.
+    const body = mockedApi.postFormData.mock.calls[0][1] as FormData;
+    expect(body.get("analysis_request[guest_name]")).toBeNull();
+    expect(body.get("analysis_request[guest_email]")).toBeNull();
+  });
+
+  it("creates the account from the signup card and submits the request", async () => {
+    const user = userEvent.setup();
+    mockedApi.postFormData.mockResolvedValue({
+      analysis_request: { id: 9, reference: "ANL-2026-0009" },
+    });
+    registerMock.mockImplementation(async () => {
+      localStorage.setItem("bvb_api_token", "api-token");
+      return { id: 8, name: "Jane Smith", email_address: "jane@example.com", roles: [] };
+    });
+    vi.spyOn(window, "alert").mockImplementation(() => {});
+
+    render(
+      <MemoryRouter>
+        <HireAnalysisPage />
+      </MemoryRouter>,
+    );
+
+    await user.click(
+      await screen.findByRole("button", { name: "Select Single Match Analysis" }),
+    );
+    await user.type(screen.getByLabelText("Title *"), "Jump serve review");
+    await user.type(screen.getByLabelText("Description / Analysis Goals *"), "Focus on toss height.");
+    await user.type(screen.getByLabelText("Name *"), "Jane Smith");
+    await user.type(screen.getByLabelText("Email *"), "jane@example.com");
+    await user.type(screen.getByLabelText("Video URL"), "https://www.youtube.com/watch?v=abc123");
+    await user.click(screen.getByRole("button", { name: "Add URL" }));
+    await user.click(screen.getByRole("button", { name: "Submit Request" }));
+    await user.click(screen.getByRole("button", { name: /Confirm & Submit/i }));
+
+    // The Wine Words-style benefits panel accompanies the signup fields.
+    expect(
+      await screen.findByRole("heading", { name: "Why create an account?" }),
+    ).toBeInTheDocument();
+
+    await user.type(screen.getByLabelText("First name"), "Jane");
+    await user.type(screen.getByLabelText("Last name"), "Smith");
+    await user.type(screen.getByLabelText("Password"), "secret-password");
+    await user.type(screen.getByLabelText("Confirm password"), "secret-password");
+    await user.click(screen.getByRole("button", { name: "Create account & submit" }));
+
+    expect(
+      await screen.findByRole("heading", { name: "Request Submitted!" }),
+    ).toBeInTheDocument();
+    expect(registerMock).toHaveBeenCalledWith(
+      "Jane",
+      "Smith",
+      "jane@example.com",
+      "secret-password",
+      "secret-password",
+      null,
+    );
+    const body = mockedApi.postFormData.mock.calls[0][1] as FormData;
+    expect(body.get("analysis_request[guest_name]")).toBeNull();
+  });
+
+  it("falls back to a plain guest submission when the email probe fails", async () => {
+    const user = userEvent.setup();
+    mockedApi.checkEmail.mockRejectedValue(new Error("network down"));
+    mockedApi.postFormData.mockResolvedValue({
+      analysis_request: { id: 9, reference: "ANL-2026-0009" },
+    });
+    vi.spyOn(window, "alert").mockImplementation(() => {});
+
+    render(
+      <MemoryRouter>
+        <HireAnalysisPage />
+      </MemoryRouter>,
+    );
+
+    await user.click(
+      await screen.findByRole("button", { name: "Select Single Match Analysis" }),
+    );
+    await user.type(screen.getByLabelText("Title *"), "Jump serve review");
+    await user.type(screen.getByLabelText("Description / Analysis Goals *"), "Focus on toss height.");
+    await user.type(screen.getByLabelText("Name *"), "Jane Smith");
+    await user.type(screen.getByLabelText("Email *"), "jane@example.com");
+    await user.type(screen.getByLabelText("Video URL"), "https://www.youtube.com/watch?v=abc123");
+    await user.click(screen.getByRole("button", { name: "Add URL" }));
+    await user.click(screen.getByRole("button", { name: "Submit Request" }));
+    await user.click(screen.getByRole("button", { name: /Confirm & Submit/i }));
+
+    // No auth card is shown; the submission proceeds as a guest.
+    expect(
+      await screen.findByRole("heading", { name: "Request Submitted!" }),
+    ).toBeInTheDocument();
+    expect(screen.queryByRole("heading", { name: "Welcome back" })).not.toBeInTheDocument();
+    expect(mockedApi.postFormData).toHaveBeenCalledTimes(1);
+  });
+});
 
   it("opens the review step once the required fields are filled", async () => {
     const user = userEvent.setup();
@@ -271,4 +454,3 @@ describe("HireAnalysisPage", () => {
     expect(screen.getByText("Jump serve review")).toBeInTheDocument();
     expect(mockedApi.postFormData).not.toHaveBeenCalled();
   });
-});
