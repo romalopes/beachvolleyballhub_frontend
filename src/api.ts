@@ -311,6 +311,18 @@ export interface AnalysisRequestAnalysis {
 /** One analysis request row (IDENTITY-265). Detail responses add videos,
  * messages, deliverables and — for staff only — internal notes and the
  * submitter's contact details. */
+/**
+ * An assessment session linked to an analysis request as a deliverable.
+ * Deliberately shallow (title/status/date): submitters and guests never get
+ * assessment-session internals through this payload.
+ */
+export interface RequestAssessmentSession {
+  id: number;
+  title: string;
+  status: string;
+  date: string | null;
+}
+
 export interface AnalysisRequestRecord {
   id: number;
   reference: string;
@@ -353,6 +365,8 @@ export interface AnalysisRequestRecord {
     file_url: string | null;
     created_at: string;
   }>;
+  /** Assessment sessions linked as deliverables (title/status/date only). */
+  assessment_sessions?: RequestAssessmentSession[];
   internal_notes?: Array<{
     id: number;
     body: string;
@@ -446,7 +460,9 @@ export interface GuestAnalysisRequest {
     file_url?: string | null;
     video?: { id: number; title: string | null } | null;
   }>;
-  deliverables: Array<{ id: number; title: string; file_url: string | null }>;
+  deliverables: Array<{ id: number; title: string; file_url: string | null }>,
+  /** Assessment sessions linked as deliverables (title/status/date only). */
+  assessment_sessions?: RequestAssessmentSession[];
   messages: Array<{
     id: number;
     body: string;
@@ -5585,6 +5601,21 @@ export const api = {
     postJSON<{ queued: boolean; invoice: AnalysisRequestInvoiceRecord }>(
       `/analysis_requests/${id}/email_invoice`,
       {},
+    ),
+
+  /** Staff: link an assessment session; it becomes a submitter deliverable. */
+  linkRequestAssessmentSession: (id: number, assessmentSessionId: number) =>
+    postJSON<{ analysis_request: AnalysisRequestRecord }>(
+      `/analysis_requests/${id}/link_assessment_session`,
+      { assessment_session_id: assessmentSessionId },
+    ),
+
+  /** Staff: unlink an assessment session from the request's deliverables. */
+  unlinkRequestAssessmentSession: (id: number, assessmentSessionId: number) =>
+    postJSON<{ analysis_request: AnalysisRequestRecord }>(
+      `/analysis_requests/${id}/assessment_sessions/${assessmentSessionId}`,
+      {},
+      "DELETE",
     ),
 
   /** Send a message on a request (owner, assigned coach or staff). */

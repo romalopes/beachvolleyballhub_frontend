@@ -1,4 +1,4 @@
-import { render, screen, within } from "@testing-library/react";
+import { render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { MemoryRouter, Route, Routes } from "react-router-dom";
@@ -19,6 +19,9 @@ vi.mock("../api", async (importOriginal) => {
       ...actual.api,
       analysisRequest: vi.fn(),
       coaches: vi.fn(),
+      assessmentSessions: vi.fn(),
+      linkRequestAssessmentSession: vi.fn(),
+      unlinkRequestAssessmentSession: vi.fn(),
       markAnalysisRequestPaid: vi.fn(),
       emailAnalysisRequestInvoice: vi.fn(),
       createAnalysisRequestMessage: vi.fn(),
@@ -84,6 +87,18 @@ beforeEach(() => {
   });
   mockedApi.analysisRequest.mockResolvedValue({ analysis_request: detail });
   mockedApi.coaches.mockResolvedValue({ data: [], meta: {} } as never);
+  mockedApi.assessmentSessions.mockResolvedValue({
+    assessment_sessions: [
+      {
+        id: 7,
+        name: "Thursday serve screen",
+        status: "draft",
+        status_label: "Draft",
+        scheduled_on: "2026-12-01",
+      },
+    ],
+    meta: {},
+  } as never);
 });
 
 describe("AnalysisRequestDetailPage", () => {
@@ -298,5 +313,75 @@ describe("AnalysisRequestDetailPage", () => {
     expect(await screen.findByText("Internal notes (staff only)")).toBeInTheDocument();
     expect(screen.getByText("VIP submitter")).toBeInTheDocument();
     expect(screen.getByRole("heading", { name: "Staff actions" })).toBeInTheDocument();
+  });
+
+  it("shows linked assessment sessions to staff and in the deliverables", async () => {
+    mockUseAuth.mockReturnValue({
+      user: { id: 2, roles: ["admin"] },
+      loading: false,
+    });
+    mockedApi.analysisRequest.mockResolvedValue({
+      analysis_request: {
+        ...detail,
+        assessment_sessions: [
+          { id: 9, title: "Tuesday squad screening", status: "draft", date: "2026-11-30" },
+        ],
+      },
+    });
+    renderPage();
+
+    expect(
+      await screen.findByRole("heading", { name: "Assessment deliverables" }),
+    ).toBeInTheDocument();
+    // The staff list and the public deliverables list both render the session.
+    expect(screen.getAllByText("Tuesday squad screening").length).toBe(2);
+    expect(screen.getByText(/Assessment · draft/)).toBeInTheDocument();
+  });
+
+  it("links an assessment session from the staff picker", async () => {
+    const user = userEvent.setup();
+    mockUseAuth.mockReturnValue({
+      user: { id: 2, roles: ["admin"] },
+      loading: false,
+    });
+    vi.mocked(api.linkRequestAssessmentSession).mockResolvedValue({
+      analysis_request: detail,
+    });
+    renderPage();
+    await screen.findByRole("heading", { name: "Staff actions" });
+
+    await user.selectOptions(screen.getByLabelText("Add assessment session"), "7");
+    await user.click(screen.getByRole("button", { name: /Add as deliverable/ }));
+
+    await waitFor(() => {
+      expect(api.linkRequestAssessmentSession).toHaveBeenCalledWith(3, 7);
+    });
+  });
+
+  it("removes an assessment session from the deliverables", async () => {
+    const user = userEvent.setup();
+    mockUseAuth.mockReturnValue({
+      user: { id: 2, roles: ["admin"] },
+      loading: false,
+    });
+    mockedApi.analysisRequest.mockResolvedValue({
+      analysis_request: {
+        ...detail,
+        assessment_sessions: [
+          { id: 9, title: "Tuesday squad screening", status: "draft", date: "2026-11-30" },
+        ],
+      },
+    });
+    vi.mocked(api.unlinkRequestAssessmentSession).mockResolvedValue({
+      analysis_request: detail,
+    });
+    renderPage();
+    await screen.findByRole("heading", { name: "Assessment deliverables" });
+
+    await user.click(screen.getByRole("button", { name: /Remove/ }));
+
+    await waitFor(() => {
+      expect(api.unlinkRequestAssessmentSession).toHaveBeenCalledWith(3, 9);
+    });
   });
 });

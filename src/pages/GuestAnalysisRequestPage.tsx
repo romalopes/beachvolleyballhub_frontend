@@ -162,10 +162,36 @@ export default function GuestAnalysisRequestPage() {
         )}
 
         <h3>Deliverables</h3>
-        {request.deliverables.length === 0 ? (
+        {request.deliverables.length === 0 &&
+        (request.assessment_sessions ?? []).length === 0 &&
+        !request.analysis?.available ? (
           <p className="hint">Nothing delivered yet.</p>
         ) : (
           <ul className="selected-videos">
+            {request.analysis?.available && (
+              <li className="video-item">
+                <span>
+                  Video analysis — {request.analysis.title}
+                  <br />
+                  <span className="hint">Presented in the analysis section above.</span>
+                </span>
+                <a href="#analysis-progress">
+                  <ExternalLink size={14} aria-hidden="true" /> View
+                </a>
+              </li>
+            )}
+            {(request.assessment_sessions ?? []).map((session) => (
+              <li key={`assessment-${session.id}`} className="video-item">
+                <span>
+                  {session.title}
+                  <br />
+                  <span className="hint">
+                    Assessment · {session.status.replace(/_/g, " ")}
+                    {session.date ? ` · ${session.date.slice(0, 10)}` : ""}
+                  </span>
+                </span>
+              </li>
+            ))}
             {request.deliverables.map((document) => (
               <li key={document.id} className="video-item">
                 <span>{document.title}</span>

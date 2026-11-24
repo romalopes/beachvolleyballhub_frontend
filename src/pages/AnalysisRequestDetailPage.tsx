@@ -1,7 +1,12 @@
 import { useCallback, useEffect, useState } from "react";
 import { Link, useParams } from "react-router-dom";
-import { Download, ExternalLink, Loader2 } from "lucide-react";
-import { api, type AnalysisRequestRecord, type Coach } from "../api";
+import { Download, ExternalLink, Loader2, Link2, Unlink } from "lucide-react";
+import {
+  api,
+  type AnalysisRequestRecord,
+  type AssessmentSession,
+  type Coach,
+} from "../api";
 import { useAuth } from "../auth/AuthContext";
 import PageHeader from "../components/PageHeader";
 import AnalysisProgress from "../components/analysisRequest/AnalysisProgress";
@@ -34,7 +39,9 @@ export default function AnalysisRequestDetailPage() {
   );
 
   const [request, setRequest] = useState<AnalysisRequestRecord | null>(null);
-  const [status, setStatus] = useState<"loading" | "ready" | "missing">("loading");
+  const [status, setStatus] = useState<"loading" | "ready" | "missing">(
+    "loading",
+  );
   const [coaches, setCoaches] = useState<Coach[]>([]);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -53,6 +60,12 @@ export default function AnalysisRequestDetailPage() {
   const [messageBody, setMessageBody] = useState("");
   const [sendingMessage, setSendingMessage] = useState(false);
   const [startingAnalysis, setStartingAnalysis] = useState(false);
+  // Assessment sessions offered as deliverables; the picker lists sessions the
+  // team can attach (staff only), the request itself carries the linked ones.
+  const [assessmentOptions, setAssessmentOptions] = useState<
+    AssessmentSession[]
+  >([]);
+  const [assessmentChoice, setAssessmentChoice] = useState("");
 
   const load = useCallback(async () => {
     if (!id) {
@@ -89,6 +102,22 @@ export default function AnalysisRequestDetailPage() {
     };
   }, [isStaff]);
 
+  useEffect(() => {
+    if (!isStaff) return;
+    let active = true;
+    api
+      .assessmentSessions({ per_page: 50 })
+      .then(({ assessment_sessions }) => {
+        if (active) setAssessmentOptions(assessment_sessions);
+      })
+      .catch(() => {
+        // The assessment picker degrades to empty rather than blocking triage.
+      });
+    return () => {
+      active = false;
+    };
+  }, [isStaff]);
+
   const run = async (
     action: () => Promise<{ analysis_request: AnalysisRequestRecord }>,
     successMessage: string,
@@ -101,7 +130,9 @@ export default function AnalysisRequestDetailPage() {
       setRequest(analysis_request);
       setNotice({ text: successMessage, area: "staff" });
     } catch (e: unknown) {
-      setError(e instanceof Error ? e.message : "That action could not be completed.");
+      setError(
+        e instanceof Error ? e.message : "That action could not be completed.",
+      );
     } finally {
       setBusy(false);
     }
@@ -120,7 +151,9 @@ export default function AnalysisRequestDetailPage() {
       });
       await load();
     } catch (e: unknown) {
-      setError(e instanceof Error ? e.message : "The invoice could not be emailed.");
+      setError(
+        e instanceof Error ? e.message : "The invoice could not be emailed.",
+      );
     } finally {
       setBusy(false);
     }
@@ -143,11 +176,27 @@ export default function AnalysisRequestDetailPage() {
       });
       await load();
     } catch (e: unknown) {
-      setError(e instanceof Error ? e.message : "The message could not be sent.");
+      setError(
+        e instanceof Error ? e.message : "The message could not be sent.",
+      );
     } finally {
       setSendingMessage(false);
     }
   };
+
+  /** Links an assessment session; the submitter sees it as a deliverable. */
+  const linkAssessment = (requestId: number) =>
+    run(
+      () =>
+        api.linkRequestAssessmentSession(requestId, Number(assessmentChoice)),
+      "Assessment session linked — the submitter now receives it as a deliverable.",
+    );
+
+  const unlinkAssessment = (requestId: number, sessionId: number) =>
+    run(
+      () => api.unlinkRequestAssessmentSession(requestId, sessionId),
+      "Assessment session removed from the deliverables.",
+    );
 
   /** Creates the linked Analysis and opens the request for production. */
   const startAnalysis = async (requestId: number) => {
@@ -162,7 +211,9 @@ export default function AnalysisRequestDetailPage() {
         area: "analysis",
       });
     } catch (e: unknown) {
-      setError(e instanceof Error ? e.message : "The analysis could not be started.");
+      setError(
+        e instanceof Error ? e.message : "The analysis could not be started.",
+      );
     } finally {
       setStartingAnalysis(false);
     }
@@ -214,16 +265,24 @@ export default function AnalysisRequestDetailPage() {
         }
       >
         <div className="analysis-request-badges">
-          <span className={`contact-status-badge ${statusTone(request.workflow_status)}`}>
+          <span
+            className={`contact-status-badge ${statusTone(request.workflow_status)}`}
+          >
             {workflowLabel(request.workflow_status)}
           </span>
-          <span className={`contact-status-badge ${statusTone(request.payment_status)}`}>
+          <span
+            className={`contact-status-badge ${statusTone(request.payment_status)}`}
+          >
             {paymentLabel(request.payment_status)}
           </span>
         </div>
       </PageHeader>
 
-      {error && <div className="error-banner" role="alert">{error}</div>}
+      {error && (
+        <div className="error-banner" role="alert">
+          {error}
+        </div>
+      )}
 
       <section className="review-content" aria-labelledby="request-summary">
         <h3 id="request-summary">Summary</h3>
@@ -260,25 +319,6 @@ export default function AnalysisRequestDetailPage() {
         )}
       </section>
 
-      <AnalysisProgress
-        analysis={request.analysis}
-        canStart={
-          isManager &&
-          !request.analysis &&
-          ["accepted", "awaiting_payment", "in_progress"].includes(
-            request.workflow_status,
-          )
-        }
-        starting={startingAnalysis}
-        onStart={() => void startAnalysis(request.id)}
-        editorHref={
-          isManager && request.analysis
-            ? `/analyses/${request.analysis.id}/edit`
-            : undefined
-        }
-      />
-      {noticeFor("analysis")}
-
       <section className="review-content" aria-labelledby="request-videos">
         <h3 id="request-videos">Videos</h3>
         {(request.videos ?? []).length === 0 ? (
@@ -289,7 +329,8 @@ export default function AnalysisRequestDetailPage() {
               <li key={video.id} className="video-item">
                 {video.source_type === "external" && video.external_url ? (
                   <a href={video.external_url} target="_blank" rel="noreferrer">
-                    <ExternalLink size={14} aria-hidden="true" /> {video.external_url}
+                    <ExternalLink size={14} aria-hidden="true" />{" "}
+                    {video.external_url}
                   </a>
                 ) : (
                   <span>{video.video?.title || "Uploaded video"}</span>
@@ -305,12 +346,43 @@ export default function AnalysisRequestDetailPage() {
         )}
       </section>
 
-      <section className="review-content" aria-labelledby="request-deliverables">
+      <section
+        className="review-content"
+        aria-labelledby="request-deliverables"
+      >
         <h3 id="request-deliverables">Deliverables</h3>
-        {(request.deliverables ?? []).length === 0 ? (
+        {(request.deliverables ?? []).length === 0 &&
+        (request.assessment_sessions ?? []).length === 0 &&
+        !request.analysis?.available ? (
           <p className="hint">Nothing delivered yet.</p>
         ) : (
           <ul className="selected-videos">
+            {request.analysis?.available && (
+              <li className="video-item">
+                <span>
+                  Video analysis — {request.analysis.title}
+                  <br />
+                  <span className="hint">
+                    Presented in the analysis section above.
+                  </span>
+                </span>
+                <a href="#analysis-progress">
+                  <ExternalLink size={14} aria-hidden="true" /> View
+                </a>
+              </li>
+            )}
+            {(request.assessment_sessions ?? []).map((session) => (
+              <li key={`assessment-${session.id}`} className="video-item">
+                <span>
+                  {session.title}
+                  <br />
+                  <span className="hint">
+                    Assessment · {session.status.replace(/_/g, " ")}
+                    {session.date ? ` · ${formatDate(session.date)}` : ""}
+                  </span>
+                </span>
+              </li>
+            ))}
             {(request.deliverables ?? []).map((document) => (
               <li key={document.id} className="video-item">
                 <span>{document.title}</span>
@@ -334,7 +406,9 @@ export default function AnalysisRequestDetailPage() {
             {(request.messages ?? []).map((message) => (
               <li key={message.id} className="video-item">
                 <span>
-                  <strong>{message.from_submitter ? "Submitter" : "Team"}:</strong>{" "}
+                  <strong>
+                    {message.from_submitter ? "Submitter" : "Team"}:
+                  </strong>{" "}
                   {message.body}
                   <br />
                   <span className="hint">{formatDate(message.created_at)}</span>
@@ -365,249 +439,367 @@ export default function AnalysisRequestDetailPage() {
         {noticeFor("message")}
       </section>
 
+      <AnalysisProgress
+        analysis={request.analysis}
+        canStart={
+          isManager &&
+          !request.analysis &&
+          ["accepted", "awaiting_payment", "in_progress"].includes(
+            request.workflow_status,
+          )
+        }
+        starting={startingAnalysis}
+        onStart={() => void startAnalysis(request.id)}
+        editorHref={
+          isManager && request.analysis
+            ? `/analyses/${request.analysis.id}/edit`
+            : undefined
+        }
+      />
+      {noticeFor("analysis")}
+
       {isStaff && (
         <>
-        <section className="review-content" aria-labelledby="staff-actions">
-          <h3 id="staff-actions">Staff actions</h3>
+          <section className="review-content" aria-labelledby="staff-actions">
+            <h3 id="staff-actions">Staff actions</h3>
 
-          <div className="form-row">
+            <div className="form-row">
+              <div className="form-group">
+                <label htmlFor="accept-price">Accept with price (cents)</label>
+                <input
+                  id="accept-price"
+                  type="number"
+                  min={0}
+                  value={priceInput}
+                  onChange={(event) => setPriceInput(event.target.value)}
+                  placeholder={String(request.price_cents)}
+                />
+              </div>
+              <div className="form-group">
+                <label htmlFor="assign-coach">Assign coach</label>
+                <select
+                  id="assign-coach"
+                  value={coachId}
+                  onChange={(event) => setCoachId(event.target.value)}
+                >
+                  <option value="">Choose a coach…</option>
+                  {coaches.map((coach) => (
+                    <option key={coach.id} value={coach.id}>
+                      {coach.display_name ??
+                        coach.full_name ??
+                        `Coach #${coach.id}`}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            </div>
+
+            <div className="contact-detail-actions">
+              <button
+                type="button"
+                className="auth-submit"
+                disabled={busy}
+                onClick={() =>
+                  run(
+                    () =>
+                      api.acceptAnalysisRequest(request.id, acceptPriceCents),
+                    "Request accepted — the submitter has been notified.",
+                  )
+                }
+              >
+                Accept
+              </button>
+              <button
+                type="button"
+                className="secondary-button"
+                disabled={busy || !coachId}
+                onClick={() =>
+                  run(
+                    () =>
+                      api.assignAnalysisRequestCoach(
+                        request.id,
+                        Number(coachId),
+                      ),
+                    "Coach assigned to this request.",
+                  )
+                }
+              >
+                Assign coach
+              </button>
+              <button
+                type="button"
+                className="secondary-button"
+                disabled={busy || !priceInput}
+                onClick={() =>
+                  run(
+                    () =>
+                      api.quoteAnalysisRequest(request.id, Number(priceInput)),
+                    "Quote sent to the submitter.",
+                  )
+                }
+              >
+                Send quote
+              </button>
+              <button
+                type="button"
+                className="secondary-button"
+                disabled={busy}
+                onClick={() =>
+                  run(
+                    () =>
+                      api.markAnalysisRequestInvoiceSent(
+                        request.id,
+                        invoiceReference || undefined,
+                      ),
+                    "Invoice marked as sent.",
+                  )
+                }
+              >
+                Mark invoice sent
+              </button>
+              <button
+                type="button"
+                className="secondary-button"
+                disabled={busy}
+                onClick={() => void emailInvoice(request.id)}
+              >
+                Email invoice (PDF)
+              </button>
+              <button
+                type="button"
+                className="secondary-button"
+                disabled={busy}
+                onClick={() =>
+                  run(
+                    () => api.markAnalysisRequestPaid(request.id),
+                    "Payment recorded — the request is ready for production.",
+                  )
+                }
+              >
+                Mark paid
+              </button>
+              <button
+                type="button"
+                className="secondary-button"
+                disabled={busy}
+                onClick={() =>
+                  run(
+                    () => api.startAnalysisRequestWork(request.id),
+                    "Work started on this request.",
+                  )
+                }
+              >
+                Start work
+              </button>
+              <button
+                type="button"
+                className="secondary-button"
+                disabled={busy}
+                onClick={() =>
+                  run(
+                    () => api.completeAnalysisRequest(request.id),
+                    "Request completed — the submitter can now see the analysis.",
+                  )
+                }
+              >
+                Complete
+              </button>
+              <button
+                type="button"
+                className="secondary-button"
+                disabled={busy}
+                onClick={() => {
+                  if (window.confirm("Cancel this request?")) {
+                    void run(
+                      () => api.cancelAnalysisRequest(request.id),
+                      "Request cancelled.",
+                    );
+                  }
+                }}
+              >
+                Cancel
+              </button>
+            </div>
+            {noticeFor("staff")}
+
             <div className="form-group">
-              <label htmlFor="accept-price">Accept with price (cents)</label>
+              <label htmlFor="invoice-reference">
+                Invoice reference (optional)
+              </label>
               <input
-                id="accept-price"
-                type="number"
-                min={0}
-                value={priceInput}
-                onChange={(event) => setPriceInput(event.target.value)}
-                placeholder={String(request.price_cents)}
+                id="invoice-reference"
+                type="text"
+                value={invoiceReference}
+                onChange={(event) => setInvoiceReference(event.target.value)}
+                placeholder="e.g. INV-1042"
               />
             </div>
+
             <div className="form-group">
-              <label htmlFor="assign-coach">Assign coach</label>
-              <select
-                id="assign-coach"
-                value={coachId}
-                onChange={(event) => setCoachId(event.target.value)}
+              <label htmlFor="reject-reason">Rejection reason</label>
+              <input
+                id="reject-reason"
+                type="text"
+                value={rejectReason}
+                onChange={(event) => setRejectReason(event.target.value)}
+                placeholder="Why is this request being rejected?"
+              />
+              <button
+                type="button"
+                className="secondary-button"
+                disabled={busy || !rejectReason.trim()}
+                onClick={() =>
+                  run(
+                    () =>
+                      api.rejectAnalysisRequest(
+                        request.id,
+                        rejectReason.trim(),
+                      ),
+                    "Request rejected — the submitter has been notified.",
+                  )
+                }
               >
-                <option value="">Choose a coach…</option>
-                {coaches.map((coach) => (
-                  <option key={coach.id} value={coach.id}>
-                    {coach.display_name ?? coach.full_name ?? `Coach #${coach.id}`}
-                  </option>
-                ))}
-              </select>
+                Reject request
+              </button>
             </div>
-          </div>
+          </section>
 
-          <div className="contact-detail-actions">
-            <button
-              type="button"
-              className="auth-submit"
-              disabled={busy}
-              onClick={() =>
-                run(
-                  () => api.acceptAnalysisRequest(request.id, acceptPriceCents),
-                  "Request accepted — the submitter has been notified.",
-                )
-              }
-            >
-              Accept
-            </button>
-            <button
-              type="button"
-              className="secondary-button"
-              disabled={busy || !coachId}
-              onClick={() =>
-                run(
-                  () => api.assignAnalysisRequestCoach(request.id, Number(coachId)),
-                  "Coach assigned to this request.",
-                )
-              }
-            >
-              Assign coach
-            </button>
-            <button
-              type="button"
-              className="secondary-button"
-              disabled={busy || !priceInput}
-              onClick={() =>
-                run(
-                  () => api.quoteAnalysisRequest(request.id, Number(priceInput)),
-                  "Quote sent to the submitter.",
-                )
-              }
-            >
-              Send quote
-            </button>
-            <button
-              type="button"
-              className="secondary-button"
-              disabled={busy}
-              onClick={() =>
-                run(
-                  () =>
-                    api.markAnalysisRequestInvoiceSent(
-                      request.id,
-                      invoiceReference || undefined,
-                    ),
-                  "Invoice marked as sent.",
-                )
-              }
-            >
-              Mark invoice sent
-            </button>
-            <button
-              type="button"
-              className="secondary-button"
-              disabled={busy}
-              onClick={() => void emailInvoice(request.id)}
-            >
-              Email invoice (PDF)
-            </button>
-            <button
-              type="button"
-              className="secondary-button"
-              disabled={busy}
-              onClick={() =>
-                run(
-                  () => api.markAnalysisRequestPaid(request.id),
-                  "Payment recorded — the request is ready for production.",
-                )
-              }
-            >
-              Mark paid
-            </button>
-            <button
-              type="button"
-              className="secondary-button"
-              disabled={busy}
-              onClick={() =>
-                run(
-                  () => api.startAnalysisRequestWork(request.id),
-                  "Work started on this request.",
-                )
-              }
-            >
-              Start work
-            </button>
-            <button
-              type="button"
-              className="secondary-button"
-              disabled={busy}
-              onClick={() =>
-                run(
-                  () => api.completeAnalysisRequest(request.id),
-                  "Request completed — the submitter can now see the analysis.",
-                )
-              }
-            >
-              Complete
-            </button>
-            <button
-              type="button"
-              className="secondary-button"
-              disabled={busy}
-              onClick={() => {
-                if (window.confirm("Cancel this request?")) {
-                  void run(
-                    () => api.cancelAnalysisRequest(request.id),
-                    "Request cancelled.",
-                  );
-                }
-              }}
-            >
-              Cancel
-            </button>
-          </div>
-          {noticeFor("staff")}
+          <section
+            className="review-content"
+            aria-labelledby="assessment-deliverables"
+          >
+            <h3 id="assessment-deliverables">
+              <Link2 size={16} aria-hidden="true" /> Assessment deliverables
+            </h3>
+            <p className="hint">
+              Linked assessment sessions are delivered to the submitter
+              alongside the analysis.
+            </p>
 
-          <div className="form-group">
-            <label htmlFor="invoice-reference">Invoice reference (optional)</label>
-            <input
-              id="invoice-reference"
-              type="text"
-              value={invoiceReference}
-              onChange={(event) => setInvoiceReference(event.target.value)}
-              placeholder="e.g. INV-1042"
-            />
-          </div>
-
-          <div className="form-group">
-            <label htmlFor="reject-reason">Rejection reason</label>
-            <input
-              id="reject-reason"
-              type="text"
-              value={rejectReason}
-              onChange={(event) => setRejectReason(event.target.value)}
-              placeholder="Why is this request being rejected?"
-            />
-            <button
-              type="button"
-              className="secondary-button"
-              disabled={busy || !rejectReason.trim()}
-              onClick={() =>
-                run(
-                  () => api.rejectAnalysisRequest(request.id, rejectReason.trim()),
-                  "Request rejected — the submitter has been notified.",
-                )
-              }
-            >
-              Reject request
-            </button>
-          </div>
-        </section>
-
-        <section className="review-content" aria-labelledby="internal-notes">
-          <h3 id="internal-notes">Internal notes (staff only)</h3>
-          {(request.internal_notes ?? []).length === 0 ? (
-            <p className="hint">No internal notes yet.</p>
-          ) : (
-            <ul className="selected-videos">
-              {(request.internal_notes ?? []).map((note) => (
-                <li key={note.id} className="video-item">
-                  <span>
-                    {note.body}
-                    <br />
-                    <span className="hint">
-                      {note.author.name} · {formatDate(note.created_at)}
+            {(request.assessment_sessions ?? []).length === 0 ? (
+              <p className="hint">No assessment sessions linked yet.</p>
+            ) : (
+              <ul className="selected-videos">
+                {(request.assessment_sessions ?? []).map((session) => (
+                  <li key={session.id} className="video-item">
+                    <span>
+                      {session.title}
+                      <br />
+                      <span className="hint">
+                        {session.status.replace(/_/g, " ")}
+                        {session.date ? ` · ${formatDate(session.date)}` : ""}
+                      </span>
                     </span>
-                  </span>
-                </li>
-              ))}
-            </ul>
-          )}
+                    <button
+                      type="button"
+                      className="secondary-button"
+                      disabled={busy}
+                      onClick={() =>
+                        void unlinkAssessment(request.id, session.id)
+                      }
+                    >
+                      <Unlink size={14} aria-hidden="true" /> Remove
+                    </button>
+                  </li>
+                ))}
+              </ul>
+            )}
 
-          <div className="form-group">
-            <label htmlFor="internal-note-body">Add a note</label>
-            <textarea
-              id="internal-note-body"
-              rows={3}
-              value={noteBody}
-              onChange={(event) => setNoteBody(event.target.value)}
-              placeholder="Context for the team…"
-            />
-            <button
-              type="button"
-              className="secondary-button"
-              disabled={busy || !noteBody.trim()}
-              onClick={async () => {
-                setBusy(true);
-                setError(null);
-                try {
-                  await api.addAnalysisRequestInternalNote(request.id, noteBody.trim());
-                  setNoteBody("");
-                  await load();
-                } catch (e: unknown) {
-                  setError(e instanceof Error ? e.message : "The note could not be saved.");
-                } finally {
-                  setBusy(false);
-                }
-              }}
-            >
-              Save note
-            </button>
-          </div>
-        </section>
+            <div className="form-group">
+              <label htmlFor="assessment-session">Add assessment session</label>
+              <div className="contact-detail-actions">
+                <select
+                  id="assessment-session"
+                  value={assessmentChoice}
+                  onChange={(event) => setAssessmentChoice(event.target.value)}
+                >
+                  <option value="">Choose a session…</option>
+                  {assessmentOptions
+                    .filter(
+                      (session) =>
+                        !(request.assessment_sessions ?? []).some(
+                          (linked) => linked.id === session.id,
+                        ),
+                    )
+                    .map((session) => (
+                      <option key={session.id} value={session.id}>
+                        {session.name}
+                        {session.scheduled_on
+                          ? ` · ${session.scheduled_on}`
+                          : ""}
+                      </option>
+                    ))}
+                </select>
+                <button
+                  type="button"
+                  className="auth-submit"
+                  disabled={busy || !assessmentChoice}
+                  onClick={() => void linkAssessment(request.id)}
+                >
+                  <Link2 size={14} aria-hidden="true" /> Add as deliverable
+                </button>
+              </div>
+            </div>
+          </section>
+
+          <section className="review-content" aria-labelledby="internal-notes">
+            <h3 id="internal-notes">Internal notes (staff only)</h3>
+            {(request.internal_notes ?? []).length === 0 ? (
+              <p className="hint">No internal notes yet.</p>
+            ) : (
+              <ul className="selected-videos">
+                {(request.internal_notes ?? []).map((note) => (
+                  <li key={note.id} className="video-item">
+                    <span>
+                      {note.body}
+                      <br />
+                      <span className="hint">
+                        {note.author.name} · {formatDate(note.created_at)}
+                      </span>
+                    </span>
+                  </li>
+                ))}
+              </ul>
+            )}
+
+            <div className="form-group">
+              <label htmlFor="internal-note-body">Add a note</label>
+              <textarea
+                id="internal-note-body"
+                rows={3}
+                value={noteBody}
+                onChange={(event) => setNoteBody(event.target.value)}
+                placeholder="Context for the team…"
+              />
+              <button
+                type="button"
+                className="secondary-button"
+                disabled={busy || !noteBody.trim()}
+                onClick={async () => {
+                  setBusy(true);
+                  setError(null);
+                  try {
+                    await api.addAnalysisRequestInternalNote(
+                      request.id,
+                      noteBody.trim(),
+                    );
+                    setNoteBody("");
+                    await load();
+                  } catch (e: unknown) {
+                    setError(
+                      e instanceof Error
+                        ? e.message
+                        : "The note could not be saved.",
+                    );
+                  } finally {
+                    setBusy(false);
+                  }
+                }}
+              >
+                Save note
+              </button>
+            </div>
+          </section>
         </>
       )}
     </div>
