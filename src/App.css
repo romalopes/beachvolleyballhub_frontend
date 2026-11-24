@@ -16839,3 +16839,149 @@
 }
 
 
+
+/* Assessment sessions inside the main analysis panel read slightly larger than the compact sidebar list. */
+.analysis-assessment-panel-list a { padding: 0.85rem 0.95rem; }
+.analysis-assessment-panel-list a strong { font-size: 0.9rem; }
+.analysis-assessment-panel-list a small { font-size: 0.78rem; white-space: normal; }
+
+/* Assessment session inline detail (deliverables expand) */
+.assessment-inline-detail {
+  margin-top: 1rem;
+  padding: 1rem;
+  background: var(--sand-50);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+}
+
+.assessment-inline-detail.loading,
+.assessment-inline-detail.error {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 1.5rem;
+  color: var(--text-secondary);
+}
+
+.assessment-inline-detail.error button {
+  margin-top: 0.5rem;
+}
+
+.assessment-inline-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 0.75rem;
+  gap: 1rem;
+}
+
+.assessment-inline-header h3 {
+  margin: 0;
+  font-size: 1.1rem;
+  color: var(--charcoal);
+}
+
+.assessment-inline-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex-shrink: 0;
+}
+
+.assessment-inline-actions .icon-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--bg-primary);
+  color: var(--text-secondary);
+  cursor: pointer;
+}
+
+.assessment-inline-actions .icon-button:hover {
+  background: var(--sand-100);
+  color: var(--charcoal);
+}
+
+.assessment-inline-meta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem 1rem;
+  margin-bottom: 0.75rem;
+  font-size: 0.8125rem;
+  color: var(--text-secondary);
+}
+
+.assessment-inline-meta-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+}
+
+.assessment-inline-meta-item svg {
+  flex-shrink: 0;
+}
+
+.assessment-inline-description {
+  padding-top: 0.75rem;
+  border-top: 1px solid var(--border);
+}
+
+.assessment-inline-description h4 {
+  margin: 0 0 0.35rem;
+  font-size: 0.875rem;
+  color: var(--charcoal);
+}
+
+.assessment-inline-description p {
+  margin: 0;
+  font-size: 0.875rem;
+  color: var(--text-secondary);
+  line-height: 1.5;
+}
+
+.assessment-inline-roster {
+  padding-top: 0.75rem;
+  border-top: 1px solid var(--border);
+}
+
+.assessment-inline-roster h4 {
+  margin: 0 0 0.35rem;
+  font-size: 0.875rem;
+  color: var(--charcoal);
+}
+
+.assessment-inline-roster-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+
+.assessment-inline-roster-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  padding: 0.35rem 0.5rem;
+  background: var(--bg-primary);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  font-size: 0.8125rem;
+}
+
+.roster-player-name {
+  font-weight: 500;
+  color: var(--charcoal);
+}
+
+.assessment-inline-roster-item .tag {
+  flex-shrink: 0;
+}

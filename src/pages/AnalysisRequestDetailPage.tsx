@@ -16,6 +16,7 @@ import {
 import { useAuth } from "../auth/AuthContext";
 import PageHeader from "../components/PageHeader";
 import AnalysisProgress from "../components/analysisRequest/AnalysisProgress";
+import AssessmentSessionInlineDetail from "../components/analysisRequest/AssessmentSessionInlineDetail";
 
 import {
   formatDate,
@@ -67,6 +68,16 @@ export default function AnalysisRequestDetailPage() {
   const [messageBody, setMessageBody] = useState("");
   const [sendingMessage, setSendingMessage] = useState(false);
   const [startingAnalysis, setStartingAnalysis] = useState(false);
+  // Assessment session inline detail expansion
+  const [expandedAssessmentId, setExpandedAssessmentId] = useState<number | null>(null);
+
+  const handleExpandAssessment = (sessionId: number) => {
+    setExpandedAssessmentId(sessionId);
+  };
+
+  const handleCloseAssessment = () => {
+    setExpandedAssessmentId(null);
+  };
   // Assessment sessions offered as deliverables; the picker lists sessions the
   // team can attach (staff only), the request itself carries the linked ones.
   const [assessmentOptions, setAssessmentOptions] = useState<
@@ -385,13 +396,18 @@ export default function AnalysisRequestDetailPage() {
             {(request.assessment_sessions ?? []).map((session) => (
               <li key={`assessment-${session.id}`} className="video-item">
                 <span>
-                  {session.title}
+                  <Link to={"/assessment-sessions/" + session.id}>
+                    {session.title}
+                  </Link>
                   <br />
                   <span className="hint">
                     Assessment · {session.status.replace(/_/g, " ")}
                     {session.date ? ` · ${formatDate(session.date)}` : ""}
                   </span>
                 </span>
+                <Link to={"/assessment-sessions/" + session.id} className="hint">
+                  <ExternalLink size={14} aria-hidden="true" /> View
+                </Link>
               </li>
             ))}
             {(request.deliverables ?? []).map((document) => (
@@ -693,7 +709,10 @@ export default function AnalysisRequestDetailPage() {
               <ul className="selected-videos">
                 {(request.assessment_sessions ?? []).map((session) => (
                   <li key={session.id} className="video-item">
-                    <span>
+                    <span
+                      onClick={() => handleExpandAssessment(session.id)}
+                      style={{ cursor: 'pointer' }}
+                    >
                       {session.title}
                       <br />
                       <span className="hint">
@@ -701,19 +720,32 @@ export default function AnalysisRequestDetailPage() {
                         {session.date ? ` · ${formatDate(session.date)}` : ""}
                       </span>
                     </span>
-                    <button
-                      type="button"
-                      className="secondary-button"
-                      disabled={busy}
-                      onClick={() =>
-                        void unlinkAssessment(request.id, session.id)
-                      }
-                    >
-                      <Unlink size={14} aria-hidden="true" /> Remove
-                    </button>
+                    <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
+                      <button
+                        type="button"
+                        className="hint"
+                        onClick={(e) => { e.stopPropagation(); handleExpandAssessment(session.id); }}
+                      >
+                        <ExternalLink size={14} aria-hidden="true" /> View
+                      </button>
+                      <button
+                        type="button"
+                        className="secondary-button"
+                        disabled={busy}
+                        onClick={(e) => { e.stopPropagation(); void unlinkAssessment(request.id, session.id); }}
+                      >
+                        <Unlink size={14} aria-hidden="true" /> Remove
+                      </button>
+                    </div>
                   </li>
                 ))}
               </ul>
+            )}
+            {expandedAssessmentId && request.assessment_sessions?.some(s => s.id === expandedAssessmentId) && (
+              <AssessmentSessionInlineDetail
+                sessionId={expandedAssessmentId}
+                onClose={handleCloseAssessment}
+              />
             )}
 
             <div className="form-group">

@@ -3,6 +3,7 @@ import { Link, useNavigate, useParams } from "react-router-dom";
 import {
   Archive, ArrowLeft, Building2, CalendarDays, CheckCircle2, Clock3,
   Edit2, FileText, Layers3, Send, Trash2, Trophy, UserRound, Users, Video,
+  ClipboardList,
 } from "lucide-react";
 import { api, type AnalysisDetail, type AnalysisStatus } from "../api";
 import AnalysisDiscussionSection from "../components/analysis/AnalysisDiscussionSection";
@@ -112,6 +113,7 @@ export default function AnalysisDetailPage() {
         <div className="analysis-overview-item"><span className="analysis-overview-icon"><Video size={18} /></span><div><strong>{analysis.video_count}</strong><span>Videos</span></div></div>
         <div className="analysis-overview-item"><span className="analysis-overview-icon"><Users size={18} /></span><div><strong>{analysis.participants.length}</strong><span>Participants</span></div></div>
         <div className="analysis-overview-item"><span className="analysis-overview-icon"><FileText size={18} /></span><div><strong>{analysis.comments.length}</strong><span>Comments</span></div></div>
+        <div className="analysis-overview-item"><span className="analysis-overview-icon"><ClipboardList size={18} /></span><div><strong>{analysis.assessment_sessions.length}</strong><span>Assessments</span></div></div>
         <div className="analysis-overview-item"><span className="analysis-overview-icon"><Clock3 size={18} /></span><div><strong>{formatDate(analysis.updated_at)}</strong><span>Last updated</span></div></div>
       </section>
 
@@ -126,6 +128,23 @@ export default function AnalysisDetailPage() {
               <div className="analysis-participant-grid">{analysis.participants.map((participant) => (
                 <div key={participant.id} className="analysis-participant-card"><span className="analysis-avatar" aria-hidden="true">{participant.name.charAt(0).toUpperCase()}</span><div><strong>{participant.name}</strong><span>{participant.notes || "Player"}</span></div></div>
               ))}</div>
+            )}
+          </section>
+
+          <section className="analysis-panel" aria-labelledby="analysis-assessments">
+            <div className="analysis-panel-heading">
+              <div className="analysis-panel-title"><span className="analysis-section-icon"><ClipboardList size={19} /></span><div><h2 id="analysis-assessments">Assessment sessions</h2><p>Evaluations delivered with this analysis</p></div></div>
+              <span className="analysis-count">{analysis.assessment_sessions.length}</span>
+            </div>
+            {analysis.assessment_sessions.length === 0 ? <div className="analysis-empty-row">No assessment sessions are linked to this analysis.</div> : (
+              <div className="analysis-linked-list analysis-assessment-panel-list">
+                {analysis.assessment_sessions.map((session) => (
+                  <Link key={session.id} to={`/assessment-sessions/${session.id}`} className="analysis-linked-item">
+                    <span><strong>{session.name}</strong><small>{session.assessment_definition.name}{session.scheduled_on ? ` · ${formatDate(session.scheduled_on)}` : ""}</small></span>
+                    <span className="analysis-linked-status">{session.status}</span>
+                  </Link>
+                ))}
+              </div>
             )}
           </section>
 

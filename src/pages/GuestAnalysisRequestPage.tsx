@@ -4,6 +4,7 @@ import { Loader2, FileWarning, ExternalLink, Download } from "lucide-react";
 import { api, type GuestAnalysisRequest } from "../api";
 import PageHeader from "../components/PageHeader";
 import AnalysisProgress from "../components/analysisRequest/AnalysisProgress";
+import AssessmentSessionInlineDetail from "../components/analysisRequest/AssessmentSessionInlineDetail";
 
 /**
  * Secure guest view of an analysis request (IDENTITY-265).
@@ -23,6 +24,15 @@ export default function GuestAnalysisRequestPage() {
   const [messageBody, setMessageBody] = useState("");
   const [sendingMessage, setSendingMessage] = useState(false);
   const [messageError, setMessageError] = useState<string | null>(null);
+  const [expandedAssessmentId, setExpandedAssessmentId] = useState<number | null>(null);
+
+  const handleExpandAssessment = (sessionId: number) => {
+    setExpandedAssessmentId(sessionId);
+  };
+
+  const handleCloseAssessment = () => {
+    setExpandedAssessmentId(null);
+  };
 
   useEffect(() => {
     if (!token) return;
@@ -182,7 +192,10 @@ export default function GuestAnalysisRequestPage() {
             )}
             {(request.assessment_sessions ?? []).map((session) => (
               <li key={`assessment-${session.id}`} className="video-item">
-                <span>
+                <span
+                  onClick={() => handleExpandAssessment(session.id)}
+                  style={{ cursor: 'pointer' }}
+                >
                   {session.title}
                   <br />
                   <span className="hint">
@@ -190,6 +203,14 @@ export default function GuestAnalysisRequestPage() {
                     {session.date ? ` · ${session.date.slice(0, 10)}` : ""}
                   </span>
                 </span>
+                <button
+                  type="button"
+                  className="hint"
+                  onClick={(e) => { e.stopPropagation(); handleExpandAssessment(session.id); }}
+                >
+                  <ExternalLink size={14} aria-hidden="true" /> View
+                </button>
+
               </li>
             ))}
             {request.deliverables.map((document) => (
@@ -202,6 +223,12 @@ export default function GuestAnalysisRequestPage() {
                 )}
               </li>
             ))}
+            {expandedAssessmentId && request.assessment_sessions?.some(s => s.id === expandedAssessmentId) && (
+              <AssessmentSessionInlineDetail
+                sessionId={expandedAssessmentId}
+                onClose={handleCloseAssessment}
+              />
+            )}
           </ul>
         )}
 
