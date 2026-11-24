@@ -2397,6 +2397,10 @@ export interface AppConfiguration {
   logs_saved_to_database: boolean;
   use_test_email: boolean;
   test_email: string;
+  bank_name: string;
+  bank_account_name: string;
+  bank_bsb: string;
+  bank_account: string;
 }
 
 export interface AppSettingRow {

@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { FileText, Mail, Sliders } from "lucide-react";
+import { FileText, Mail, Sliders, Banknote } from "lucide-react";
 import { api, type AppConfiguration, type AppSettingRow } from "../../api";
 import { useAuth } from "../../auth/AuthContext";
 import SettingsLayout from "../../components/settings/SettingsLayout";
@@ -9,6 +9,10 @@ const DEFAULT_FORM: AppConfiguration = {
   logs_saved_to_database: true,
   use_test_email: false,
   test_email: "romalopes@yahoo.com.br",
+  bank_name: "",
+  bank_account_name: "",
+  bank_bsb: "",
+  bank_account: "",
 };
 
 /**
@@ -49,10 +53,14 @@ export default function ConfigurationSettings() {
           api.appSettings(),
         ]);
         if (cancelled) return;
-        const next = {
+        const next: AppConfiguration = {
           logs_saved_to_database: data?.logs_saved_to_database !== false,
           use_test_email: data?.use_test_email === true,
           test_email: data?.test_email ?? "romalopes@yahoo.com.br",
+          bank_name: data?.bank_name ?? "",
+          bank_account_name: data?.bank_account_name ?? "",
+          bank_bsb: data?.bank_bsb ?? "",
+          bank_account: data?.bank_account ?? "",
         };
         setForm(next);
         setSaved(next);
@@ -84,7 +92,16 @@ export default function ConfigurationSettings() {
   }
 
   const customRows = rows.filter(
-    (row) => !["logs_enabled", "test", "test_email"].includes(row.key),
+    (row) =>
+      ![
+        "logs_enabled",
+        "test",
+        "test_email",
+        "bank_name",
+        "bank_account_name",
+        "bank_bsb",
+        "bank_account",
+      ].includes(row.key),
   );
 
   const dirty =
@@ -96,10 +113,14 @@ export default function ConfigurationSettings() {
     setError(null);
     try {
       const data = await api.updateConfiguration(form);
-      const next = {
+      const next: AppConfiguration = {
         logs_saved_to_database: data?.logs_saved_to_database !== false,
         use_test_email: data?.use_test_email === true,
         test_email: data?.test_email ?? form.test_email,
+        bank_name: data?.bank_name ?? form.bank_name,
+        bank_account_name: data?.bank_account_name ?? form.bank_account_name,
+        bank_bsb: data?.bank_bsb ?? form.bank_bsb,
+        bank_account: data?.bank_account ?? form.bank_account,
       };
       setForm(next);
       setSaved(next);
@@ -197,6 +218,7 @@ export default function ConfigurationSettings() {
           { icon: Sliders, label: "Global settings" },
           { icon: FileText, label: "Log persistence" },
           { icon: Mail, label: "Test email mode" },
+          { icon: Banknote, label: "Bank information" },
         ],
         highlightsLabel: "Configuration features",
         theme: "library-hero--settings",
@@ -205,87 +227,123 @@ export default function ConfigurationSettings() {
       {loading ? (
         <div className="loading">Loading configuration...</div>
       ) : (
-        <form onSubmit={handleSave}>
-          <h2>Logs</h2>
-          <label
-            style={{
-              display: "flex",
-              alignItems: "center",
-              gap: 8,
-              margin: "8px 0",
-            }}
-          >
-            <input
-              type="checkbox"
-              checked={form.logs_saved_to_database}
-              onChange={(e) =>
-                setForm((f) => ({
-                  ...f,
-                  logs_saved_to_database: e.target.checked,
-                }))
-              }
-              disabled={saving}
-            />
-            Save logs to database
-          </label>
-          <p className="admin-table-name" style={{ fontWeight: "normal" }}>
-            When enabled (default), every audited action is persisted to the
-            database audit trail shown on the Logs page. When disabled, no new
-            database log entries are written — the application log file is
-            unaffected.
-          </p>
+        <form onSubmit={handleSave} className="config-form">
+          <section className="config-section">
+            <h2>Logs</h2>
+            <label className="config-checkbox">
+              <input
+                type="checkbox"
+                checked={form.logs_saved_to_database}
+                onChange={(e) =>
+                  setForm((f) => ({
+                    ...f,
+                    logs_saved_to_database: e.target.checked,
+                  }))
+                }
+                disabled={saving}
+              />
+              <span>Save logs to database</span>
+            </label>
+            <p className="config-description">
+              When enabled (default), every audited action is persisted to the
+              database audit trail shown on the Logs page. When disabled, no new
+              database log entries are written — the application log file is
+              unaffected.
+            </p>
+          </section>
 
-          <h2 style={{ marginTop: 24 }}>Email test mode</h2>
-          <label
-            style={{
-              display: "flex",
-              alignItems: "center",
-              gap: 8,
-              margin: "8px 0",
-            }}
-          >
-            <input
-              type="checkbox"
-              checked={form.use_test_email}
-              onChange={(e) =>
-                setForm((f) => ({ ...f, use_test_email: e.target.checked }))
-              }
-              disabled={saving}
-            />
-            Redirect all emails to the test address
-          </label>
-          <p className="admin-table-name" style={{ fontWeight: "normal" }}>
-            When enabled, every outgoing email is sent to the test address below
-            instead of its real recipients, with a [TEST] subject prefix. Use
-            this to safely verify email flows without emailing real users.
-          </p>
-          <label style={{ display: "block", margin: "8px 0" }}>
-            Test email address
-            <input
-              type="email"
-              value={form.test_email}
-              onChange={(e) =>
-                setForm((f) => ({ ...f, test_email: e.target.value }))
-              }
-              disabled={saving}
-              placeholder="romalopes@yahoo.com.br"
-              style={{
-                display: "block",
-                marginTop: 4,
-                maxWidth: 320,
-                width: "100%",
-              }}
-            />
-          </label>
+          <section className="config-section">
+            <h2>Email test mode</h2>
+            <label className="config-checkbox">
+              <input
+                type="checkbox"
+                checked={form.use_test_email}
+                onChange={(e) =>
+                  setForm((f) => ({ ...f, use_test_email: e.target.checked }))
+                }
+                disabled={saving}
+              />
+              <span>Redirect all emails to the test address</span>
+            </label>
+            <p className="config-description">
+              When enabled, every outgoing email is sent to the test address below
+              instead of its real recipients, with a [TEST] subject prefix. Use
+              this to safely verify email flows without emailing real users.
+            </p>
+            <label className="config-field">
+              <span className="config-field-label">Test email address</span>
+              <input
+                type="email"
+                value={form.test_email}
+                onChange={(e) =>
+                  setForm((f) => ({ ...f, test_email: e.target.value }))
+                }
+                disabled={saving}
+                placeholder="romalopes@yahoo.com.br"
+              />
+            </label>
+          </section>
 
-          <div
-            style={{
-              display: "flex",
-              gap: 12,
-              alignItems: "center",
-              marginTop: 16,
-            }}
-          >
+          <section className="config-section">
+            <h2>Bank information</h2>
+            <p className="config-description">
+              These details appear on generated invoice PDFs for payment
+              instructions. Configured via environment variables by default;
+              override here to customise without redeploying.
+            </p>
+            <div className="config-grid">
+              <label className="config-field">
+                <span className="config-field-label">Bank name</span>
+                <input
+                  type="text"
+                  value={form.bank_name}
+                  onChange={(e) =>
+                    setForm((f) => ({ ...f, bank_name: e.target.value }))
+                  }
+                  disabled={saving}
+                  placeholder="e.g. Commonwealth Bank"
+                />
+              </label>
+              <label className="config-field">
+                <span className="config-field-label">Account name</span>
+                <input
+                  type="text"
+                  value={form.bank_account_name}
+                  onChange={(e) =>
+                    setForm((f) => ({ ...f, bank_account_name: e.target.value }))
+                  }
+                  disabled={saving}
+                  placeholder="e.g. Beach Volleyball Hub"
+                />
+              </label>
+              <label className="config-field">
+                <span className="config-field-label">BSB</span>
+                <input
+                  type="text"
+                  value={form.bank_bsb}
+                  onChange={(e) =>
+                    setForm((f) => ({ ...f, bank_bsb: e.target.value }))
+                  }
+                  disabled={saving}
+                  placeholder="e.g. 062-000"
+                />
+              </label>
+              <label className="config-field">
+                <span className="config-field-label">Account number</span>
+                <input
+                  type="text"
+                  value={form.bank_account}
+                  onChange={(e) =>
+                    setForm((f) => ({ ...f, bank_account: e.target.value }))
+                  }
+                  disabled={saving}
+                  placeholder="e.g. 12345678"
+                />
+              </label>
+            </div>
+          </section>
+
+          <div className="config-actions">
             <button
               type="submit"
               className="admin-btn admin-btn-add"
@@ -294,10 +352,7 @@ export default function ConfigurationSettings() {
               {saving ? "Saving..." : "Save changes"}
             </button>
             {savedAt && !error && (
-              <span
-                className="admin-table-name"
-                style={{ fontWeight: "normal" }}
-              >
+              <span className="config-saved">
                 Saved at {savedAt.toLocaleTimeString()}
               </span>
             )}

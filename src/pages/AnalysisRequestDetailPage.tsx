@@ -1,6 +1,12 @@
 import { useCallback, useEffect, useState } from "react";
 import { Link, useParams } from "react-router-dom";
-import { Download, ExternalLink, Loader2, Link2, Unlink } from "lucide-react";
+import {
+  Download,
+  ExternalLink,
+  Loader2,
+  Link2,
+  Unlink,
+} from "lucide-react";
 import {
   api,
   type AnalysisRequestRecord,
@@ -10,6 +16,7 @@ import {
 import { useAuth } from "../auth/AuthContext";
 import PageHeader from "../components/PageHeader";
 import AnalysisProgress from "../components/analysisRequest/AnalysisProgress";
+
 import {
   formatDate,
   paymentLabel,
@@ -76,6 +83,10 @@ export default function AnalysisRequestDetailPage() {
       const { analysis_request } = await api.analysisRequest(Number(id));
       setRequest(analysis_request);
       setStatus("ready");
+      // Initialize coachId from the request's assigned coach
+      if (analysis_request.assigned_coach?.id) {
+        setCoachId(String(analysis_request.assigned_coach.id));
+      }
     } catch {
       setStatus("missing");
     }

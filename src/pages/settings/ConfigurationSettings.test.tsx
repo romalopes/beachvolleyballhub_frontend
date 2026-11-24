@@ -32,6 +32,10 @@ const config = {
   logs_saved_to_database: true,
   use_test_email: false,
   test_email: "romalopes@yahoo.com.br",
+  bank_name: "Beach Volleyball Hub Bank",
+  bank_account_name: "Beach Volleyball Hub",
+  bank_bsb: "062-000",
+  bank_account: "12345678",
 };
 
 const renderPage = () =>
@@ -86,6 +90,10 @@ describe("ConfigurationSettings page", () => {
       logs_saved_to_database: true,
       use_test_email: true,
       test_email: "romalopes@yahoo.com.br",
+      bank_name: "Beach Volleyball Hub Bank",
+      bank_account_name: "Beach Volleyball Hub",
+      bank_bsb: "062-000",
+      bank_account: "12345678",
     });
     expect(await screen.findByText(/saved at/i)).toBeInTheDocument();
   });
