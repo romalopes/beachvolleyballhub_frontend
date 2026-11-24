@@ -82,6 +82,7 @@ import BillingReturn from "./pages/BillingReturn";
 import OrganisationBilling from "./pages/OrganisationBilling";
 import VideoCategoriesSettings from "./pages/settings/VideoCategories";
 import VideoTagsSettings from "./pages/settings/VideoTags";
+import AnalysisPackagesSettings from "./pages/settings/AnalysisPackages";
 import ContactMessagesSettings from "./pages/settings/ContactMessages";
 import InvoicesSettings from "./pages/settings/Invoices";
 import ContactMessageDetailPage from "./pages/settings/ContactMessageDetail";
@@ -805,6 +806,15 @@ export default function App() {
                   element={
                     <AdminRoute>
                       <VideoTagsSettings />
+                    </AdminRoute>
+                  }
+                />
+                {/* Analysis Packages (IDENTITY-265): admin-only CRUD for hire-analysis packages. */}
+                <Route
+                  path="/settings/analysis-packages"
+                  element={
+                    <AdminRoute>
+                      <AnalysisPackagesSettings />
                     </AdminRoute>
                   }
                 />

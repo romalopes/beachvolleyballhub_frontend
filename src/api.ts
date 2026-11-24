@@ -459,6 +459,7 @@ export interface GuestAnalysisRequest {
 }
 
 export interface AnalysisPackage {
+  id?: number;
   key: string;
   name: string;
   description: string;
@@ -470,6 +471,10 @@ export interface AnalysisPackage {
   includes_written_report: boolean;
   includes_consultation: boolean;
   turnaround_days: number;
+  active?: boolean;
+  position?: number;
+  created_at?: string;
+  updated_at?: string;
 }
 
 export type AssessmentDefinitionStatus = "draft" | "active" | "archived";
@@ -5438,6 +5443,26 @@ export const api = {
   /** Public pricing page. No authentication required. */
   getAnalysisPackages: () =>
     fetchAPI<{ data: AnalysisPackage[] }>("/analysis_packages"),
+
+  /** Admin: list all packages (including inactive). */
+  getAdminAnalysisPackages: () =>
+    fetchAPI<{ data: AnalysisPackage[] }>("/analysis_packages/admin_index"),
+
+  /** Admin: get one package by id. */
+  getAnalysisPackage: (id: number) =>
+    fetchAPI<{ package: AnalysisPackage }>(`/analysis_packages/${id}`),
+
+  /** Admin: create a new package. */
+  createAnalysisPackage: (data: Partial<AnalysisPackage>) =>
+    postJSON<{ package: AnalysisPackage }>("/analysis_packages", { analysis_package: data }),
+
+  /** Admin: update a package. */
+  updateAnalysisPackage: (id: number, data: Partial<AnalysisPackage>) =>
+    postJSON<{ package: AnalysisPackage }>(`/analysis_packages/${id}`, { analysis_package: data }, "PATCH"),
+
+  /** Admin: delete a package. */
+  deleteAnalysisPackage: (id: number) =>
+    postJSON<void>(`/analysis_packages/${id}`, {}, "DELETE"),
 
   /**
    * Secure guest view of one request. The token, not the reference, is the

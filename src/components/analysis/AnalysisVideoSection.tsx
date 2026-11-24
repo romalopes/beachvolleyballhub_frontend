@@ -230,7 +230,7 @@ export default function AnalysisVideoSection({
             <div className="analysis-video-body">
               <div className="analysis-video-header">
                 <div>
-                  <h3>{video.title || `Video ${video.position + 1}`}</h3>
+                  <h3>{video.title || (video.analysis_request_video_id ? `Submitted Video ${video.position + 1}` : `Video ${video.position + 1}`)}</h3>
                   <div className="analysis-video-meta">
                     <span>{video.source_type === "upload" ? "Uploaded video" : "External video"}</span>
                     {video.duration_seconds != null && <span>{formatDuration(video.duration_seconds)}</span>}

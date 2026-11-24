@@ -1,5 +1,5 @@
 import { Link } from "react-router-dom";
-import { Activity, ClipboardList, Database, Receipt, ShieldCheck, Tags, Target, Dumbbell, FileText, Shield, PlayCircle, Settings, MapPin, Mail } from "lucide-react";
+import { Activity, ClipboardList, Database, Receipt, ShieldCheck, Tags, Target, Dumbbell, FileText, Shield, PlayCircle, Settings, MapPin, Mail, Package } from "lucide-react";
 import { useAuth } from "../../auth/AuthContext";
 import SettingsLayout from "../../components/settings/SettingsLayout";
 
@@ -9,6 +9,12 @@ const RESOURCES = [
     label: "Manage Analysis Requests",
     desc: "Triage hired analyses, assign coaches and follow production.",
     icon: ClipboardList,
+  },
+  {
+    to: "/settings/analysis-packages",
+    label: "Analysis Packages",
+    desc: "Manage the analysis packages available for hire.",
+    icon: Package,
   },
   {
     to: "/settings/invoices",
