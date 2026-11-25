@@ -16,6 +16,8 @@ interface AnalysisParticipantsSectionProps {
   canManage: boolean;
   /** Called with the full next list of player profile ids after add/remove. */
   onUpdate: (playerProfileIds: number[]) => Promise<void>;
+  /** Optional preloaded player list for browse mode (when search is empty). */
+  browsePlayers?: Player[];
 }
 
 /**
@@ -27,6 +29,7 @@ export default function AnalysisParticipantsSection({
   participants,
   canManage,
   onUpdate,
+  browsePlayers,
 }: AnalysisParticipantsSectionProps) {
   const [search, setSearch] = useState("");
   const [matches, setMatches] = useState<Player[]>([]);
@@ -79,6 +82,13 @@ export default function AnalysisParticipantsSection({
       (player) => !existingIds.has(player.id),
     );
   }, [settled, matches, participants]);
+
+  // Browse mode candidates (preloaded players not already on roster, when search is empty)
+  const browseCandidates = useMemo(() => {
+    if (!browsePlayers || term.length > 0) return [];
+    const existingIds = new Set(participants.map((p) => p.player_profile_id));
+    return browsePlayers.filter((player) => !existingIds.has(player.id));
+  }, [browsePlayers, participants, term]);
 
   const applyUpdate = async (playerProfileIds: number[]) => {
     setWorking(true);
@@ -160,6 +170,7 @@ export default function AnalysisParticipantsSection({
                     className="analysis-player-option"
                     disabled={working}
                     onClick={() => addParticipant(player)}
+                    data-testid={`add-participant-${player.id}`}
                   >
                     <span className="analysis-avatar" aria-hidden="true">
                       {playerName(player).charAt(0).toUpperCase()}
@@ -178,6 +189,48 @@ export default function AnalysisParticipantsSection({
                   </button>
                 ))
               )}
+            </div>
+          )}
+
+          {!term && browsePlayers && browseCandidates.length > 0 && (
+            <div className="analysis-player-picker analysis-participant-results analysis-browse-results">
+              {browseCandidates.map((player) => (
+                <button
+                  key={player.id}
+                  type="button"
+                  className="analysis-player-option"
+                  disabled={working}
+                  onClick={() => addParticipant(player)}
+                  data-testid={`add-participant-${player.id}`}
+                >
+                  <span className="analysis-avatar" aria-hidden="true">
+                    {playerName(player).charAt(0).toUpperCase()}
+                  </span>
+                  <span className="analysis-player-copy">
+                    <strong>{playerName(player)}</strong>
+                    <small>
+                      {player.preferred_position ||
+                        player.level ||
+                        "Player profile"}
+                    </small>
+                  </span>
+                  <span className="analysis-check">
+                    <Plus size={14} />
+                  </span>
+                </button>
+              ))}
+            </div>
+          )}
+
+          {!term && browsePlayers && browseCandidates.length === 0 && participants.length > 0 && (
+            <div className="analysis-empty-row">
+              All available players are already added.
+            </div>
+          )}
+
+          {!term && browsePlayers && browseCandidates.length === 0 && participants.length === 0 && (
+            <div className="analysis-empty-row">
+              No players available to add.
             </div>
           )}
         </>

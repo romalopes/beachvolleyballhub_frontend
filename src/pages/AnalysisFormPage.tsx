@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import {
   ArrowLeft,
@@ -10,17 +10,16 @@ import {
   ClipboardCheck,
   ClipboardList,
   Layers3,
-  Plus,
   Save,
-  Search,
   Trophy,
   UserRound,
   Users,
-  X,
 } from "lucide-react";
+import AnalysisParticipantsSection from "../components/analysis/AnalysisParticipantsSection";
 import {
   api,
   type AnalysisInput,
+  type AnalysisParticipant,
   type Coach,
   type Group as GroupRecord,
   type Organisation,
@@ -97,23 +96,6 @@ export default function AnalysisFormPage() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [errors, setErrors] = useState<string[]>([]);
-  const [participantSearch, setParticipantSearch] = useState("");
-  const [searchMatches, setSearchMatches] = useState<Player[]>([]);
-  const [searchError, setSearchError] = useState<string | null>(null);
-  // The term whose search has settled. Derived (not stored) "searching" then
-  // needs no synchronous setState in the effect body.
-  const [settledTerm, setSettledTerm] = useState<string | null>(null);
-
-  // Monotonic request id guard so a stale search response can never overwrite
-  // the results of a newer one.
-  const searchSeqRef = useRef(0);
-  const participantTerm = participantSearch.trim();
-  // Searching until the current term has been answered (or has failed);
-  // results and errors only apply while the settled response matches.
-  const searchPending =
-    participantTerm.length > 0 && settledTerm !== participantTerm;
-  const searchSettled =
-    participantTerm.length > 0 && settledTerm === participantTerm;
 
   useEffect(() => {
     let cancelled = false;
@@ -185,47 +167,6 @@ export default function AnalysisFormPage() {
   }, [analysisId]);
 
   // Debounced server-side participant search. Searching on demand rather than
-  // prefetching the whole catalogue keeps the list complete even when the
-  // player roster outgrows a single page.
-  useEffect(() => {
-    const term = participantSearch.trim();
-    if (!term) return;
-    const seq = ++searchSeqRef.current;
-    const timer = setTimeout(() => {
-      api
-        .players({
-          q: term,
-          status: "active",
-          include_private: true,
-          per_page: 20,
-        })
-        .then((response) => {
-          if (seq !== searchSeqRef.current) return;
-          setSettledTerm(term);
-          setSearchMatches(response.data);
-          setSearchError(null);
-        })
-        .catch((reason: unknown) => {
-          if (seq !== searchSeqRef.current) return;
-          setSettledTerm(term);
-          setSearchMatches([]);
-          setSearchError(
-            reason instanceof Error
-              ? reason.message
-              : "Failed to search players.",
-          );
-        });
-    }, 250);
-    return () => clearTimeout(timer);
-  }, [participantSearch]);
-
-  const searchResults = useMemo(() => {
-    const activeMatches = searchSettled ? searchMatches : [];
-    const selectedIds = new Set(form.player_profile_ids);
-    return activeMatches.filter((player) => !selectedIds.has(player.id));
-  }, [form.player_profile_ids, searchMatches, searchSettled]);
-  const searchErrorVisible = searchSettled ? searchError : null;
-
   const filteredGroups = useMemo(
     () =>
       groups.filter(
@@ -235,16 +176,12 @@ export default function AnalysisFormPage() {
       ),
     [form.organisation_id, groups],
   );
-  // Lookup across the preloaded catalogue and every search response, so a
-  // participant added through search still renders even before a reload.
+  // Lookup across the preloaded catalogue for participant rendering.
   const playerById = useMemo(() => {
     const index = new Map<number, Player>();
     for (const player of players) index.set(player.id, player);
-    for (const player of searchMatches) {
-      if (!index.has(player.id)) index.set(player.id, player);
-    }
     return index;
-  }, [players, searchMatches]);
+  }, [players]);
   const selectedPlayers = useMemo(
     () =>
       form.player_profile_ids
@@ -252,6 +189,19 @@ export default function AnalysisFormPage() {
         .filter((player): player is Player => Boolean(player)),
     [form.player_profile_ids, playerById],
   );
+
+  // Convert selectedPlayers to AnalysisParticipant[] for the section component
+  const selectedParticipants = useMemo<AnalysisParticipant[]>(
+    () =>
+      selectedPlayers.map((player) => ({
+        id: player.id,
+        player_profile_id: player.id,
+        name: playerName(player),
+        notes: null,
+      })),
+    [selectedPlayers],
+  );
+
   const selectedCoach = coaches.find(
     (coach) => coach.id === form.assigned_coach_profile_id,
   );
@@ -277,15 +227,6 @@ export default function AnalysisFormPage() {
   ) =>
     setForm((current) => ({ ...current, [key]: value ? Number(value) : null }));
 
-  const togglePlayer = (playerId: number, checked: boolean) => {
-    setForm((current) => ({
-      ...current,
-      player_profile_ids: checked
-        ? [...current.player_profile_ids, playerId]
-        : current.player_profile_ids.filter((value) => value !== playerId),
-    }));
-  };
-
   const goToStep = (nextStep: FormStep) => {
     if (nextStep > 1 && !form.title.trim()) {
       setStep(1);
@@ -295,6 +236,15 @@ export default function AnalysisFormPage() {
     setErrors([]);
     setStep(nextStep);
     window.scrollTo({ top: 0, behavior: "smooth" });
+  };
+
+  const onUpdateParticipants = async (
+    playerProfileIds: number[],
+  ): Promise<void> => {
+    setForm((current) => ({
+      ...current,
+      player_profile_ids: playerProfileIds,
+    }));
   };
 
   const handleSave = async (event: React.FormEvent) => {
@@ -424,147 +374,12 @@ export default function AnalysisFormPage() {
                   </div>
                 </div>
               </section>
-              <section className="analysis-form-card">
-                <div className="analysis-form-card-heading analysis-form-card-heading-spread">
-                  <div className="analysis-panel-title">
-                    <span className="analysis-section-icon">
-                      <Users size={19} />
-                    </span>
-                    <div>
-                      <h2>Participants</h2>
-                      <p>
-                        Search and select every player featured in the analysis.
-                      </p>
-                    </div>
-                  </div>
-                  <span className="analysis-selection-count">
-                    {form.player_profile_ids.length} selected
-                  </span>
-                </div>
-                {selectedPlayers.length > 0 && (
-                  <div className="analysis-selected-participants">
-                    {selectedPlayers.map((player) => (
-                      <span
-                        key={player.id}
-                        className="analysis-participant-chip"
-                      >
-                        <span
-                          className="analysis-avatar analysis-avatar-small"
-                          aria-hidden="true"
-                        >
-                          {playerName(player).charAt(0).toUpperCase()}
-                        </span>
-                        {playerName(player)}
-                        <button
-                          type="button"
-                          className="analysis-participant-remove"
-                          aria-label={`Remove ${playerName(player)} from participants`}
-                          onClick={() => togglePlayer(player.id, false)}
-                        >
-                          <X size={13} />
-                        </button>
-                      </span>
-                    ))}
-                  </div>
-                )}
-                <label className="analysis-participant-search">
-                  <Search size={15} aria-hidden="true" />
-                  <input
-                    type="search"
-                    value={participantSearch}
-                    onChange={(event) =>
-                      setParticipantSearch(event.target.value)
-                    }
-                    placeholder="Search players by name or email"
-                    aria-label="Search participants"
-                  />
-                </label>
-                {searchErrorVisible && (
-                  <p className="analysis-search-error" role="alert">
-                    {searchErrorVisible}
-                  </p>
-                )}
-                {searchPending ? (
-                  <div className="analysis-empty-row">Searching players…</div>
-                ) : searchSettled ? (
-                  searchResults.length === 0 ? (
-                    <div className="analysis-empty-row">
-                      No players match “{participantTerm}”.
-                    </div>
-                  ) : (
-                    <div className="analysis-player-picker">
-                      {searchResults.map((player) => (
-                        <button
-                          key={player.id}
-                          type="button"
-                          className="analysis-player-option"
-                          onClick={() => togglePlayer(player.id, true)}
-                        >
-                          <span className="analysis-avatar" aria-hidden="true">
-                            {playerName(player).charAt(0).toUpperCase()}
-                          </span>
-                          <span className="analysis-player-copy">
-                            <strong>{playerName(player)}</strong>
-                            <small>
-                              {player.preferred_position ||
-                                player.level ||
-                                "Player profile"}
-                            </small>
-                          </span>
-                          <span className="analysis-check">
-                            <Plus size={14} />
-                          </span>
-                        </button>
-                      ))}
-                    </div>
-                  )
-                ) : players.length === 0 ? (
-                  <div className="analysis-empty-row">
-                    No active players are available.
-                  </div>
-                ) : (
-                  <div className="analysis-player-picker">
-                    {players.map((player) => {
-                      const name = playerName(player);
-                      const selected = form.player_profile_ids.includes(
-                        player.id,
-                      );
-                      return (
-                        <label
-                          key={player.id}
-                          className={`analysis-player-option ${selected ? "selected" : ""}`}
-                        >
-                          <input
-                            type="checkbox"
-                            checked={selected}
-                            onChange={(event) =>
-                              togglePlayer(player.id, event.target.checked)
-                            }
-                          />
-                          <span className="analysis-avatar" aria-hidden="true">
-                            {name.charAt(0).toUpperCase()}
-                          </span>
-                          <span className="analysis-player-copy">
-                            <strong>{name}</strong>
-                            <small>
-                              {player.preferred_position ||
-                                player.level ||
-                                "Player profile"}
-                            </small>
-                          </span>
-                          <span className="analysis-check">
-                            <Check size={14} />
-                          </span>
-                        </label>
-                      );
-                    })}
-                  </div>
-                )}
-                <p className="analysis-step-note">
-                  You can continue without participants, but at least one
-                  participant is required before the analysis can be published.
-                </p>
-              </section>
+              <AnalysisParticipantsSection
+                participants={selectedParticipants}
+                canManage={true}
+                onUpdate={onUpdateParticipants}
+                browsePlayers={players}
+              />
               <section className="analysis-form-card">
                 <div className="analysis-form-card-heading">
                   <span className="analysis-section-icon">
