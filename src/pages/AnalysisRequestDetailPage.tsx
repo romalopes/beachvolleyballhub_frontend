@@ -17,6 +17,7 @@ import { useAuth } from "../auth/AuthContext";
 import PageHeader from "../components/PageHeader";
 import AnalysisProgress from "../components/analysisRequest/AnalysisProgress";
 import AssessmentSessionInlineDetail from "../components/analysisRequest/AssessmentSessionInlineDetail";
+import { AssessmentSessionPicker } from "../components/assessments/AssessmentSessionPicker";
 
 import {
   formatDate,
@@ -83,7 +84,6 @@ export default function AnalysisRequestDetailPage() {
   const [assessmentOptions, setAssessmentOptions] = useState<
     AssessmentSession[]
   >([]);
-  const [assessmentChoice, setAssessmentChoice] = useState("");
 
   const load = useCallback(async () => {
     if (!id) {
@@ -246,10 +246,10 @@ export default function AnalysisRequestDetailPage() {
   };
 
   /** Links an assessment session; the submitter sees it as a deliverable. */
-  const linkAssessment = (requestId: number) =>
+  const linkAssessment = (requestId: number, sessionId: number) =>
     run(
       () =>
-        api.linkRequestAssessmentSession(requestId, Number(assessmentChoice)),
+        api.linkRequestAssessmentSession(requestId, sessionId),
       "Assessment session linked — the submitter now receives it as a deliverable.",
     );
 
@@ -733,100 +733,6 @@ export default function AnalysisRequestDetailPage() {
             </div>
           </section>
 
-          <section
-            className="review-content"
-            aria-labelledby="assessment-deliverables"
-          >
-            <h3 id="assessment-deliverables">
-              <Link2 size={16} aria-hidden="true" /> Assessment deliverables
-            </h3>
-            <p className="hint">
-              Linked assessment sessions are delivered to the submitter
-              alongside the analysis.
-            </p>
-
-            {(request.assessment_sessions ?? []).length === 0 ? (
-              <p className="hint">No assessment sessions linked yet.</p>
-            ) : (
-              <ul className="selected-videos">
-                {(request.assessment_sessions ?? []).map((session) => (
-                  <li key={session.id} className="video-item">
-                    <span
-                      onClick={() => handleExpandAssessment(session.public_slug ?? session.id.toString())}
-                      style={{ cursor: 'pointer' }}
-                    >
-                      {session.title}
-                      <br />
-                      <span className="hint">
-                        {session.status.replace(/_/g, " ")}
-                        {session.date ? ` · ${formatDate(session.date)}` : ""}
-                      </span>
-                    </span>
-                    <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
-                      <button
-                        type="button"
-                        className="hint"
-                        onClick={(e) => { e.stopPropagation(); handleExpandAssessment(session.public_slug ?? session.id.toString()); }}
-                      >
-                        <ExternalLink size={14} aria-hidden="true" /> View
-                      </button>
-                      <button
-                        type="button"
-                        className="secondary-button"
-                        disabled={busy}
-                        onClick={(e) => { e.stopPropagation(); void unlinkAssessment(request.id, session.id); }}
-                      >
-                        <Unlink size={14} aria-hidden="true" /> Remove
-                      </button>
-                    </div>
-                  </li>
-                ))}
-              </ul>
-            )}
-            {expandedAssessmentSlug && request.assessment_sessions?.some(s => s.public_slug === expandedAssessmentSlug) && (
-              <AssessmentSessionInlineDetail
-                sessionPublicSlug={expandedAssessmentSlug}
-                onClose={handleCloseAssessment}
-              />
-            )}
-
-            <div className="form-group">
-              <label htmlFor="assessment-session">Add assessment session</label>
-              <div className="contact-detail-actions">
-                <select
-                  id="assessment-session"
-                  value={assessmentChoice}
-                  onChange={(event) => setAssessmentChoice(event.target.value)}
-                >
-                  <option value="">Choose a session…</option>
-                  {assessmentOptions
-                    .filter(
-                      (session) =>
-                        !(request.assessment_sessions ?? []).some(
-                          (linked) => linked.id === session.id,
-                        ),
-                    )
-                    .map((session) => (
-                      <option key={session.id} value={session.id}>
-                        {session.name}
-                        {session.scheduled_on
-                          ? ` · ${session.scheduled_on}`
-                          : ""}
-                      </option>
-                    ))}
-                </select>
-                <button
-                  type="button"
-                  className="auth-submit"
-                  disabled={busy || !assessmentChoice}
-                  onClick={() => void linkAssessment(request.id)}
-                >
-                  <Link2 size={14} aria-hidden="true" /> Add as deliverable
-                </button>
-              </div>
-            </div>
-          </section>
-
           <section className="review-content" aria-labelledby="internal-notes">
             <h3 id="internal-notes">Internal notes (staff only)</h3>
             {(request.internal_notes ?? []).length === 0 ? (
@@ -887,6 +793,77 @@ export default function AnalysisRequestDetailPage() {
           </section>
         </>
       )}
+
+<section
+            className="review-content"
+            aria-labelledby="assessment-deliverables"
+          >
+            <h3 id="assessment-deliverables">
+              <Link2 size={16} aria-hidden="true" /> Assessment deliverables
+            </h3>
+            <p className="hint">
+              Linked assessment sessions are delivered to the submitter
+              alongside the analysis.
+            </p>
+
+            {(request.assessment_sessions ?? []).length === 0 ? (
+              <p className="hint">No assessment sessions linked yet.</p>
+            ) : (
+              <ul className="selected-videos">
+                {(request.assessment_sessions ?? []).map((session) => (
+                  <li key={session.id} className="video-item">
+                    <span
+                      onClick={() => handleExpandAssessment(session.public_slug ?? session.id.toString())}
+                      style={{ cursor: 'pointer' }}
+                    >
+                      {session.title}
+                      <br />
+                      <span className="hint">
+                        {session.status.replace(/_/g, " ")}
+                        {session.date ? ` · ${formatDate(session.date)}` : ""}
+                      </span>
+                    </span>
+                    <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
+                      <button
+                        type="button"
+                        className="hint"
+                        onClick={(e) => { e.stopPropagation(); handleExpandAssessment(session.public_slug ?? session.id.toString()); }}
+                      >
+                        <ExternalLink size={14} aria-hidden="true" /> View
+                      </button>
+                      {isStaff && (
+                        <button
+                          type="button"
+                          className="secondary-button"
+                          disabled={busy}
+                          onClick={(e) => { e.stopPropagation(); void unlinkAssessment(request.id, session.id); }}
+                        >
+                          <Unlink size={14} aria-hidden="true" /> Remove
+                        </button>
+                      )}
+                    </div>
+                  </li>
+                ))}
+              </ul>
+            )}
+            {expandedAssessmentSlug && request.assessment_sessions?.some(s => s.public_slug === expandedAssessmentSlug) && (
+              <AssessmentSessionInlineDetail
+                sessionPublicSlug={expandedAssessmentSlug}
+                onClose={handleCloseAssessment}
+              />
+            )}
+
+{isStaff && (
+              <AssessmentSessionPicker
+                options={assessmentOptions}
+                linkedIds={(request.assessment_sessions ?? []).map((s) => s.id)}
+                busy={busy}
+                onLink={(sessionId) => void linkAssessment(request.id, sessionId)}
+              />
+            )}
+          </section>
+
+          
     </div>
   );
 }

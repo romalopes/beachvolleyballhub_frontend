@@ -5,9 +5,10 @@ import {
   Edit2, FileText, Layers3, Send, Trash2, Trophy, UserRound, Users, Video,
   ClipboardList,
 } from "lucide-react";
-import { api, type AnalysisDetail, type AnalysisStatus } from "../api";
+import { api, type AnalysisDetail, type AnalysisStatus, type AssessmentSession } from "../api";
 import AnalysisDiscussionSection from "../components/analysis/AnalysisDiscussionSection";
 import AnalysisVideoSection from "../components/analysis/AnalysisVideoSection";
+import { AssessmentSessionPicker } from "../components/assessments/AssessmentSessionPicker";
 import LoadingState from "../components/LoadingState";
 
 function StatusBadge({ status }: { status: AnalysisStatus }) {
@@ -26,6 +27,7 @@ export default function AnalysisDetailPage() {
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [assessmentOptions, setAssessmentOptions] = useState<AssessmentSession[]>([]);
 
   const load = useCallback(() => {
     if (!id || Number.isNaN(analysisId)) {
@@ -45,10 +47,57 @@ export default function AnalysisDetailPage() {
   // eslint-disable-next-line react-hooks/set-state-in-effect
   useEffect(load, [load]);
 
+  useEffect(() => {
+    let active = true;
+    api
+      .assessmentSessions({ per_page: 50 })
+      .then(({ assessment_sessions }) => {
+        if (active) setAssessmentOptions(assessment_sessions);
+      })
+      .catch(() => {
+        // The assessment picker degrades to empty rather than blocking triage.
+      });
+    return () => {
+      active = false;
+    };
+  }, []);
+
   const refresh = useCallback(async () => {
     const response = await api.analysis(analysisId);
     setAnalysis(response.analysis);
   }, [analysisId]);
+
+  const unlinkAssessment = async (sessionId: number) => {
+    if (analysis === null) return;
+    setBusy(true);
+    setError(null);
+    try {
+      const response = await api.unlinkAssessmentSession(analysis.id, sessionId);
+      setAnalysis(response.analysis);
+    } catch (reason) {
+      setError(
+        reason instanceof Error ? reason.message : "Could not unlink the assessment session.",
+      );
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const onLinkAssessment = async (sessionId: number) => {
+    if (analysis === null) return;
+    setBusy(true);
+    setError(null);
+    try {
+      const response = await api.linkAssessmentSession(analysis.id, sessionId);
+      setAnalysis(response.analysis);
+    } catch (reason) {
+      setError(
+        reason instanceof Error ? reason.message : "Could not link the assessment session.",
+      );
+    } finally {
+      setBusy(false);
+    }
+  };
 
   const updateStatus = async (action: "publish" | "archive") => {
     if (!analysis) return;
@@ -83,6 +132,7 @@ export default function AnalysisDetailPage() {
   }
 
   const canPublish = analysis.video_count > 0 && analysis.participants.length > 0;
+  const canManage = Boolean(analysis?.can_manage);
 
   return (
     <div className="page analysis-page analysis-detail-page">
@@ -139,12 +189,40 @@ export default function AnalysisDetailPage() {
             {analysis.assessment_sessions.length === 0 ? <div className="analysis-empty-row">No assessment sessions are linked to this analysis.</div> : (
               <div className="analysis-linked-list analysis-assessment-panel-list">
                 {analysis.assessment_sessions.map((session) => (
-                  <Link key={session.id} to={`/assessment-sessions/${session.public_slug || session.id}`} className="analysis-linked-item">
-                    <span><strong>{session.name}</strong><small>{session.assessment_definition.name}{session.scheduled_on ? ` · ${formatDate(session.scheduled_on)}` : ""}</small></span>
-                    <span className="analysis-linked-status">{session.status}</span>
-                  </Link>
+                  <div key={session.id} className="analysis-linked-item-wrapper">
+                    <Link
+                      key={session.id}
+                      to={`/assessment-sessions/${session.public_slug || session.id}`}
+                    >
+                      <span>
+                        <strong>{session.name}</strong>
+                        <small>{session.assessment_definition.name}</small>
+                      </span>
+                      <span className="analysis-linked-status">
+                        {session.status}
+                      </span>
+                    </Link>
+                    {canManage && (
+                      <button
+                        type="button"
+                        className="admin-btn admin-btn-remove"
+                        onClick={() => unlinkAssessment(session.id)}
+                        aria-label={"Remove " + session.name}
+                      >
+                        <Trash2 size={14} />
+                      </button>
+                    )}
+                  </div>
                 ))}
               </div>
+            )}
+            {canManage && (
+              <AssessmentSessionPicker
+                options={assessmentOptions}
+                linkedIds={analysis.assessment_sessions.map((s) => s.id)}
+                busy={busy}
+                onLink={(sessionId) => void onLinkAssessment(sessionId)}
+              />
             )}
           </section>
 
