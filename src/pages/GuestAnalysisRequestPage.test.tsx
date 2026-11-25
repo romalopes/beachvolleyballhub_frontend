@@ -59,7 +59,10 @@ const renderPage = (token = "tok-123") =>
   render(
     <MemoryRouter initialEntries={[`/analysis/guest/${token}`]}>
       <Routes>
-        <Route path="/analysis/guest/:token" element={<GuestAnalysisRequestPage />} />
+        <Route
+          path="/analysis/guest/:token"
+          element={<GuestAnalysisRequestPage />}
+        />
       </Routes>
     </MemoryRouter>,
   );
@@ -70,7 +73,9 @@ beforeEach(() => {
 
 describe("GuestAnalysisRequestPage", () => {
   it("shows the request, videos, messages and price for a valid token", async () => {
-    mockedApi.guestAnalysisRequest.mockResolvedValue({ analysis_request: request });
+    mockedApi.guestAnalysisRequest.mockResolvedValue({
+      analysis_request: request,
+    });
 
     renderPage();
 
@@ -89,7 +94,9 @@ describe("GuestAnalysisRequestPage", () => {
   });
 
   it("lets the guest reply and shows the new message immediately", async () => {
-    mockedApi.guestAnalysisRequest.mockResolvedValue({ analysis_request: request });
+    mockedApi.guestAnalysisRequest.mockResolvedValue({
+      analysis_request: request,
+    });
     mockedApi.createGuestAnalysisRequestMessage.mockResolvedValue({
       message: {
         id: 12,
@@ -129,8 +136,18 @@ describe("GuestAnalysisRequestPage", () => {
           available: false,
           percent: 25,
           steps: [
-            { key: "started", label: "Analysis started", done: true, current: false },
-            { key: "review", label: "Coach review", done: false, current: true },
+            {
+              key: "started",
+              label: "Analysis started",
+              done: true,
+              current: false,
+            },
+            {
+              key: "review",
+              label: "Coach review",
+              done: false,
+              current: true,
+            },
           ],
           video_count: 1,
           comment_count: 0,
@@ -142,7 +159,10 @@ describe("GuestAnalysisRequestPage", () => {
     });
     renderPage();
 
-    expect(await screen.findByRole("progressbar")).toHaveAttribute("aria-valuenow", "25");
+    expect(await screen.findByRole("progressbar")).toHaveAttribute(
+      "aria-valuenow",
+      "25",
+    );
     expect(screen.getByText("Coach review")).toBeInTheDocument();
     expect(
       screen.getByText(/It will appear here as soon as it is shared/),
@@ -190,7 +210,9 @@ describe("GuestAnalysisRequestPage", () => {
     expect(
       await screen.findByText("Keep the toss higher and contact in front."),
     ).toBeInTheDocument();
-    expect(screen.getByText("Great improvement on the second set.")).toBeInTheDocument();
+    expect(
+      screen.getByText("Great improvement on the second set."),
+    ).toBeInTheDocument();
     expect(screen.getByRole("link", { name: "Watch" })).toHaveAttribute(
       "href",
       "https://youtu.be/abc123",

@@ -63,6 +63,18 @@ export default function AssessmentSessionInlineDetail({
   const isPublished = session.status === "published";
   const isDraft = session.status === "draft";
 
+  // Disciplines of the rubric, in rubric order - one score column each.
+  const disciplines =
+    session.assessment_definition?.assessment_categories ?? [];
+
+  // Every rated row across the three inclusion buckets. This is what the
+  // submitter sees: results, not attendance.
+  const scoreRows = [
+    ...(session.ranking?.ranking ?? []),
+    ...(session.ranking?.incomplete ?? []),
+    ...(session.ranking?.excluded ?? []),
+  ];
+
   return (
     <div className="assessment-inline-detail">
       <div className="assessment-inline-header">
@@ -120,19 +132,55 @@ export default function AssessmentSessionInlineDetail({
         </div>
       )}
 
-      {session.participants && session.participants.length > 0 && (
-        <div className="assessment-inline-roster">
-          <h4>Roster ({session.participants.length})</h4>
-          <ul className="assessment-inline-roster-list">
-            {session.participants.map((p) => (
-              <li key={p.id} className="assessment-inline-roster-item">
-                <span className="roster-player-name">{p.player_name}</span>
-                {p.inclusion === "excluded" && (
-                  <span className="tag tag-slate">Excluded</span>
-                )}
-              </li>
-            ))}
-          </ul>
+      {/* Scores: per-discipline values and totals for every rated player.
+          The roster itself is never shown here - the submitter sees results,
+          not attendance lists (the full session page is the management view). */}
+      {scoreRows.length > 0 && disciplines.length > 0 && (
+        <div className="assessment-inline-scores">
+          <h4>Scores</h4>
+          <div className="assessment-inline-score-table-wrapper">
+            <table className="assessment-inline-score-table">
+              <thead>
+                <tr>
+                  <th className="inline-score-col-player">Player</th>
+                  {disciplines.map((d) => (
+                    <th key={d.id} className="inline-score-col-discipline">
+                      <div className="inline-score-discipline-title">{d.label}</div>
+                      <div className="inline-score-discipline-weight">{d.weight}%</div>
+                    </th>
+                  ))}
+                  <th className="inline-score-col-total">Total</th>
+                </tr>
+              </thead>
+              <tbody>
+                {scoreRows.map((row) => (
+                  <tr key={row.player_profile_id} className="assessment-inline-score-row">
+                    <td className="inline-score-cell-player">
+                      <span className="roster-player-name">{row.player_name}</span>
+                      {row.status === "excluded" && <span className="tag tag-slate">Excluded</span>}
+                    </td>
+                    {disciplines.map((d) => {
+                      const ds = row.discipline_scores?.find(
+                        (s) => s.assessment_category_id === d.id,
+                      );
+                      return (
+                        <td key={d.id} className="inline-score-cell">
+                          {ds?.score != null ? ds.score : String.fromCharCode(8212)}
+                        </td>
+                      );
+                    })}
+                    <td className="inline-score-cell-total">
+                      {row.overall_score != null ? (
+                        <span className="preview-score-badge saved">{row.overall_score}</span>
+                      ) : (
+                        String.fromCharCode(8212)
+                      )}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
         </div>
       )}
     </div>

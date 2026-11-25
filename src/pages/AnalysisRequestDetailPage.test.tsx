@@ -73,7 +73,10 @@ function renderPage() {
   return render(
     <MemoryRouter initialEntries={["/analysis-requests/3"]}>
       <Routes>
-        <Route path="/analysis-requests/:id" element={<AnalysisRequestDetailPage />} />
+        <Route
+          path="/analysis-requests/:id"
+          element={<AnalysisRequestDetailPage />}
+        />
       </Routes>
     </MemoryRouter>,
   );
@@ -112,15 +115,21 @@ describe("AnalysisRequestDetailPage", () => {
     ).toBeInTheDocument();
     expect(screen.getByText("Accepted")).toBeInTheDocument();
     expect(screen.getByText("Invoice sent")).toBeInTheDocument();
-    expect(screen.getByRole("link", { name: /https:\/\/youtu.be\/example/ })).toBeInTheDocument();
-    expect(screen.getByText(/Thanks, reviewing this week./)).toBeInTheDocument();
+    expect(
+      screen.getByRole("link", { name: /https:\/\/youtu.be\/example/ }),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByText(/Thanks, reviewing this week./),
+    ).toBeInTheDocument();
   });
 
   it("hides staff actions from submitters", async () => {
     renderPage();
     await screen.findByText("Accepted");
 
-    expect(screen.queryByRole("heading", { name: "Staff actions" })).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole("heading", { name: "Staff actions" }),
+    ).not.toBeInTheDocument();
     expect(
       screen.queryByRole("heading", { name: "Internal notes (staff only)" }),
     ).not.toBeInTheDocument();
@@ -132,7 +141,11 @@ describe("AnalysisRequestDetailPage", () => {
       loading: false,
     });
     mockedApi.markAnalysisRequestPaid.mockResolvedValue({
-      analysis_request: { ...detail, payment_status: "paid", workflow_status: "in_progress" },
+      analysis_request: {
+        ...detail,
+        payment_status: "paid",
+        workflow_status: "in_progress",
+      },
     });
     const user = userEvent.setup();
     renderPage();
@@ -143,7 +156,9 @@ describe("AnalysisRequestDetailPage", () => {
     expect(await screen.findByText("In progress")).toBeInTheDocument();
     expect(screen.getByText("Paid")).toBeInTheDocument();
     expect(
-      screen.getByText(/Payment recorded — the request is ready for production/),
+      screen.getByText(
+        /Payment recorded — the request is ready for production/,
+      ),
     ).toBeInTheDocument();
   });
 
@@ -163,14 +178,22 @@ describe("AnalysisRequestDetailPage", () => {
     await user.type(await screen.findByLabelText("Reply"), "Any update?");
     await user.click(screen.getByRole("button", { name: "Send message" }));
 
-    expect(mockedApi.createAnalysisRequestMessage).toHaveBeenCalledWith(3, "Any update?");
+    expect(mockedApi.createAnalysisRequestMessage).toHaveBeenCalledWith(
+      3,
+      "Any update?",
+    );
     expect(
-      await screen.findByText(/Message sent — the other side has been notified and emailed/),
+      await screen.findByText(
+        /Message sent — the other side has been notified and emailed/,
+      ),
     ).toBeInTheDocument();
   });
 
   it("lets staff start the analysis and then shows its progress", async () => {
-    mockUseAuth.mockReturnValue({ user: { id: 2, roles: ["admin"] }, loading: false });
+    mockUseAuth.mockReturnValue({
+      user: { id: 2, roles: ["admin"] },
+      loading: false,
+    });
     const analysis = {
       id: 44,
       title: "Serve consistency review",
@@ -178,7 +201,12 @@ describe("AnalysisRequestDetailPage", () => {
       available: false,
       percent: 25,
       steps: [
-        { key: "started", label: "Analysis started", done: true, current: false },
+        {
+          key: "started",
+          label: "Analysis started",
+          done: true,
+          current: false,
+        },
         { key: "review", label: "Coach review", done: false, current: true },
       ],
       video_count: 0,
@@ -193,11 +221,16 @@ describe("AnalysisRequestDetailPage", () => {
     const user = userEvent.setup();
     renderPage();
 
-    await user.click(await screen.findByRole("button", { name: "Start analysis" }));
+    await user.click(
+      await screen.findByRole("button", { name: "Start analysis" }),
+    );
 
     expect(mockedApi.startAnalysisRequest).toHaveBeenCalledWith(3);
     expect(await screen.findByText(/Analysis created/)).toBeInTheDocument();
-    expect(screen.getByRole("progressbar")).toHaveAttribute("aria-valuenow", "25");
+    expect(screen.getByRole("progressbar")).toHaveAttribute(
+      "aria-valuenow",
+      "25",
+    );
     expect(screen.getByText("Coach review")).toBeInTheDocument();
     expect(
       screen.getByText(/It will appear here as soon as it is shared/),
@@ -242,7 +275,9 @@ describe("AnalysisRequestDetailPage", () => {
     });
     renderPage();
 
-    expect(await screen.findByText("Toss height improved.")).toBeInTheDocument();
+    expect(
+      await screen.findByText("Toss height improved."),
+    ).toBeInTheDocument();
     expect(screen.getByText("Keep the toss higher.")).toBeInTheDocument();
     expect(screen.getByRole("link", { name: "Watch" })).toHaveAttribute(
       "href",
@@ -277,7 +312,9 @@ describe("AnalysisRequestDetailPage", () => {
     const user = userEvent.setup();
     renderPage();
 
-    await user.click(await screen.findByRole("button", { name: "Email invoice (PDF)" }));
+    await user.click(
+      await screen.findByRole("button", { name: "Email invoice (PDF)" }),
+    );
 
     expect(mockedApi.emailAnalysisRequestInvoice).toHaveBeenCalledWith(3);
     const notice = await screen.findByText(/INV-0008 queued for email/);
@@ -310,9 +347,13 @@ describe("AnalysisRequestDetailPage", () => {
     });
     renderPage();
 
-    expect(await screen.findByText("Internal notes (staff only)")).toBeInTheDocument();
+    expect(
+      await screen.findByText("Internal notes (staff only)"),
+    ).toBeInTheDocument();
     expect(screen.getByText("VIP submitter")).toBeInTheDocument();
-    expect(screen.getByRole("heading", { name: "Staff actions" })).toBeInTheDocument();
+    expect(
+      screen.getByRole("heading", { name: "Staff actions" }),
+    ).toBeInTheDocument();
   });
 
   it("shows linked assessment sessions to staff and in the deliverables", async () => {
@@ -324,7 +365,12 @@ describe("AnalysisRequestDetailPage", () => {
       analysis_request: {
         ...detail,
         assessment_sessions: [
-          { id: 9, title: "Tuesday squad screening", status: "draft", date: "2026-11-30" },
+          {
+            id: 9,
+            title: "Tuesday squad screening",
+            status: "draft",
+            date: "2026-11-30",
+          },
         ],
       },
     });
@@ -350,8 +396,13 @@ describe("AnalysisRequestDetailPage", () => {
     renderPage();
     await screen.findByRole("heading", { name: "Staff actions" });
 
-    await user.selectOptions(screen.getByLabelText("Add assessment session"), "7");
-    await user.click(screen.getByRole("button", { name: /Add as deliverable/ }));
+    await user.selectOptions(
+      screen.getByLabelText("Add assessment session"),
+      "7",
+    );
+    await user.click(
+      screen.getByRole("button", { name: /Add as deliverable/ }),
+    );
 
     await waitFor(() => {
       expect(api.linkRequestAssessmentSession).toHaveBeenCalledWith(3, 7);
@@ -368,7 +419,12 @@ describe("AnalysisRequestDetailPage", () => {
       analysis_request: {
         ...detail,
         assessment_sessions: [
-          { id: 9, title: "Tuesday squad screening", status: "draft", date: "2026-11-30" },
+          {
+            id: 9,
+            title: "Tuesday squad screening",
+            status: "draft",
+            date: "2026-11-30",
+          },
         ],
       },
     });
