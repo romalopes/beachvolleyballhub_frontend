@@ -77,7 +77,10 @@ describe("AnalysisParticipantsSection", () => {
     await user.click(await screen.findByText("Pedro Search"));
 
     await waitFor(() =>
-      expect(onUpdate).toHaveBeenCalledWith([5, 7]),
+      expect(onUpdate).toHaveBeenCalledWith([
+        ...participants,
+        { id: 7, player_profile_id: 7, name: "Pedro Search", notes: null },
+      ]),
     );
   });
 

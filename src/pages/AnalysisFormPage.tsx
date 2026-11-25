@@ -23,7 +23,6 @@ import {
   type Coach,
   type Group as GroupRecord,
   type Organisation,
-  type Player,
   type Tournament,
   type TrainingSession,
 } from "../api";
@@ -59,22 +58,10 @@ const STEPS: { id: FormStep; label: string }[] = [
   { id: 2, label: "Review" },
 ];
 
-function playerName(player: Player) {
-  return (
-    player.full_name ||
-    player.display_name ||
-    player.person?.first_name ||
-    `Player ${player.id}`
-  );
-}
-
 function coachName(coach: Coach) {
   return accountDisplayName(
     coach.account?.full_name,
-    coach.full_name ||
-      coach.display_name ||
-      coach.person?.first_name ||
-      `Coach ${coach.id}`,
+    coach.full_name || coach.display_name || `Coach ${coach.id}`,
   );
 }
 
@@ -92,7 +79,7 @@ export default function AnalysisFormPage() {
     [],
   );
   const [tournaments, setTournaments] = useState<Tournament[]>([]);
-  const [players, setPlayers] = useState<Player[]>([]);
+  const [participants, setParticipants] = useState<AnalysisParticipant[]>([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [errors, setErrors] = useState<string[]>([]);
@@ -105,7 +92,6 @@ export default function AnalysisFormPage() {
       api.groups({ status: "active", include_private: true }),
       api.trainingSessions(),
       api.tournaments({ per_page: 100 }),
-      api.players({ status: "active", include_private: true, per_page: 100 }),
     ]);
     const analysisRequest =
       analysisId != null && !Number.isNaN(analysisId)
@@ -115,14 +101,7 @@ export default function AnalysisFormPage() {
     Promise.all([references, analysisRequest])
       .then(
         ([
-          [
-            coachPage,
-            organisationPage,
-            groupPage,
-            sessions,
-            tournamentPage,
-            playerPage,
-          ],
+          [coachPage, organisationPage, groupPage, sessions, tournamentPage],
           analysisResponse,
         ]) => {
           if (cancelled) return;
@@ -131,9 +110,9 @@ export default function AnalysisFormPage() {
           setGroups(groupPage.data);
           setTrainingSessions(sessions);
           setTournaments(tournamentPage.data);
-          setPlayers(playerPage.data);
           if (analysisResponse) {
             const analysis = analysisResponse.analysis;
+            setParticipants(analysis.participants);
             setForm({
               title: analysis.title,
               summary: analysis.summary ?? "",
@@ -166,7 +145,8 @@ export default function AnalysisFormPage() {
     };
   }, [analysisId]);
 
-  // Debounced server-side participant search. Searching on demand rather than
+  // Debounced server-side participant search lives inside
+  // AnalysisParticipantsSection; the form only tracks the resulting roster.
   const filteredGroups = useMemo(
     () =>
       groups.filter(
@@ -175,31 +155,6 @@ export default function AnalysisFormPage() {
           group.organisation?.id === form.organisation_id,
       ),
     [form.organisation_id, groups],
-  );
-  // Lookup across the preloaded catalogue for participant rendering.
-  const playerById = useMemo(() => {
-    const index = new Map<number, Player>();
-    for (const player of players) index.set(player.id, player);
-    return index;
-  }, [players]);
-  const selectedPlayers = useMemo(
-    () =>
-      form.player_profile_ids
-        .map((playerId) => playerById.get(playerId))
-        .filter((player): player is Player => Boolean(player)),
-    [form.player_profile_ids, playerById],
-  );
-
-  // Convert selectedPlayers to AnalysisParticipant[] for the section component
-  const selectedParticipants = useMemo<AnalysisParticipant[]>(
-    () =>
-      selectedPlayers.map((player) => ({
-        id: player.id,
-        player_profile_id: player.id,
-        name: playerName(player),
-        notes: null,
-      })),
-    [selectedPlayers],
   );
 
   const selectedCoach = coaches.find(
@@ -239,11 +194,14 @@ export default function AnalysisFormPage() {
   };
 
   const onUpdateParticipants = async (
-    playerProfileIds: number[],
+    nextParticipants: AnalysisParticipant[],
   ): Promise<void> => {
+    setParticipants(nextParticipants);
     setForm((current) => ({
       ...current,
-      player_profile_ids: playerProfileIds,
+      player_profile_ids: nextParticipants.map(
+        (participant) => participant.player_profile_id,
+      ),
     }));
   };
 
@@ -375,10 +333,9 @@ export default function AnalysisFormPage() {
                 </div>
               </section>
               <AnalysisParticipantsSection
-                participants={selectedParticipants}
+                participants={participants}
                 canManage={true}
                 onUpdate={onUpdateParticipants}
-                browsePlayers={players}
               />
               <section className="analysis-form-card">
                 <div className="analysis-form-card-heading">
@@ -560,24 +517,24 @@ export default function AnalysisFormPage() {
                   <dt>
                     <Users size={15} /> Participants
                   </dt>
-                  <dd>{selectedPlayers.length}</dd>
+                  <dd>{participants.length}</dd>
                 </div>
               </dl>
               <div className="analysis-review-participants">
                 <h3>Selected participants</h3>
-                {selectedPlayers.length === 0 ? (
+                {participants.length === 0 ? (
                   <p>No participants selected yet.</p>
                 ) : (
                   <div>
-                    {selectedPlayers.map((player) => (
-                      <span key={player.id}>
+                    {participants.map((participant) => (
+                      <span key={participant.player_profile_id}>
                         <span
                           className="analysis-avatar analysis-avatar-small"
                           aria-hidden="true"
                         >
-                          {playerName(player).charAt(0).toUpperCase()}
+                          {participant.name.charAt(0).toUpperCase()}
                         </span>
-                        {playerName(player)}
+                        {participant.name}
                       </span>
                     ))}
                   </div>

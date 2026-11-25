@@ -21,6 +21,7 @@ import {
 import {
   api,
   type AnalysisDetail,
+  type AnalysisParticipant,
   type AnalysisStatus,
   type AssessmentSession,
 } from "../api";
@@ -103,9 +104,11 @@ export default function AnalysisDetailPage() {
   }, [analysisId]);
 
   const updateParticipants = useCallback(
-    async (playerProfileIds: number[]) => {
+    async (participants: AnalysisParticipant[]) => {
       await api.updateAnalysis(analysisId, {
-        player_profile_ids: playerProfileIds,
+        player_profile_ids: participants.map(
+          (participant) => participant.player_profile_id,
+        ),
       });
       await refresh();
     },

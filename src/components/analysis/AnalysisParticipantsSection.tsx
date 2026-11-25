@@ -14,22 +14,23 @@ function playerName(player: Player) {
 interface AnalysisParticipantsSectionProps {
   participants: AnalysisParticipant[];
   canManage: boolean;
-  /** Called with the full next list of player profile ids after add/remove. */
-  onUpdate: (playerProfileIds: number[]) => Promise<void>;
-  /** Optional preloaded player list for browse mode (when search is empty). */
-  browsePlayers?: Player[];
+  /**
+   * Called with the full next participant list after an add/remove. The list
+   * carries names for freshly searched players, so parents that keep the
+   * roster in local state (the form page) can render them without a reload.
+   */
+  onUpdate: (participants: AnalysisParticipant[]) => Promise<void>;
 }
 
 /**
- * Participants panel for the analysis detail page. Readers see the roster;
- * staff (canManage) additionally get a server-side player search to add
- * participants and a remove control per card.
+ * Participants panel shared by the analysis form and detail pages. Readers
+ * see the roster; staff (canManage) additionally get a server-side player
+ * search to add participants and a remove control per card.
  */
 export default function AnalysisParticipantsSection({
   participants,
   canManage,
   onUpdate,
-  browsePlayers,
 }: AnalysisParticipantsSectionProps) {
   const [search, setSearch] = useState("");
   const [matches, setMatches] = useState<Player[]>([]);
@@ -83,18 +84,11 @@ export default function AnalysisParticipantsSection({
     );
   }, [settled, matches, participants]);
 
-  // Browse mode candidates (preloaded players not already on roster, when search is empty)
-  const browseCandidates = useMemo(() => {
-    if (!browsePlayers || term.length > 0) return [];
-    const existingIds = new Set(participants.map((p) => p.player_profile_id));
-    return browsePlayers.filter((player) => !existingIds.has(player.id));
-  }, [browsePlayers, participants, term]);
-
-  const applyUpdate = async (playerProfileIds: number[]) => {
+  const applyUpdate = async (next: AnalysisParticipant[]) => {
     setWorking(true);
     setError(null);
     try {
-      await onUpdate(playerProfileIds);
+      await onUpdate(next);
     } catch (reason) {
       setError(
         reason instanceof Error
@@ -108,16 +102,21 @@ export default function AnalysisParticipantsSection({
 
   const addParticipant = (player: Player) => {
     void applyUpdate([
-      ...participants.map((p) => p.player_profile_id),
-      player.id,
+      ...participants,
+      {
+        id: player.id,
+        player_profile_id: player.id,
+        name: playerName(player),
+        notes: null,
+      },
     ]);
   };
 
   const removeParticipant = (participant: AnalysisParticipant) => {
     void applyUpdate(
-      participants
-        .filter((p) => p.player_profile_id !== participant.player_profile_id)
-        .map((p) => p.player_profile_id),
+      participants.filter(
+        (p) => p.player_profile_id !== participant.player_profile_id,
+      ),
     );
   };
 
@@ -189,48 +188,6 @@ export default function AnalysisParticipantsSection({
                   </button>
                 ))
               )}
-            </div>
-          )}
-
-          {!term && browsePlayers && browseCandidates.length > 0 && (
-            <div className="analysis-player-picker analysis-participant-results analysis-browse-results">
-              {browseCandidates.map((player) => (
-                <button
-                  key={player.id}
-                  type="button"
-                  className="analysis-player-option"
-                  disabled={working}
-                  onClick={() => addParticipant(player)}
-                  data-testid={`add-participant-${player.id}`}
-                >
-                  <span className="analysis-avatar" aria-hidden="true">
-                    {playerName(player).charAt(0).toUpperCase()}
-                  </span>
-                  <span className="analysis-player-copy">
-                    <strong>{playerName(player)}</strong>
-                    <small>
-                      {player.preferred_position ||
-                        player.level ||
-                        "Player profile"}
-                    </small>
-                  </span>
-                  <span className="analysis-check">
-                    <Plus size={14} />
-                  </span>
-                </button>
-              ))}
-            </div>
-          )}
-
-          {!term && browsePlayers && browseCandidates.length === 0 && participants.length > 0 && (
-            <div className="analysis-empty-row">
-              All available players are already added.
-            </div>
-          )}
-
-          {!term && browsePlayers && browseCandidates.length === 0 && participants.length === 0 && (
-            <div className="analysis-empty-row">
-              No players available to add.
             </div>
           )}
         </>
