@@ -30,6 +30,7 @@ import {
   FileText,
   type LucideIcon,
   LayoutTemplate,
+  Package,
 } from "lucide-react";
 import { useAuth } from "../auth/AuthContext";
 import { useTestAccess } from "../auth/TestAccessContext";
@@ -143,15 +144,38 @@ const navGroups: SidebarGroup[] = [
     ],
   },
   {
-    id: "analysis_requests",
-    label: "Analysis Requests",
+    id: "analysis_group",
+    label: "Analysis",
     icon: FileText,
-    platformStaffOnly: true,
     items: [
+      { path: "/hire-analysis", label: "Hire Analysis", icon: Sparkles },
       {
         path: "/admin/analysis-requests",
         label: "Manage Requests",
         icon: ClipboardList,
+        platformStaffOnly: true,
+      },
+      { path: "/analyses", label: "Analysis", icon: FileText },
+      {
+        path: "/my/analysis-requests",
+        label: "My Analysis Requests",
+        icon: ClipboardList,
+      },
+      {
+        path: "/settings/analysis-packages",
+        label: "Analysis Packages",
+        icon: Package,
+        platformStaffOnly: true,
+      },
+      {
+        path: "/assessment-sessions",
+        label: "Assessment sessions",
+        icon: CalendarDays,
+      },
+      {
+        path: "/ranking-consolidations",
+        label: "Ranking consolidations",
+        icon: Trophy,
       },
     ],
   },
