@@ -12907,6 +12907,123 @@
   color: var(--white);
 }
 
+/* Participant search within the analysis form */
+.analysis-selected-participants {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-bottom: 0.9rem;
+}
+
+.analysis-participant-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  padding: 0.3rem 0.45rem 0.3rem 0.4rem;
+  border: 1px solid var(--amber-200, var(--border));
+  border-radius: 999px;
+  background: var(--amber-50);
+  color: var(--charcoal);
+  font-size: 0.78rem;
+  font-weight: 600;
+}
+
+.analysis-participant-chip .analysis-avatar-small {
+  flex: 0 0 1.5rem;
+  width: 1.5rem;
+  height: 1.5rem;
+  font-size: 0.68rem;
+}
+
+.analysis-participant-remove {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.35rem;
+  height: 1.35rem;
+  border: 1px solid transparent;
+  border-radius: 50%;
+  color: var(--amber-700, var(--text-secondary));
+  font-size: 0;
+}
+
+.analysis-participant-remove:hover {
+  border-color: var(--amber-500);
+  background: var(--amber-100);
+  color: var(--charcoal);
+}
+
+.analysis-participant-search {
+  display: flex;
+  align-items: center;
+  gap: 0.55rem;
+  margin-bottom: 0.9rem;
+  padding: 0.55rem 0.8rem;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  background: var(--white);
+  color: var(--text-muted);
+}
+
+.analysis-participant-search:focus-within {
+  border-color: var(--amber-400);
+  box-shadow: 0 0 0 3px var(--amber-50);
+}
+
+.analysis-participant-search input {
+  flex: 1;
+  min-width: 0;
+  border: none;
+  background: transparent;
+  font-size: 0.875rem;
+}
+
+.analysis-participant-search input:focus {
+  outline: none;
+  box-shadow: none;
+}
+
+.analysis-search-error {
+  margin: 0 0 0.75rem;
+  color: #b91c1c;
+  font-size: 0.78rem;
+}
+
+.analysis-player-option[type="button"] {
+  font-family: var(--font-sans);
+  text-align: left;
+  width: 100%;
+}
+
+/* Participants panel on the analysis detail page */
+.analysis-participant-results {
+  margin-bottom: 1rem;
+}
+
+.analysis-participant-card button.analysis-participant-card-remove {
+  display: inline-flex;
+  flex: 0 0 auto;
+  align-items: center;
+  justify-content: center;
+  width: 1.9rem;
+  height: 1.9rem;
+  border: 1px solid var(--border-light);
+  border-radius: 50%;
+  background: var(--white);
+  color: var(--text-secondary);
+}
+
+.analysis-participant-card button.analysis-participant-card-remove:hover {
+  border-color: #dc2626;
+  background: #fef2f2;
+  color: #b91c1c;
+}
+
+.analysis-participant-card button.analysis-participant-card-remove:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
 .analysis-save-card p {
   margin-bottom: 1rem;
   font-size: 0.82rem;

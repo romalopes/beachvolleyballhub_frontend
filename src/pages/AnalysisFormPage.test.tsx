@@ -60,25 +60,22 @@ describe("AnalysisFormPage steps", () => {
     const user = userEvent.setup();
     renderPage();
     expect(await screen.findByRole("heading", { name: "Analysis details" })).toBeInTheDocument();
-    expect(screen.queryByRole("heading", { name: "Participants" })).toBeNull();
+    expect(screen.queryByRole("heading", { name: "Review your analysis" })).toBeNull();
 
     await user.click(screen.getAllByRole("button", { name: /continue/i })[0]);
     expect(screen.getByRole("alert")).toHaveTextContent("Title is required before continuing.");
     expect(screen.getByRole("heading", { name: "Analysis details" })).toBeInTheDocument();
   });
 
-  it("navigates through Participants and Review while preserving selections", async () => {
+  it("selects participants inline on Details and continues to Review", async () => {
     const user = userEvent.setup();
     renderPage();
     await screen.findByRole("heading", { name: "Analysis details" });
     await user.type(screen.getByLabelText("Title"), "Side-out review");
     await user.selectOptions(screen.getByLabelText(/assigned coach/i), "4");
-    await user.click(screen.getAllByRole("button", { name: /continue/i })[0]);
-
-    expect(screen.getByRole("heading", { name: "Participants" })).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: /participants/i })).toHaveAttribute("aria-current", "step");
     await user.click(screen.getByText("Jo Player"));
     expect(screen.getByText("1 selected")).toBeInTheDocument();
+
     await user.click(screen.getAllByRole("button", { name: /continue/i })[0]);
 
     expect(screen.getByRole("heading", { name: "Review your analysis" })).toBeInTheDocument();
@@ -86,6 +83,26 @@ describe("AnalysisFormPage steps", () => {
     expect(screen.getByRole("heading", { name: "Side-out review" })).toBeInTheDocument();
     expect(screen.getByText("Coach Ana")).toBeInTheDocument();
     expect(screen.getByText("Jo Player")).toBeInTheDocument();
+  });
+
+  it("searches participants server-side and adds a match from Details", async () => {
+    const user = userEvent.setup();
+    renderPage();
+    await screen.findByRole("heading", { name: "Analysis details" });
+    mockedApi.players.mockResolvedValue({
+      data: [{ id: 7, full_name: "Pedro Search", preferred_position: "Setter" }],
+      meta: {},
+    } as never);
+
+    await user.type(screen.getByLabelText("Search participants"), "pedro");
+    expect(await screen.findByText("Pedro Search")).toBeInTheDocument();
+    expect(mockedApi.players).toHaveBeenLastCalledWith(
+      expect.objectContaining({ q: "pedro" }),
+    );
+
+    await user.click(screen.getByText("Pedro Search"));
+    expect(screen.getByText("1 selected")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /remove pedro search/i })).toBeInTheDocument();
   });
 
   it("creates the analysis from Review with the complete payload", async () => {
@@ -96,7 +113,6 @@ describe("AnalysisFormPage steps", () => {
     await user.type(screen.getByLabelText("Summary"), "Review transition defense");
     await user.selectOptions(screen.getByLabelText(/organisation/i), "2");
     await user.selectOptions(screen.getByLabelText(/^group/i), "3");
-    await user.click(screen.getAllByRole("button", { name: /continue/i })[0]);
     await user.click(screen.getByText("Sam Blocker"));
     await user.click(screen.getAllByRole("button", { name: /continue/i })[0]);
     await user.click(screen.getAllByRole("button", { name: /create analysis/i })[0]);
