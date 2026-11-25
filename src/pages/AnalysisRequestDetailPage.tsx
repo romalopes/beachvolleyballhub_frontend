@@ -1,12 +1,6 @@
 import { useCallback, useEffect, useState } from "react";
 import { Link, useParams } from "react-router-dom";
-import {
-  Download,
-  ExternalLink,
-  Loader2,
-  Link2,
-  Unlink,
-} from "lucide-react";
+import { Download, ExternalLink, Loader2, Link2, Unlink } from "lucide-react";
 import {
   api,
   type AnalysisRequestRecord,
@@ -70,7 +64,9 @@ export default function AnalysisRequestDetailPage() {
   const [sendingMessage, setSendingMessage] = useState(false);
   const [startingAnalysis, setStartingAnalysis] = useState(false);
   // Assessment session inline detail expansion
-  const [expandedAssessmentSlug, setExpandedAssessmentSlug] = useState<string | null>(null);
+  const [expandedAssessmentSlug, setExpandedAssessmentSlug] = useState<
+    string | null
+  >(null);
 
   const handleExpandAssessment = (sessionPublicSlug: string) => {
     setExpandedAssessmentSlug(sessionPublicSlug);
@@ -142,7 +138,8 @@ export default function AnalysisRequestDetailPage() {
 
   // Helper to extract YouTube video ID from URL
   const getYouTubeVideoId = (url: string): string | null => {
-    const regex = /(?:youtube\.com\/(?:[^\/]+\/.+\/|(?:v|e(?:mbed)?)\/|.*[?&]v=)|youtu\.be\/)([^"&?\/\s]{11})/;
+    const regex =
+      /(?:youtube\.com\/(?:[^\/]+\/.+\/|(?:v|e(?:mbed)?)\/|.*[?&]v=)|youtu\.be\/)([^"&?\/\s]{11})/;
     const match = url.match(regex);
     return match ? match[1] : null;
   };
@@ -154,10 +151,14 @@ export default function AnalysisRequestDetailPage() {
   };
 
   // Render thumbnail for video items
-  const renderVideoThumbnail = (item: { file_url?: string; title?: string; video_url?: string }) => {
+  const renderVideoThumbnail = (item: {
+    file_url?: string;
+    title?: string;
+    video_url?: string;
+  }) => {
     const url = item.file_url || item.video_url;
     if (!url) return null;
-    
+
     const thumbnail = getYouTubeThumbnail(url);
     if (thumbnail) {
       return (
@@ -171,7 +172,18 @@ export default function AnalysisRequestDetailPage() {
     }
     return (
       <div className="video-thumbnail video-thumbnail--placeholder">
-        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+        <svg
+          xmlns="http://www.w3.org/2000/svg"
+          width="24"
+          height="24"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="2"
+          stroke-linecap="round"
+          stroke-linejoin="round"
+          aria-hidden="true"
+        >
           <polygon points="23 7 16 12 23 17 23 7"></polygon>
           <rect x="1" y="5" width="15" height="14" rx="2" ry="2"></rect>
         </svg>
@@ -248,8 +260,7 @@ export default function AnalysisRequestDetailPage() {
   /** Links an assessment session; the submitter sees it as a deliverable. */
   const linkAssessment = (requestId: number, sessionId: number) =>
     run(
-      () =>
-        api.linkRequestAssessmentSession(requestId, sessionId),
+      () => api.linkRequestAssessmentSession(requestId, sessionId),
       "Assessment session linked — the submitter now receives it as a deliverable.",
     );
 
@@ -435,7 +446,12 @@ export default function AnalysisRequestDetailPage() {
             {(request.assessment_sessions ?? []).map((session) => (
               <li key={`assessment-${session.id}`} className="video-item">
                 <span>
-                  <Link to={"/assessment-sessions/" + (session.public_slug || session.id)}>
+                  <Link
+                    to={
+                      "/assessment-sessions/" +
+                      (session.public_slug || session.id)
+                    }
+                  >
                     <span className="video-item__thumbnail">
                       {renderVideoThumbnail({ title: session.title })}
                     </span>
@@ -447,7 +463,13 @@ export default function AnalysisRequestDetailPage() {
                     {session.date ? ` · ${formatDate(session.date)}` : ""}
                   </span>
                 </span>
-                <Link to={"/assessment-sessions/" + (session.public_slug || session.id)} className="hint">
+                <Link
+                  to={
+                    "/assessment-sessions/" +
+                    (session.public_slug || session.id)
+                  }
+                  className="hint"
+                >
                   <ExternalLink size={14} aria-hidden="true" /> View
                 </Link>
               </li>
@@ -794,76 +816,95 @@ export default function AnalysisRequestDetailPage() {
         </>
       )}
 
-<section
-            className="review-content"
-            aria-labelledby="assessment-deliverables"
-          >
-            <h3 id="assessment-deliverables">
-              <Link2 size={16} aria-hidden="true" /> Assessment deliverables
-            </h3>
-            <p className="hint">
-              Linked assessment sessions are delivered to the submitter
-              alongside the analysis.
-            </p>
+      <section
+        className="review-content"
+        aria-labelledby="assessment-deliverables"
+      >
+        <h3 id="assessment-deliverables">
+          <Link2 size={16} aria-hidden="true" /> Assessment deliverables
+        </h3>
+        <p className="hint">
+          Linked assessment sessions are delivered to the submitter alongside
+          the analysis.
+        </p>
 
-            {(request.assessment_sessions ?? []).length === 0 ? (
-              <p className="hint">No assessment sessions linked yet.</p>
-            ) : (
-              <ul className="selected-videos">
-                {(request.assessment_sessions ?? []).map((session) => (
-                  <li key={session.id} className="video-item">
-                    <span
-                      onClick={() => handleExpandAssessment(session.public_slug ?? session.id.toString())}
-                      style={{ cursor: 'pointer' }}
+        {(request.assessment_sessions ?? []).length === 0 ? (
+          <p className="hint">No assessment sessions linked yet.</p>
+        ) : (
+          <ul className="selected-videos">
+            {(request.assessment_sessions ?? []).map((session) => (
+              <li key={session.id} className="video-item">
+                <span
+                  onClick={() =>
+                    handleExpandAssessment(
+                      session.public_slug ?? session.id.toString(),
+                    )
+                  }
+                  style={{ cursor: "pointer" }}
+                >
+                  {session.title}
+                  <br />
+                  <span className="hint">
+                    {session.status.replace(/_/g, " ")}
+                    {session.date ? ` · ${formatDate(session.date)}` : ""}
+                  </span>
+                </span>
+                <div
+                  style={{
+                    display: "flex",
+                    gap: "0.5rem",
+                    alignItems: "center",
+                  }}
+                >
+                  <button
+                    type="button"
+                    className="hint"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleExpandAssessment(
+                        session.public_slug ?? session.id.toString(),
+                      );
+                    }}
+                  >
+                    <ExternalLink size={14} aria-hidden="true" /> View
+                  </button>
+                  {isStaff && (
+                    <button
+                      type="button"
+                      className="secondary-button"
+                      disabled={busy}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        void unlinkAssessment(request.id, session.id);
+                      }}
                     >
-                      {session.title}
-                      <br />
-                      <span className="hint">
-                        {session.status.replace(/_/g, " ")}
-                        {session.date ? ` · ${formatDate(session.date)}` : ""}
-                      </span>
-                    </span>
-                    <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
-                      <button
-                        type="button"
-                        className="hint"
-                        onClick={(e) => { e.stopPropagation(); handleExpandAssessment(session.public_slug ?? session.id.toString()); }}
-                      >
-                        <ExternalLink size={14} aria-hidden="true" /> View
-                      </button>
-                      {isStaff && (
-                        <button
-                          type="button"
-                          className="secondary-button"
-                          disabled={busy}
-                          onClick={(e) => { e.stopPropagation(); void unlinkAssessment(request.id, session.id); }}
-                        >
-                          <Unlink size={14} aria-hidden="true" /> Remove
-                        </button>
-                      )}
-                    </div>
-                  </li>
-                ))}
-              </ul>
-            )}
-            {expandedAssessmentSlug && request.assessment_sessions?.some(s => s.public_slug === expandedAssessmentSlug) && (
-              <AssessmentSessionInlineDetail
-                sessionPublicSlug={expandedAssessmentSlug}
-                onClose={handleCloseAssessment}
-              />
-            )}
+                      <Unlink size={14} aria-hidden="true" /> Remove
+                    </button>
+                  )}
+                </div>
+              </li>
+            ))}
+          </ul>
+        )}
+        {expandedAssessmentSlug &&
+          request.assessment_sessions?.some(
+            (s) => s.public_slug === expandedAssessmentSlug,
+          ) && (
+            <AssessmentSessionInlineDetail
+              sessionPublicSlug={expandedAssessmentSlug}
+              onClose={handleCloseAssessment}
+            />
+          )}
 
-{isStaff && (
-              <AssessmentSessionPicker
-                options={assessmentOptions}
-                linkedIds={(request.assessment_sessions ?? []).map((s) => s.id)}
-                busy={busy}
-                onLink={(sessionId) => void linkAssessment(request.id, sessionId)}
-              />
-            )}
-          </section>
-
-          
+        {isStaff && (
+          <AssessmentSessionPicker
+            options={assessmentOptions}
+            linkedIds={(request.assessment_sessions ?? []).map((s) => s.id)}
+            busy={busy}
+            onLink={(sessionId) => void linkAssessment(request.id, sessionId)}
+          />
+        )}
+      </section>
     </div>
   );
 }

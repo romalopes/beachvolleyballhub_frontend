@@ -453,7 +453,10 @@ export default function Home() {
           // geolocation and IP lookup are unavailable (e.g., blocked by ad blocker,
           // network restriction, etc.).
           if (!cancelled) {
-            console.debug("IP geolocation failed, using featured venue:", ipError);
+            console.debug(
+              "IP geolocation failed, using featured venue:",
+              ipError,
+            );
           }
         }
       } finally {
@@ -599,6 +602,24 @@ export default function Home() {
               longitude={effectiveCoordinates.lon}
             />
           )}
+          <Link
+            to="/hire-analysis"
+            className="home-section-card"
+            aria-label="Hire Analysis - Get professional analysis of your beach volleyball performance"
+          >
+            <div className="home-section-card-header">
+              <FileText className="home-section-card-icon" size={20} />
+              <h3>Hire Analysis</h3>
+            </div>
+            <p>
+              Get professional analysis of your beach volleyball performance
+              from expert coaches. Receive detailed feedback on technique,
+              strategy, and areas for improvement.
+            </p>
+            <span className="home-section-link">
+              Get Analysed <ArrowRight size={14} />
+            </span>
+          </Link>{" "}
           <UpcomingAgenda
             trainingSessions={trainingSessions}
             tournaments={tournaments}
