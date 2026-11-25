@@ -72,8 +72,8 @@ export default function AnalysisDetailPage() {
     setBusy(true);
     setError(null);
     try {
-      const response = await api.unlinkAssessmentSession(analysis.id, sessionId);
-      setAnalysis(response.analysis);
+      await api.unlinkAssessmentSession(analysis.id, sessionId);
+      await refresh();
     } catch (reason) {
       setError(
         reason instanceof Error ? reason.message : "Could not unlink the assessment session.",
