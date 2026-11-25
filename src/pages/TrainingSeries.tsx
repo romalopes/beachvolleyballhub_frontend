@@ -23,7 +23,9 @@ export default function TrainingSeriesPage() {
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
 
-  const status = (searchParams.get("status") ?? "") as TrainingSeriesStatus | "";
+  const status = (searchParams.get("status") ?? "") as
+    | TrainingSeriesStatus
+    | "";
   const upcoming = searchParams.get("upcoming") === "1";
   const templateId = searchParams.get("training_template_id") ?? "";
 
@@ -37,7 +39,9 @@ export default function TrainingSeriesPage() {
     api
       .trainingTemplates({ per_page: 100 })
       .then((response) => setTemplates(response.data))
-      .catch((err: Error) => console.warn("Could not load series templates:", err));
+      .catch((err: Error) =>
+        console.warn("Could not load series templates:", err),
+      );
   }, []);
 
   useEffect(() => {
@@ -90,7 +94,10 @@ export default function TrainingSeriesPage() {
       <div className="training-page-content">
         <aside className="training-filters" aria-label="Series filters">
           <h2>Filters</h2>
-          <form className="filter-form tournament-filter-form" onSubmit={(event) => event.preventDefault()}>
+          <form
+            className="filter-form tournament-filter-form"
+            onSubmit={(event) => event.preventDefault()}
+          >
             <div className="form-group">
               <label htmlFor="series-status-filter">Status</label>
               <select
@@ -124,23 +131,25 @@ export default function TrainingSeriesPage() {
                 ))}
               </select>
             </div>
-            <fieldset className="form-group">
+            <div className="form-group">
               <fieldset className="form-group tournament-filter-mine">
-              <legend>Dates</legend>
-              <div className="checkbox-group">
-                <label>
-                  <input
-                    type="checkbox"
-                    checked={upcoming}
-                    onChange={(event) =>
-                      updateParams({ upcoming: event.target.checked ? "1" : undefined })
-                    }
-                  />
-                  Upcoming only
-                </label>
-              </div>
-            </fieldset>
-            </fieldset>
+                <legend>Dates</legend>
+                <div className="checkbox-group">
+                  <label>
+                    <input
+                      type="checkbox"
+                      checked={upcoming}
+                      onChange={(event) =>
+                        updateParams({
+                          upcoming: event.target.checked ? "1" : undefined,
+                        })
+                      }
+                    />
+                    Upcoming only
+                  </label>
+                </div>
+              </fieldset>
+            </div>
             <div className="form-actions">
               <button
                 type="button"

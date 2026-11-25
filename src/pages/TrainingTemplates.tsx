@@ -1,11 +1,7 @@
 import { useEffect, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { CalendarPlus, Plus } from "lucide-react";
-import {
-  api,
-  type Organisation,
-  type TrainingTemplate,
-} from "../api";
+import { api, type Organisation, type TrainingTemplate } from "../api";
 import EmptyState from "../components/EmptyState";
 import ErrorState from "../components/ErrorState";
 import LoadingState from "../components/LoadingState";
@@ -105,7 +101,10 @@ export default function TrainingTemplates() {
       <div className="training-page-content">
         <aside className="training-filters" aria-label="Template filters">
           <h2>Filters</h2>
-          <form className="filter-form tournament-filter-form" onSubmit={(event) => event.preventDefault()}>
+          <form
+            className="filter-form tournament-filter-form"
+            onSubmit={(event) => event.preventDefault()}
+          >
             <div className="form-group">
               <label htmlFor="template-search">Search</label>
               <input
@@ -124,7 +123,9 @@ export default function TrainingTemplates() {
                 id="template-organisation-filter"
                 value={organisationId}
                 onChange={(event) =>
-                  updateParams({ organisation_id: event.target.value || undefined })
+                  updateParams({
+                    organisation_id: event.target.value || undefined,
+                  })
                 }
               >
                 <option value="">Any organisation</option>
@@ -135,29 +136,35 @@ export default function TrainingTemplates() {
                 ))}
               </select>
             </div>
-            <fieldset className="form-group">
+            <div className="form-group">
               <fieldset className="form-group tournament-filter-mine">
-              <legend>Visibility</legend>
-              <div className="checkbox-group">
-                <label>
-                  <input
-                    type="checkbox"
-                    checked={includeArchived}
-                    onChange={(event) =>
-                      updateParams({ archived: event.target.checked ? "1" : undefined })
-                    }
-                  />
-                  Show archived templates
-                </label>
-              </div>
-            </fieldset>
-            </fieldset>
+                <legend>Visibility</legend>
+                <div className="checkbox-group">
+                  <label>
+                    <input
+                      type="checkbox"
+                      checked={includeArchived}
+                      onChange={(event) =>
+                        updateParams({
+                          archived: event.target.checked ? "1" : undefined,
+                        })
+                      }
+                    />
+                    Show archived templates
+                  </label>
+                </div>
+              </fieldset>
+            </div>
             <div className="form-actions">
               <button
                 type="button"
                 className="admin-btn"
                 onClick={() =>
-                  updateParams({ q: undefined, organisation_id: undefined, archived: undefined })
+                  updateParams({
+                    q: undefined,
+                    organisation_id: undefined,
+                    archived: undefined,
+                  })
                 }
               >
                 Reset
@@ -190,12 +197,16 @@ export default function TrainingTemplates() {
                   key={template.id}
                   template={template}
                   busy={busyId === template.id}
-                  onEdit={() => navigate(`/training/templates/${template.id}/edit`)}
+                  onEdit={() =>
+                    navigate(`/training/templates/${template.id}/edit`)
+                  }
                   onSchedule={() =>
                     navigate(`/training/series/new?template_id=${template.id}`)
                   }
                   onClone={() =>
-                    runAction(template.id, () => api.cloneTrainingTemplate(template.id))
+                    runAction(template.id, () =>
+                      api.cloneTrainingTemplate(template.id),
+                    )
                   }
                   onToggleArchive={() =>
                     runAction(template.id, () =>

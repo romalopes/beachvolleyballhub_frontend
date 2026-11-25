@@ -35,14 +35,19 @@ export default function TrainingFilterForm({
   onReset,
 }: TrainingFilterFormProps) {
   return (
-    <form className="filter-form tournament-filter-form" onSubmit={(event) => event.preventDefault()}>
+    <form
+      className="filter-form tournament-filter-form"
+      onSubmit={(event) => event.preventDefault()}
+    >
       <div className="form-group">
         <label htmlFor="training-status">Status</label>
         <select
           id="training-status"
           value={status}
           onChange={(event) =>
-            onChange({ status: event.target.value as TrainingSessionStatus | "" })
+            onChange({
+              status: event.target.value as TrainingSessionStatus | "",
+            })
           }
         >
           <option value="">Any status</option>
@@ -87,7 +92,7 @@ export default function TrainingFilterForm({
         />
       </div>
 
-      <fieldset className="form-group tournament-filter-mine">
+      <div className="form-group tournament-filter-mine">
         <legend>Your schedule</legend>
         <div className="checkbox-group">
           <label>
@@ -99,7 +104,7 @@ export default function TrainingFilterForm({
             Only sessions I participate in
           </label>
         </div>
-      </fieldset>
+      </div>
 
       <div className="form-actions">
         <button type="button" className="admin-btn" onClick={onReset}>

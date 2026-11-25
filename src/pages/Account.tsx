@@ -152,49 +152,53 @@ export default function AccountPage() {
       <form className="auth-form" onSubmit={handleSubmit}>
         <section className="detail-section">
           <h2>Personal information</h2>
-          <div className="auth-field">
-            <label htmlFor="first_name">First name</label>
-            <input id="first_name" type="text" maxLength={50} value={account.first_name ?? ""} onChange={(e) => updateField("first_name", e.target.value)} />
-          </div>
-          <div className="auth-field">
-            <label htmlFor="last_name">Last name</label>
-            <input id="last_name" type="text" maxLength={50} value={account.last_name ?? ""} onChange={(e) => updateField("last_name", e.target.value)} />
-          </div>
-          <div className="auth-field">
-            <label htmlFor="contact_email">Contact email</label>
-            <input id="contact_email" type="email" maxLength={254} value={account.email ?? ""} onChange={(e) => updateField("email", e.target.value)} />
-          </div>
-          <div className="auth-field">
-            <label htmlFor="phone">Phone</label>
-            <input id="phone" type="tel" maxLength={30} value={account.phone ?? ""} onChange={(e) => updateField("phone", e.target.value)} />
-          </div>
-          <div className="auth-field">
-            <label htmlFor="date_of_birth">Date of birth</label>
-            <input id="date_of_birth" type="date" value={account.date_of_birth ?? ""} onChange={(e) => updateField("date_of_birth", e.target.value)} />
+          <div className="form-grid">
+            <div className="auth-field">
+              <label htmlFor="first_name">First name</label>
+              <input id="first_name" type="text" maxLength={50} value={account.first_name ?? ""} onChange={(e) => updateField("first_name", e.target.value)} />
+            </div>
+            <div className="auth-field">
+              <label htmlFor="last_name">Last name</label>
+              <input id="last_name" type="text" maxLength={50} value={account.last_name ?? ""} onChange={(e) => updateField("last_name", e.target.value)} />
+            </div>
+            <div className="auth-field">
+              <label htmlFor="contact_email">Contact email</label>
+              <input id="contact_email" type="email" maxLength={254} value={account.email ?? ""} onChange={(e) => updateField("email", e.target.value)} />
+            </div>
+            <div className="auth-field">
+              <label htmlFor="phone">Phone</label>
+              <input id="phone" type="tel" maxLength={30} value={account.phone ?? ""} onChange={(e) => updateField("phone", e.target.value)} />
+            </div>
+            <div className="auth-field">
+              <label htmlFor="date_of_birth">Date of birth</label>
+              <input id="date_of_birth" type="date" value={account.date_of_birth ?? ""} onChange={(e) => updateField("date_of_birth", e.target.value)} />
+            </div>
           </div>
         </section>
 
         <section className="detail-section">
           <h2>Address</h2>
-          <div className="auth-field">
-            <label htmlFor="street_address">Street address</label>
-            <input id="street_address" type="text" maxLength={255} value={account.address.street_address ?? ""} onChange={(e) => updateAddress("street_address", e.target.value)} />
-          </div>
-          <div className="auth-field">
-            <label htmlFor="city">City</label>
-            <input id="city" type="text" maxLength={100} value={account.address.city ?? ""} onChange={(e) => updateAddress("city", e.target.value)} />
-          </div>
-          <div className="auth-field">
-            <label htmlFor="state">State</label>
-            <input id="state" type="text" maxLength={100} value={account.address.state ?? ""} onChange={(e) => updateAddress("state", e.target.value)} />
-          </div>
-          <div className="auth-field">
-            <label htmlFor="postal_code">Postal code</label>
-            <input id="postal_code" type="text" maxLength={100} value={account.address.postal_code ?? ""} onChange={(e) => updateAddress("postal_code", e.target.value)} />
-          </div>
-          <div className="auth-field">
-            <label htmlFor="country">Country</label>
-            <input id="country" type="text" maxLength={100} value={account.address.country ?? ""} onChange={(e) => updateAddress("country", e.target.value)} />
+          <div className="address-grid">
+            <div className="auth-field full-width">
+              <label htmlFor="street_address">Street address</label>
+              <input id="street_address" type="text" maxLength={255} value={account.address.street_address ?? ""} onChange={(e) => updateAddress("street_address", e.target.value)} />
+            </div>
+            <div className="auth-field">
+              <label htmlFor="city">City</label>
+              <input id="city" type="text" maxLength={100} value={account.address.city ?? ""} onChange={(e) => updateAddress("city", e.target.value)} />
+            </div>
+            <div className="auth-field">
+              <label htmlFor="state">State</label>
+              <input id="state" type="text" maxLength={100} value={account.address.state ?? ""} onChange={(e) => updateAddress("state", e.target.value)} />
+            </div>
+            <div className="auth-field">
+              <label htmlFor="postal_code">Postal code</label>
+              <input id="postal_code" type="text" maxLength={100} value={account.address.postal_code ?? ""} onChange={(e) => updateAddress("postal_code", e.target.value)} />
+            </div>
+            <div className="auth-field">
+              <label htmlFor="country">Country</label>
+              <input id="country" type="text" maxLength={100} value={account.address.country ?? ""} onChange={(e) => updateAddress("country", e.target.value)} />
+            </div>
           </div>
 
           <div className="account-location-preview">

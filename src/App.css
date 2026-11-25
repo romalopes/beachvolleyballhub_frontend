@@ -17282,14 +17282,29 @@
 
 /* ===== Form Field Grid =====
    For side-by-side form fields in detail pages. */
+/* ===== Form Field Grid =====
+   Pairs auth-style fields side by side (Account page "Personal information").
+   Children keep their own .auth-field styling; the grid only controls placement. */
 .form-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(min(100%, 280px), 1fr));
-  gap: 1rem;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 1rem 1.25rem;
 }
 
+.form-grid > .auth-field,
 .form-grid > .form-group {
   margin-bottom: 0;
+  min-width: 0;
+}
+
+.form-grid > .full-width {
+  grid-column: 1 / -1;
+}
+
+@media (max-width: 640px) {
+  .form-grid {
+    grid-template-columns: 1fr;
+  }
 }
 
 /* ===== Detail Card Grid =====
@@ -17318,18 +17333,29 @@
 
 /* ===== Address Field Grid =====
    Special grid for address fields in account forms. */
+/* ===== Address Field Grid =====
+   Pairs address fields side by side (Account page "Address"), with the street
+   line spanning the full row. Children keep their .auth-field styling. */
 .address-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(min(100%, 200px), 1fr));
-  gap: 1rem;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 1rem 1.25rem;
 }
 
+.address-grid > .auth-field,
 .address-grid > .form-group {
   margin-bottom: 0;
+  min-width: 0;
 }
 
-.address-grid > .form-group.full-width {
+.address-grid > .full-width {
   grid-column: 1 / -1;
+}
+
+@media (max-width: 640px) {
+  .address-grid {
+    grid-template-columns: 1fr;
+  }
 }
 
 /* ===== Analysis Request Card ===== */
