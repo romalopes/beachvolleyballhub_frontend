@@ -69,14 +69,14 @@ export default function AnalysisRequestDetailPage() {
   const [sendingMessage, setSendingMessage] = useState(false);
   const [startingAnalysis, setStartingAnalysis] = useState(false);
   // Assessment session inline detail expansion
-  const [expandedAssessmentId, setExpandedAssessmentId] = useState<number | null>(null);
+  const [expandedAssessmentSlug, setExpandedAssessmentSlug] = useState<string | null>(null);
 
-  const handleExpandAssessment = (sessionId: number) => {
-    setExpandedAssessmentId(sessionId);
+  const handleExpandAssessment = (sessionPublicSlug: string) => {
+    setExpandedAssessmentSlug(sessionPublicSlug);
   };
 
   const handleCloseAssessment = () => {
-    setExpandedAssessmentId(null);
+    setExpandedAssessmentSlug(null);
   };
   // Assessment sessions offered as deliverables; the picker lists sessions the
   // team can attach (staff only), the request itself carries the linked ones.
@@ -139,6 +139,45 @@ export default function AnalysisRequestDetailPage() {
       active = false;
     };
   }, [isStaff]);
+
+  // Helper to extract YouTube video ID from URL
+  const getYouTubeVideoId = (url: string): string | null => {
+    const regex = /(?:youtube\.com\/(?:[^\/]+\/.+\/|(?:v|e(?:mbed)?)\/|.*[?&]v=)|youtu\.be\/)([^"&?\/\s]{11})/;
+    const match = url.match(regex);
+    return match ? match[1] : null;
+  };
+
+  // Helper to get YouTube thumbnail URL
+  const getYouTubeThumbnail = (url: string): string | null => {
+    const videoId = getYouTubeVideoId(url);
+    return videoId ? `https://img.youtube.com/vi/${videoId}/default.jpg` : null;
+  };
+
+  // Render thumbnail for video items
+  const renderVideoThumbnail = (item: { file_url?: string; title?: string; video_url?: string }) => {
+    const url = item.file_url || item.video_url;
+    if (!url) return null;
+    
+    const thumbnail = getYouTubeThumbnail(url);
+    if (thumbnail) {
+      return (
+        <img
+          src={thumbnail}
+          alt={`${item.title || "Video"} thumbnail`}
+          className="video-thumbnail"
+          loading="lazy"
+        />
+      );
+    }
+    return (
+      <div className="video-thumbnail video-thumbnail--placeholder">
+        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <polygon points="23 7 16 12 23 17 23 7"></polygon>
+          <rect x="1" y="5" width="15" height="14" rx="2" ry="2"></rect>
+        </svg>
+      </div>
+    );
+  };
 
   const run = async (
     action: () => Promise<{ analysis_request: AnalysisRequestRecord }>,
@@ -396,7 +435,10 @@ export default function AnalysisRequestDetailPage() {
             {(request.assessment_sessions ?? []).map((session) => (
               <li key={`assessment-${session.id}`} className="video-item">
                 <span>
-                  <Link to={"/assessment-sessions/" + session.id}>
+                  <Link to={"/assessment-sessions/" + (session.public_slug || session.id)}>
+                    <span className="video-item__thumbnail">
+                      {renderVideoThumbnail({ title: session.title })}
+                    </span>
                     {session.title}
                   </Link>
                   <br />
@@ -405,7 +447,7 @@ export default function AnalysisRequestDetailPage() {
                     {session.date ? ` · ${formatDate(session.date)}` : ""}
                   </span>
                 </span>
-                <Link to={"/assessment-sessions/" + session.id} className="hint">
+                <Link to={"/assessment-sessions/" + (session.public_slug || session.id)} className="hint">
                   <ExternalLink size={14} aria-hidden="true" /> View
                 </Link>
               </li>
@@ -710,7 +752,7 @@ export default function AnalysisRequestDetailPage() {
                 {(request.assessment_sessions ?? []).map((session) => (
                   <li key={session.id} className="video-item">
                     <span
-                      onClick={() => handleExpandAssessment(session.id)}
+                      onClick={() => handleExpandAssessment(session.public_slug ?? session.id.toString())}
                       style={{ cursor: 'pointer' }}
                     >
                       {session.title}
@@ -724,7 +766,7 @@ export default function AnalysisRequestDetailPage() {
                       <button
                         type="button"
                         className="hint"
-                        onClick={(e) => { e.stopPropagation(); handleExpandAssessment(session.id); }}
+                        onClick={(e) => { e.stopPropagation(); handleExpandAssessment(session.public_slug ?? session.id.toString()); }}
                       >
                         <ExternalLink size={14} aria-hidden="true" /> View
                       </button>
@@ -741,9 +783,9 @@ export default function AnalysisRequestDetailPage() {
                 ))}
               </ul>
             )}
-            {expandedAssessmentId && request.assessment_sessions?.some(s => s.id === expandedAssessmentId) && (
+            {expandedAssessmentSlug && request.assessment_sessions?.some(s => s.public_slug === expandedAssessmentSlug) && (
               <AssessmentSessionInlineDetail
-                sessionId={expandedAssessmentId}
+                sessionPublicSlug={expandedAssessmentSlug}
                 onClose={handleCloseAssessment}
               />
             )}

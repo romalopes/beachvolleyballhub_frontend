@@ -5,12 +5,12 @@ import { api, type AssessmentSession } from "../../api";
 import { formatDate } from "../../utils/analysisRequest";
 
 interface AssessmentSessionInlineDetailProps {
-  sessionId: number;
+  sessionPublicSlug: string;
   onClose: () => void;
 }
 
 export default function AssessmentSessionInlineDetail({
-  sessionId,
+  sessionPublicSlug,
   onClose,
 }: AssessmentSessionInlineDetailProps) {
   const [session, setSession] = useState<AssessmentSession | null>(null);
@@ -22,7 +22,7 @@ export default function AssessmentSessionInlineDetail({
     setLoading(true);
     setError(null);
     api
-      .assessmentSession(sessionId)
+      .assessmentSessionBySlug(sessionPublicSlug)
       .then((res) => {
         if (active) {
           setSession(res.assessment_session);
@@ -38,7 +38,7 @@ export default function AssessmentSessionInlineDetail({
     return () => {
       active = false;
     };
-  }, [sessionId]);
+  }, [sessionPublicSlug]);
 
   if (loading) {
     return (

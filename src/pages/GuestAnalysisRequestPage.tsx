@@ -24,14 +24,14 @@ export default function GuestAnalysisRequestPage() {
   const [messageBody, setMessageBody] = useState("");
   const [sendingMessage, setSendingMessage] = useState(false);
   const [messageError, setMessageError] = useState<string | null>(null);
-  const [expandedAssessmentId, setExpandedAssessmentId] = useState<number | null>(null);
+  const [expandedAssessmentSlug, setExpandedAssessmentSlug] = useState<string | null>(null);
 
-  const handleExpandAssessment = (sessionId: number) => {
-    setExpandedAssessmentId(sessionId);
+  const handleExpandAssessment = (sessionPublicSlug: string) => {
+    setExpandedAssessmentSlug(sessionPublicSlug);
   };
 
   const handleCloseAssessment = () => {
-    setExpandedAssessmentId(null);
+    setExpandedAssessmentSlug(null);
   };
 
   useEffect(() => {
@@ -193,7 +193,7 @@ export default function GuestAnalysisRequestPage() {
             {(request.assessment_sessions ?? []).map((session) => (
               <li key={`assessment-${session.id}`} className="video-item">
                 <span
-                  onClick={() => handleExpandAssessment(session.id)}
+                  onClick={() => handleExpandAssessment(session.public_slug ?? session.id.toString())}
                   style={{ cursor: 'pointer' }}
                 >
                   {session.title}
@@ -206,7 +206,7 @@ export default function GuestAnalysisRequestPage() {
                 <button
                   type="button"
                   className="hint"
-                  onClick={(e) => { e.stopPropagation(); handleExpandAssessment(session.id); }}
+                  onClick={(e) => { e.stopPropagation(); handleExpandAssessment(session.public_slug ?? session.id.toString()); }}
                 >
                   <ExternalLink size={14} aria-hidden="true" /> View
                 </button>
@@ -223,9 +223,9 @@ export default function GuestAnalysisRequestPage() {
                 )}
               </li>
             ))}
-            {expandedAssessmentId && request.assessment_sessions?.some(s => s.id === expandedAssessmentId) && (
+            {expandedAssessmentSlug && request.assessment_sessions?.some(s => s.public_slug === expandedAssessmentSlug) && (
               <AssessmentSessionInlineDetail
-                sessionId={expandedAssessmentId}
+                sessionPublicSlug={expandedAssessmentSlug}
                 onClose={handleCloseAssessment}
               />
             )}
