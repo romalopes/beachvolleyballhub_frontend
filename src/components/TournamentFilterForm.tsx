@@ -144,25 +144,27 @@ export default function TournamentFilterForm({
         <legend>Your tournaments</legend>
         {/* The kinds are OR-combined server-side: ticking "Created by me" and
             "Following" shows the union. */}
-        {RELATIONSHIP_FILTERS.map(({ key, label }) => (
-          <label key={key}>
-            <input
-              type="checkbox"
-              checked={filters.relationship?.includes(key) ?? false}
-              onChange={(e) => {
-                const current = filters.relationship ?? [];
-                const relationship = e.target.checked
-                  ? [...current, key]
-                  : current.filter((kind) => kind !== key);
-                handleChange(
-                  "relationship",
-                  relationship.length > 0 ? relationship : undefined,
-                );
-              }}
-            />
-            {label}
-          </label>
-        ))}
+        <div className="checkbox-group">
+          {RELATIONSHIP_FILTERS.map(({ key, label }) => (
+            <label key={key}>
+              <input
+                type="checkbox"
+                checked={filters.relationship?.includes(key) ?? false}
+                onChange={(e) => {
+                  const current = filters.relationship ?? [];
+                  const relationship = e.target.checked
+                    ? [...current, key]
+                    : current.filter((kind) => kind !== key);
+                  handleChange(
+                    "relationship",
+                    relationship.length > 0 ? relationship : undefined,
+                  );
+                }}
+              />
+              {label}
+            </label>
+          ))}
+        </div>
       </fieldset>
       <div className="form-group">
         <label htmlFor="publication_state">Publication State</label>

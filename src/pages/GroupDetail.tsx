@@ -470,25 +470,27 @@ export default function GroupDetail() {
           </div>
         )}
         {members.length ? (
-          <ul className="identity-link-list">
+          <div className="detail-card-grid">
             {members.map((member) => (
-              <li key={member.id} style={{ display: "flex", alignItems: "center", gap: "8px", flexWrap: "wrap", marginBottom: "8px" }}>
-                <span style={{ flex: 1 }}>
+              <article key={member.id} className="group-member-card">
+                <div className="group-member-info">
                   {member.player_profile_id ? (
                     <Link className="identity-link" to={`/players/${member.player_profile_id}`}>
                       {member.name || `Player profile #${member.player_profile_id}`}
                     </Link>
                   ) : (
-                    member.name || "Member"
+                    <span>{member.name || "Member"}</span>
                   )}
-                </span>
+                  <span className="group-member-meta">
+                    {roleLabel(member.role)} · {member.status}
+                  </span>
+                </div>
                 {canManage && member.id !== busyId && (
-                  <>
+                  <div className="group-member-actions">
                     <select
                       value={member.role}
                       onChange={(e) => changeRole(member.id, e.target.value as GroupMember["role"])}
                       disabled={busyId === member.id}
-                      style={{ padding: "4px 8px" }}
                     >
                       <option value="owner">Owner</option>
                       <option value="coach">Coach</option>
@@ -499,19 +501,15 @@ export default function GroupDetail() {
                         onClick={() => removeMember(member.id)}
                         disabled={busyId === member.id}
                         className="btn btn-danger btn-sm"
-                        style={{ padding: "4px 8px" }}
                       >
                         Remove
                       </button>
                     )}
-                  </>
+                  </div>
                 )}
-                <span style={{ color: "var(--muted)", fontSize: "0.9em" }}>
-                  {roleLabel(member.role)} · {member.status}
-                </span>
-              </li>
+              </article>
             ))}
-          </ul>
+          </div>
         ) : (
           <p>No members.</p>
         )}

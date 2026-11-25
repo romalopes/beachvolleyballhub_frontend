@@ -227,6 +227,8 @@ export default function CoachDetail() {
 
       {actionError && <div className="admin-error">{actionError}</div>}
 
+      <div className="detail-page-content">
+
       {confirmingArchive && (
         <DeleteConfirm
           entityName={coachName}
@@ -287,53 +289,90 @@ export default function CoachDetail() {
         onMerged={(canonicalId) => navigate(`/coaches/${canonicalId}`, { replace: true })}
       />}
 
-      <MembershipSections
-        organisationMemberships={coach.organisation_memberships}
-        groupMemberships={coach.group_memberships}
-        canManageOwnMemberships={canManageOwnMemberships || canManageCreatedProfileMemberships}
-        managedProfile={canManageCreatedProfileMemberships ? { type: "CoachProfile", id: coach.id } : undefined}
-        onMembershipsChanged={() => window.location.reload()}
-      />
-      <CoachingRelationships
-        side="coach"
-        profileId={coach.coach_profile_id!}
-        canManage={
-          canEdit &&
-          (Boolean(user?.roles.includes("admin")) ||
-            Boolean(
-              user?.coach_profile_ids?.includes(coach.coach_profile_id!) ||
-              user?.coach_profile_id === coach.coach_profile_id,
-            ))
-        }
-        isAdmin={Boolean(user?.roles.includes("admin"))}
-      />
+      <main>
+        <section className="detail-section">
+          <h2>Account link</h2>
+          {coach.account_status === "connected" && coach.account ? (
+            <p className="related-item-meta">
+              Linked to account: <a href={`/accounts/${coach.account.id}`}><strong>{coach.account.full_name}</strong></a>
+            </p>
+          ) : (
+            <p className="related-item-meta">This profile has no linked account. Create an invitation to let its owner claim it.</p>
+          )}
+          {coach.account_status !== "connected" && <ClaimInvitationPanel
+            key={`${coach.id}:${coach.status}`}
+            claimableType="CoachProfile"
+            claimableId={coach.id}
+            blockedReason={invitationBlockedReason}
+            ineligibleReason={isArchived(coach) ? "Restore this profile before creating claim invitations." : null}
+            inviteeEmail={null}
+          />}
+        </section>
 
-      <section className="detail-section assessment-section">
-        <h2>Recorded assessments</h2>
-        <p className="related-item-meta">
-          {coach.assessments_recorded_count ?? 0} published assessment
-          {(coach.assessments_recorded_count ?? 0) === 1 ? "" : "s"} attributed
-          to this coach.
-        </p>
-        <AssessmentList
-          assessments={coach.recent_assessments}
-          emptyTitle="No assessments recorded"
-          emptyDescription="Ratings attributed to this coach will appear here."
-          showHistory={false}
-        />
-      </section>
+        {canMerge && coach.status === "active" && <ProfileMergePanel
+          kind="coach"
+          sourceId={coach.id}
+          sourceName={coachName}
+          onMerged={(canonicalId) => navigate(`/coaches/${canonicalId}`, { replace: true })}
+        />}
 
-      <section className="detail-section">
-        <h2>Coaching details</h2>
-        <p>
-          {coach.coaching_level ?? "No coaching level yet"}
-          <br />
-          {coach.qualifications ?? "No qualifications yet"}
-        </p>
-        <p className="related-item-meta">
-          Visibility: {coach.visibility === "private" ? "Private" : "Shared"}
-        </p>
-      </section>
+        <section className="detail-section">
+          <h2>Coaching relationships</h2>
+          <CoachingRelationships
+            side="coach"
+            profileId={coach.coach_profile_id!}
+            canManage={
+              canEdit &&
+              (Boolean(user?.roles.includes("admin")) ||
+                Boolean(
+                  user?.coach_profile_ids?.includes(coach.coach_profile_id!) ||
+                  user?.coach_profile_id === coach.coach_profile_id,
+                ))
+            }
+            isAdmin={Boolean(user?.roles.includes("admin"))}
+          />
+        </section>
+
+        <section className="detail-section">
+          <h2>Coaching details</h2>
+          <p>
+            {coach.coaching_level ?? "No coaching level yet"}
+            <br />
+            {coach.qualifications ?? "No qualifications yet"}
+          </p>
+          <p className="related-item-meta">
+            Visibility: {coach.visibility === "private" ? "Private" : "Shared"}
+          </p>
+        </section>
+      </main>
+
+      <aside>
+        <div className="detail-card-grid">
+          <MembershipSections
+            organisationMemberships={coach.organisation_memberships}
+            groupMemberships={coach.group_memberships}
+            canManageOwnMemberships={canManageOwnMemberships || canManageCreatedProfileMemberships}
+            managedProfile={canManageCreatedProfileMemberships ? { type: "CoachProfile", id: coach.id } : undefined}
+            onMembershipsChanged={() => window.location.reload()}
+          />
+
+          <section className="detail-section assessment-section">
+            <h2>Recorded assessments</h2>
+            <p className="related-item-meta">
+              {coach.assessments_recorded_count ?? 0} published assessment
+              {(coach.assessments_recorded_count ?? 0) === 1 ? "" : "s"} attributed
+              to this coach.
+            </p>
+            <AssessmentList
+              assessments={coach.recent_assessments}
+              emptyTitle="No assessments recorded"
+              emptyDescription="Ratings attributed to this coach will appear here."
+              showHistory={false}
+            />
+          </section>
+        </div>
+      </aside>
+    </div>
     </div>
   );
 }

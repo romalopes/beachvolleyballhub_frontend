@@ -105,7 +105,7 @@ export default function TrainingTemplates() {
       <div className="training-page-content">
         <aside className="training-filters" aria-label="Template filters">
           <h2>Filters</h2>
-          <form className="filter-form" onSubmit={(event) => event.preventDefault()}>
+          <form className="filter-form tournament-filter-form" onSubmit={(event) => event.preventDefault()}>
             <div className="form-group">
               <label htmlFor="template-search">Search</label>
               <input
@@ -136,17 +136,21 @@ export default function TrainingTemplates() {
               </select>
             </div>
             <fieldset className="form-group">
+              <fieldset className="form-group tournament-filter-mine">
               <legend>Visibility</legend>
-              <label>
-                <input
-                  type="checkbox"
-                  checked={includeArchived}
-                  onChange={(event) =>
-                    updateParams({ archived: event.target.checked ? "1" : undefined })
-                  }
-                />
-                Show archived templates
-              </label>
+              <div className="checkbox-group">
+                <label>
+                  <input
+                    type="checkbox"
+                    checked={includeArchived}
+                    onChange={(event) =>
+                      updateParams({ archived: event.target.checked ? "1" : undefined })
+                    }
+                  />
+                  Show archived templates
+                </label>
+              </div>
+            </fieldset>
             </fieldset>
             <div className="form-actions">
               <button

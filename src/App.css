@@ -17172,3 +17172,248 @@
 .inline-score-cell {
   color: var(--text-secondary);
 }
+
+/* ===== Filter Form Grid (Responsive) =====
+   Extends the tournament filter form pattern to all filter forms.
+   Uses auto-fit grid for responsive side-by-side fields. */
+.filter-form {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 220px), 1fr));
+  gap: 1rem;
+  align-items: start;
+}
+
+.filter-form > .form-group {
+  min-width: 0;
+  margin: 0;
+}
+
+.filter-form input:not([type="checkbox"]),
+.filter-form select {
+  width: 100%;
+  min-width: 0;
+  box-sizing: border-box;
+}
+
+.filter-form > fieldset {
+  grid-column: 1 / -1;
+  padding: 0;
+  border: 0;
+}
+
+.filter-form legend {
+  padding: 0;
+  margin-bottom: 0.5rem;
+  font-weight: 500;
+}
+
+.filter-form input[type="checkbox"] {
+  width: auto;
+  margin: 0;
+}
+
+.filter-form .checkbox-group {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.375rem 1rem;
+}
+
+.filter-form .checkbox-group label {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  min-height: 2rem;
+  margin: 0;
+}
+
+.filter-form > .form-actions {
+  grid-column: 1 / -1;
+  display: flex;
+  justify-content: flex-end;
+}
+
+/* ===== Detail Page Two-Column Layout =====
+   Primary content (forms, details) on left, related cards on right. */
+.detail-page-content {
+  display: grid;
+  grid-template-columns: minmax(0, 2fr) minmax(0, 1fr);
+  gap: 2rem;
+}
+
+@media (max-width: 900px) {
+  .detail-page-content {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* ===== Form Field Grid =====
+   For side-by-side form fields in detail pages. */
+.form-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 280px), 1fr));
+  gap: 1rem;
+}
+
+.form-grid > .form-group {
+  margin-bottom: 0;
+}
+
+/* ===== Detail Card Grid =====
+   For membership, relationship, assessment cards in detail pages. */
+.detail-card-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  gap: 1rem;
+}
+
+/* ===== Section Spacing ===== */
+.detail-section {
+  margin-bottom: 2rem;
+}
+
+.detail-section:last-child {
+  margin-bottom: 0;
+}
+
+.detail-section h2 {
+  margin-bottom: 1rem;
+  font-size: 1.125rem;
+  font-weight: 600;
+  color: var(--charcoal);
+}
+
+/* ===== Address Field Grid =====
+   Special grid for address fields in account forms. */
+.address-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 200px), 1fr));
+  gap: 1rem;
+}
+
+.address-grid > .form-group {
+  margin-bottom: 0;
+}
+
+.address-grid > .form-group.full-width {
+  grid-column: 1 / -1;
+}
+
+/* ===== Analysis Request Card ===== */
+.analysis-request-card {
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  padding: 1.25rem;
+  background: var(--bg-secondary);
+  transition: box-shadow var(--transition);
+}
+
+.analysis-request-card:hover {
+  box-shadow: var(--shadow-md);
+}
+
+.analysis-request-card header {
+  margin-bottom: 0.75rem;
+}
+
+.analysis-request-card h3 {
+  margin: 0 0 0.5rem;
+  font-size: 1rem;
+}
+
+.analysis-request-card h3 a {
+  color: var(--charcoal);
+  text-decoration: none;
+}
+
+.analysis-request-card h3 a:hover {
+  color: var(--amber-600);
+  text-decoration: underline;
+}
+
+.analysis-request-card .hint {
+  margin: 0 0 0.75rem;
+  font-size: 0.8125rem;
+}
+
+.analysis-request-badges {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.375rem;
+  margin-bottom: 0.75rem;
+}
+
+.analysis-request-card .card-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.375rem;
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: var(--amber-600);
+  text-decoration: none;
+}
+
+.analysis-request-card .card-link:hover {
+  text-decoration: underline;
+}
+
+/* ===== Group Member Card ===== */
+.group-member-card {
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  padding: 1rem 1.25rem;
+  background: var(--bg-secondary);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  flex-wrap: wrap;
+}
+
+.group-member-info {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  min-width: 0;
+}
+
+.group-member-info .identity-link {
+  font-weight: 500;
+  color: var(--charcoal);
+}
+
+.group-member-meta {
+  font-size: 0.8125rem;
+  color: var(--text-secondary);
+}
+
+.group-member-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex-shrink: 0;
+}
+
+.group-member-actions select {
+  padding: 0.375rem 0.625rem;
+  font-size: 0.8125rem;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border);
+  background: var(--bg-secondary);
+}
+
+.group-member-actions .btn {
+  padding: 0.375rem 0.75rem;
+  font-size: 0.8125rem;
+}
+
+@media (max-width: 520px) {
+  .group-member-card {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+  .group-member-actions {
+    width: 100%;
+    justify-content: space-between;
+  }
+}

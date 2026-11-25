@@ -244,6 +244,8 @@ export default function PlayerDetail() {
 
       {actionError && <div className="admin-error">{actionError}</div>}
 
+      <div className="detail-page-content">
+
       {confirmingArchive && (
         <DeleteConfirm
           entityName={playerName}
@@ -277,104 +279,113 @@ export default function PlayerDetail() {
         />
       )}
 
-      <section className="detail-section">
-        <h2>Account link</h2>
-        {player.account_status === "connected" && player.account ? (
-          <p className="related-item-meta">
-            Linked to account: <a href={`/accounts/${player.account.id}`}><strong>{player.account.full_name}</strong></a>
-          </p>
-        ) : (
-          <p className="related-item-meta">This profile has no linked account. Create an invitation to let its owner claim it.</p>
-        )}
-        {player.account_status !== "connected" && <ClaimInvitationPanel
-          key={`${player.id}:${player.status}`}
-          claimableType="PlayerProfile"
-          claimableId={player.id}
-          blockedReason={invitationBlockedReason}
-          ineligibleReason={isArchived(player) ? "Restore this profile before creating claim invitations." : null}
-          inviteeEmail={null}
+      <main>
+        <section className="detail-section">
+          <h2>Account link</h2>
+          {player.account_status === "connected" && player.account ? (
+            <p className="related-item-meta">
+              Linked to account: <a href={`/accounts/${player.account.id}`}><strong>{player.account.full_name}</strong></a>
+            </p>
+          ) : (
+            <p className="related-item-meta">This profile has no linked account. Create an invitation to let its owner claim it.</p>
+          )}
+          {player.account_status !== "connected" && <ClaimInvitationPanel
+            key={`${player.id}:${player.status}`}
+            claimableType="PlayerProfile"
+            claimableId={player.id}
+            blockedReason={invitationBlockedReason}
+            ineligibleReason={isArchived(player) ? "Restore this profile before creating claim invitations." : null}
+            inviteeEmail={null}
+          />}
+        </section>
+
+        {canMerge && player.status === "active" && <ProfileMergePanel
+          kind="player"
+          sourceId={player.id}
+          sourceName={playerName}
+          onMerged={(canonicalId) => navigate(`/players/${canonicalId}`, { replace: true })}
         />}
-      </section>
 
-      {canMerge && player.status === "active" && <ProfileMergePanel
-        kind="player"
-        sourceId={player.id}
-        sourceName={playerName}
-        onMerged={(canonicalId) => navigate(`/players/${canonicalId}`, { replace: true })}
-      />}
-
-      <div className="player-detail-grid">
-        <MembershipSections
-          organisationMemberships={player.organisation_memberships}
-          groupMemberships={player.group_memberships}
-        canManageOwnMemberships={canManageOwnMemberships || canManageCreatedProfileMemberships}
-        managedProfile={canManageCreatedProfileMemberships ? { type: "PlayerProfile", id: player.id } : undefined}
-          onMembershipsChanged={() => window.location.reload()}
-        />
-        <CoachingRelationships
-          side="player"
-          profileId={player.id}
-          canManage={
-            canEdit &&
-            (Boolean(user?.roles.includes("admin")) || Boolean(user?.coach_profile_ids?.length ?? user?.coach_profile_id))
-          }
-          viewerCoachProfileId={user?.coach_profile_id ?? null}
-          viewerCoachProfiles={user?.coach_profiles}
-          isAdmin={Boolean(user?.roles.includes("admin"))}
-        />
-
-      <section className="detail-section assessment-section">
-        <h2>Assessments</h2>
-        <p className="related-item-meta">
-          Read-only history · {player.assessment_count ?? 0} published assessment{(player.assessment_count ?? 0) === 1 ? "" : "s"}.
-          Assessments are recorded inside assessment sessions, not on this page.
-        </p>
-        <AssessmentList
-          assessments={player.assessments}
-          emptyTitle="No assessments yet"
-          emptyDescription="Published coaching assessments from assessment sessions will appear here."
-        />
-      </section>
-
-      <section className="detail-section">
-        <h2>Training history</h2>
-        {history.length === 0 ? (
-          <EmptyState
-            title="No trainings yet"
-            description="This player has not been added to a training session."
+        <section className="detail-section">
+          <h2>Coaching relationships</h2>
+          <CoachingRelationships
+            side="player"
+            profileId={player.id}
+            canManage={
+              canEdit &&
+              (Boolean(user?.roles.includes("admin")) || Boolean(user?.coach_profile_ids?.length ?? user?.coach_profile_id))
+            }
+            viewerCoachProfileId={user?.coach_profile_id ?? null}
+            viewerCoachProfiles={user?.coach_profiles}
+            isAdmin={Boolean(user?.roles.includes("admin"))}
           />
-        ) : (
-          <ul className="people-list">
-            {history.map((row) => (
-              <li key={row.id} className="people-row">
-                <div className="people-identity">
-                  {row.training_session ? (
-                    <Link
-                      to={`/training/${row.training_session.id}`}
-                      className="people-name"
-                    >
-                      {row.training_session.title}
-                    </Link>
-                  ) : (
-                    <span className="people-name">Training session</span>
-                  )}
-                  <span className="people-contact">
-                    {row.training_session
-                      ? formatTrainingDateRange(
-                          row.training_session.starts_at,
-                          row.training_session.ends_at,
-                        )
-                      : ""}
-                  </span>
-                </div>
-                <Tag>{participantStatusLabel(row.status)}</Tag>
-                {row.notes && <span className="people-meta">{row.notes}</span>}
-              </li>
-            ))}
-          </ul>
-        )}
-      </section>
-      </div>
+        </section>
+      </main>
+
+      <aside>
+        <div className="detail-card-grid">
+          <MembershipSections
+            organisationMemberships={player.organisation_memberships}
+            groupMemberships={player.group_memberships}
+          canManageOwnMemberships={canManageOwnMemberships || canManageCreatedProfileMemberships}
+          managedProfile={canManageCreatedProfileMemberships ? { type: "PlayerProfile", id: player.id } : undefined}
+            onMembershipsChanged={() => window.location.reload()}
+          />
+
+          <section className="detail-section assessment-section">
+            <h2>Assessments</h2>
+            <p className="related-item-meta">
+              Read-only history · {player.assessment_count ?? 0} published assessment{(player.assessment_count ?? 0) === 1 ? "" : "s"}.
+              Assessments are recorded inside assessment sessions, not on this page.
+            </p>
+            <AssessmentList
+              assessments={player.assessments}
+              emptyTitle="No assessments yet"
+              emptyDescription="Published coaching assessments from assessment sessions will appear here."
+            />
+          </section>
+
+          <section className="detail-section">
+            <h2>Training history</h2>
+            {history.length === 0 ? (
+              <EmptyState
+                title="No trainings yet"
+                description="This player has not been added to a training session."
+              />
+            ) : (
+              <ul className="people-list">
+                {history.map((row) => (
+                  <li key={row.id} className="people-row">
+                    <div className="people-identity">
+                      {row.training_session ? (
+                        <Link
+                          to={`/training/${row.training_session.id}`}
+                          className="people-name"
+                        >
+                          {row.training_session.title}
+                        </Link>
+                      ) : (
+                        <span className="people-name">Training session</span>
+                      )}
+                      <span className="people-contact">
+                        {row.training_session
+                          ? formatTrainingDateRange(
+                              row.training_session.starts_at,
+                              row.training_session.ends_at,
+                            )
+                          : ""}
+                      </span>
+                    </div>
+                    <Tag>{participantStatusLabel(row.status)}</Tag>
+                    {row.notes && <span className="people-meta">{row.notes}</span>}
+                  </li>
+                ))}
+              </ul>
+            )}
+          </section>
+        </div>
+      </aside>
+    </div>
     </div>
   );
 }

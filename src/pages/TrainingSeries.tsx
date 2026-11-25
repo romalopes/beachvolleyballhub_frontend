@@ -90,7 +90,7 @@ export default function TrainingSeriesPage() {
       <div className="training-page-content">
         <aside className="training-filters" aria-label="Series filters">
           <h2>Filters</h2>
-          <form className="filter-form" onSubmit={(event) => event.preventDefault()}>
+          <form className="filter-form tournament-filter-form" onSubmit={(event) => event.preventDefault()}>
             <div className="form-group">
               <label htmlFor="series-status-filter">Status</label>
               <select
@@ -125,17 +125,21 @@ export default function TrainingSeriesPage() {
               </select>
             </div>
             <fieldset className="form-group">
+              <fieldset className="form-group tournament-filter-mine">
               <legend>Dates</legend>
-              <label>
-                <input
-                  type="checkbox"
-                  checked={upcoming}
-                  onChange={(event) =>
-                    updateParams({ upcoming: event.target.checked ? "1" : undefined })
-                  }
-                />
-                Upcoming only
-              </label>
+              <div className="checkbox-group">
+                <label>
+                  <input
+                    type="checkbox"
+                    checked={upcoming}
+                    onChange={(event) =>
+                      updateParams({ upcoming: event.target.checked ? "1" : undefined })
+                    }
+                  />
+                  Upcoming only
+                </label>
+              </div>
+            </fieldset>
             </fieldset>
             <div className="form-actions">
               <button

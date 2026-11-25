@@ -57,57 +57,63 @@ export default function AdminAnalysisRequestsPage() {
         description="Review submissions, confirm scope and price, assign coaches and track payment."
       />
 
-      <div className="contact-inbox-filters">
-        <label className="visually-hidden" htmlFor="admin-requests-search">
-          Search by reference
-        </label>
-        <input
-          id="admin-requests-search"
-          type="search"
-          placeholder="Search reference (ANL-…)"
-          value={search}
-          onChange={(event) => {
-            setSearch(event.target.value);
-            setPage(1);
-          }}
-        />
-        <label className="visually-hidden" htmlFor="admin-requests-status">
-          Filter by workflow status
-        </label>
-        <select
-          id="admin-requests-status"
-          value={status}
-          onChange={(event) => {
-            setStatus(event.target.value);
-            setPage(1);
-          }}
-        >
-          <option value="">All statuses</option>
-          {WORKFLOW_OPTIONS.map((option) => (
-            <option key={option.value} value={option.value}>
-              {option.label}
-            </option>
-          ))}
-        </select>
-        <label className="visually-hidden" htmlFor="admin-requests-payment">
-          Filter by payment status
-        </label>
-        <select
-          id="admin-requests-payment"
-          value={paymentStatus}
-          onChange={(event) => {
-            setPaymentStatus(event.target.value);
-            setPage(1);
-          }}
-        >
-          <option value="">All payments</option>
-          {PAYMENT_OPTIONS.map((option) => (
-            <option key={option.value} value={option.value}>
-              {option.label}
-            </option>
-          ))}
-        </select>
-      </div>
+      <form className="filter-form" onSubmit={(e) => e.preventDefault()}>
+        <div className="form-group">
+          <label className="visually-hidden" htmlFor="admin-requests-search">
+            Search by reference
+          </label>
+          <input
+            id="admin-requests-search"
+            type="search"
+            placeholder="Search reference (ANL-…)"
+            value={search}
+            onChange={(event) => {
+              setSearch(event.target.value);
+              setPage(1);
+            }}
+          />
+        </div>
+        <div className="form-group">
+          <label className="visually-hidden" htmlFor="admin-requests-status">
+            Filter by workflow status
+          </label>
+          <select
+            id="admin-requests-status"
+            value={status}
+            onChange={(event) => {
+              setStatus(event.target.value);
+              setPage(1);
+            }}
+          >
+            <option value="">All statuses</option>
+            {WORKFLOW_OPTIONS.map((option) => (
+              <option key={option.value} value={option.value}>
+                {option.label}
+              </option>
+            ))}
+          </select>
+        </div>
+        <div className="form-group">
+          <label className="visually-hidden" htmlFor="admin-requests-payment">
+            Filter by payment status
+          </label>
+          <select
+            id="admin-requests-payment"
+            value={paymentStatus}
+            onChange={(event) => {
+              setPaymentStatus(event.target.value);
+              setPage(1);
+            }}
+          >
+            <option value="">All payments</option>
+            {PAYMENT_OPTIONS.map((option) => (
+              <option key={option.value} value={option.value}>
+                {option.label}
+              </option>
+            ))}
+          </select>
+        </div>
+      </form>
 
       {error && <div className="error-banner" role="alert">{error}</div>}
 
@@ -119,28 +125,26 @@ export default function AdminAnalysisRequestsPage() {
       ) : records.length === 0 ? (
         <p className="hint">No requests match these filters.</p>
       ) : (
-        <ul className="analysis-request-list">
+        <div className="detail-card-grid">
           {records.map((record) => (
-            <li key={record.id} className="review-content analysis-request-row">
-              <div className="analysis-request-row-header">
-                <div>
-                  <h3>
-                    <Link to={`/analysis-requests/${record.id}`}>{record.title}</Link>
-                  </h3>
-                  <p className="hint">
-                    {record.reference} ·{" "}
-                    {record.guest_name || record.submitter_email || `Account #${record.account_id}`} ·
-                    submitted {formatDate(record.submitted_at)}
-                  </p>
-                </div>
-                <div className="analysis-request-badges">
-                  <span className={`contact-status-badge ${statusTone(record.workflow_status)}`}>
-                    {workflowLabel(record.workflow_status)}
-                  </span>
-                  <span className={`contact-status-badge ${statusTone(record.payment_status)}`}>
-                    {paymentLabel(record.payment_status)}
-                  </span>
-                </div>
+            <article key={record.id} className="analysis-request-card">
+              <header>
+                <h3>
+                  <Link to={`/analysis-requests/${record.id}`}>{record.title}</Link>
+                </h3>
+                <p className="hint">
+                  {record.reference} ·{" "}
+                  {record.guest_name || record.submitter_email || `Account #${record.account_id}`} ·
+                  submitted {formatDate(record.submitted_at)}
+                </p>
+              </header>
+              <div className="analysis-request-badges">
+                <span className={`contact-status-badge ${statusTone(record.workflow_status)}`}>
+                  {workflowLabel(record.workflow_status)}
+                </span>
+                <span className={`contact-status-badge ${statusTone(record.payment_status)}`}>
+                  {paymentLabel(record.payment_status)}
+                </span>
               </div>
               <p className="hint">
                 {record.price_aud}
@@ -148,10 +152,10 @@ export default function AdminAnalysisRequestsPage() {
                   ? ` · Coach: ${record.assigned_coach.display_name}`
                   : " · Unassigned"}
               </p>
-              <Link to={`/analysis-requests/${record.id}`}>Review request →</Link>
-            </li>
+              <Link to={`/analysis-requests/${record.id}`} className="card-link">Review request →</Link>
+            </article>
           ))}
-        </ul>
+        </div>
       )}
 
       {meta && meta.total_pages > 1 && (

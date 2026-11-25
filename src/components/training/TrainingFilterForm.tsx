@@ -35,7 +35,7 @@ export default function TrainingFilterForm({
   onReset,
 }: TrainingFilterFormProps) {
   return (
-    <form className="filter-form" onSubmit={(event) => event.preventDefault()}>
+    <form className="filter-form tournament-filter-form" onSubmit={(event) => event.preventDefault()}>
       <div className="form-group">
         <label htmlFor="training-status">Status</label>
         <select
@@ -87,16 +87,18 @@ export default function TrainingFilterForm({
         />
       </div>
 
-      <fieldset className="form-group">
+      <fieldset className="form-group tournament-filter-mine">
         <legend>Your schedule</legend>
-        <label>
-          <input
-            type="checkbox"
-            checked={mine}
-            onChange={(event) => onChange({ mine: event.target.checked })}
-          />
-          Only sessions I participate in
-        </label>
+        <div className="checkbox-group">
+          <label>
+            <input
+              type="checkbox"
+              checked={mine}
+              onChange={(event) => onChange({ mine: event.target.checked })}
+            />
+            Only sessions I participate in
+          </label>
+        </div>
       </fieldset>
 
       <div className="form-actions">

@@ -115,118 +115,126 @@ export function BillingPanel({
         <div className="empty-state">Billing information is unavailable.</div>
       ) : (
         <>
-          <section className="billing-summary" aria-label="Current subscription">
-            <div>
-              <p className="billing-eyebrow">Current plan</p>
-              <h2>{status.plan?.name ?? "FREE"}</h2>
-              <p className="billing-price">{status.plan?.price_label}</p>
-            </div>
-            <div className="billing-summary-meta">
-              <StatusBadge status={status.status} entitled={status.entitled} />
-              {status.subscription?.current_period_end && (
-                <p>
-                  {status.subscription.cancel_at_period_end ? "Access until" : "Renews"}{" "}
-                  {formatApiDate(status.subscription.current_period_end)}
-                </p>
-              )}
-              {status.subscription?.grace_period_ends_at && (
-                <p className="billing-warning">
-                  <AlertCircle size={14} aria-hidden="true" /> Payment failed. Paid
-                  access ends {formatApiDate(status.subscription.grace_period_ends_at)}.
-                </p>
-              )}
-              {status.subscription?.pending_change && (
-                <p className="billing-pending">
-                  Changing to {status.subscription.pending_change.plan.name}
-                  {status.subscription.pending_change.effective_at
-                    ? ` on ${formatApiDate(status.subscription.pending_change.effective_at)}`
-                    : ""}{" "}
-                  — awaiting Stripe confirmation.
-                </p>
-              )}
-            </div>
-          </section>
+          <div className="detail-page-content">
+            <main>
+              <section className="billing-summary" aria-label="Current subscription">
+                <div>
+                  <p className="billing-eyebrow">Current plan</p>
+                  <h2>{status.plan?.name ?? "FREE"}</h2>
+                  <p className="billing-price">{status.plan?.price_label}</p>
+                </div>
+                <div className="billing-summary-meta">
+                  <StatusBadge status={status.status} entitled={status.entitled} />
+                  {status.subscription?.current_period_end && (
+                    <p>
+                      {status.subscription.cancel_at_period_end ? "Access until" : "Renews"}{" "}
+                      {formatApiDate(status.subscription.current_period_end)}
+                    </p>
+                  )}
+                  {status.subscription?.grace_period_ends_at && (
+                    <p className="billing-warning">
+                      <AlertCircle size={14} aria-hidden="true" /> Payment failed. Paid
+                      access ends {formatApiDate(status.subscription.grace_period_ends_at)}.
+                    </p>
+                  )}
+                  {status.subscription?.pending_change && (
+                    <p className="billing-pending">
+                      Changing to {status.subscription.pending_change.plan.name}
+                      {status.subscription.pending_change.effective_at
+                        ? ` on ${formatApiDate(status.subscription.pending_change.effective_at)}`
+                        : ""}{" "}
+                      — awaiting Stripe confirmation.
+                    </p>
+                  )}
+                </div>
+              </section>
 
-          <div className="billing-actions">
-            {status.can_checkout && (
-              <Link className="auth-submit" to="/subscribe">
-                Choose a plan
-              </Link>
-            )}
-            {status.can_change_plan && (
-              <Link className="secondary-button" to="/subscribe">
-                Change plan
-              </Link>
-            )}
-            {status.can_open_portal && (
-              <button
-                className="secondary-button"
-                type="button"
-                onClick={openPortal}
-                disabled={busy === "portal"}
-              >
-                {busy === "portal" ? (
-                  <Loader2 size={16} className="spin" aria-hidden="true" />
-                ) : (
-                  <CreditCard size={16} aria-hidden="true" />
-                )}{" "}
-                Manage payment method & invoices
-              </button>
-            )}
-            {status.can_change_plan && !status.subscription?.cancel_at_period_end && (
-              <button
-                className="secondary-button"
-                type="button"
-                onClick={() => change("cancel")}
-                disabled={busy === "cancel"}
-              >
-                Cancel at period end
-              </button>
-            )}
-            {status.can_change_plan && status.subscription?.cancel_at_period_end && (
-              <button
-                className="secondary-button"
-                type="button"
-                onClick={() => change("resume")}
-                disabled={busy === "resume"}
-              >
-                Keep my subscription
-              </button>
-            )}
+              <div className="billing-actions">
+                {status.can_checkout && (
+                  <Link className="auth-submit" to="/subscribe">
+                    Choose a plan
+                  </Link>
+                )}
+                {status.can_change_plan && (
+                  <Link className="secondary-button" to="/subscribe">
+                    Change plan
+                  </Link>
+                )}
+                {status.can_open_portal && (
+                  <button
+                    className="secondary-button"
+                    type="button"
+                    onClick={openPortal}
+                    disabled={busy === "portal"}
+                  >
+                    {busy === "portal" ? (
+                      <Loader2 size={16} className="spin" aria-hidden="true" />
+                    ) : (
+                      <CreditCard size={16} aria-hidden="true" />
+                    )}{" "}
+                    Manage payment method & invoices
+                  </button>
+                )}
+                {status.can_change_plan && !status.subscription?.cancel_at_period_end && (
+                  <button
+                    className="secondary-button"
+                    type="button"
+                    onClick={() => change("cancel")}
+                    disabled={busy === "cancel"}
+                  >
+                    Cancel at period end
+                  </button>
+                )}
+                {status.can_change_plan && status.subscription?.cancel_at_period_end && (
+                  <button
+                    className="secondary-button"
+                    type="button"
+                    onClick={() => change("resume")}
+                    disabled={busy === "resume"}
+                  >
+                    Keep my subscription
+                  </button>
+                )}
+              </div>
+
+              <section className="detail-section">
+                <h2>What this plan includes</h2>
+                <ul className="plan-features">
+                  {status.features.map((feature) => (
+                    <li key={feature.slug}>
+                      <Check size={16} aria-hidden="true" />
+                      <span>{feature.name}</span>
+                    </li>
+                  ))}
+                  {status.features.length === 0 && (
+                    <li className="plan-feature-empty">
+                      The FREE plan does not include paid features.
+                    </li>
+                  )}
+                </ul>
+                <dl className="billing-limits">
+                  <div>
+                    <dt>Included users</dt>
+                    <dd>
+                      {status.limits.included_users.label}
+                      {status.usage.included_users.usage !== null &&
+                        ` · ${status.usage.included_users.usage} in use`}
+                    </dd>
+                  </div>
+                  <div>
+                    <dt>History retention</dt>
+                    <dd>{status.limits.history_limit.label}</dd>
+                  </div>
+                </dl>
+              </section>
+            </main>
+
+            <aside>
+              <section className="detail-section">
+                <BillingHistoryList entries={history} />
+              </section>
+            </aside>
           </div>
-
-          <section className="detail-section">
-            <h2>What this plan includes</h2>
-            <ul className="plan-features">
-              {status.features.map((feature) => (
-                <li key={feature.slug}>
-                  <Check size={16} aria-hidden="true" />
-                  <span>{feature.name}</span>
-                </li>
-              ))}
-              {status.features.length === 0 && (
-                <li className="plan-feature-empty">
-                  The FREE plan does not include paid features.
-                </li>
-              )}
-            </ul>
-            <dl className="billing-limits">
-              <div>
-                <dt>Included users</dt>
-                <dd>
-                  {status.limits.included_users.label}
-                  {status.usage.included_users.usage !== null &&
-                    ` · ${status.usage.included_users.usage} in use`}
-                </dd>
-              </div>
-              <div>
-                <dt>History retention</dt>
-                <dd>{status.limits.history_limit.label}</dd>
-              </div>
-            </dl>
-          </section>
-
-          <BillingHistoryList entries={history} />
         </>
       )}
     </div>
