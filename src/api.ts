@@ -486,6 +486,7 @@ export interface AnalysisPackage {
   max_duration_minutes: number;
   includes_annotated_video: boolean;
   includes_written_report: boolean;
+  includes_assessment: boolean;
   includes_consultation: boolean;
   turnaround_days: number;
   active?: boolean;

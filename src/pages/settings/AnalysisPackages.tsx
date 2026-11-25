@@ -3,6 +3,7 @@ import {
   ArrowDown,
   ArrowUp,
   ArrowUpDown,
+  CheckSquare,
   Eye,
   EyeOff,
   FileText,
@@ -43,6 +44,7 @@ export default function AnalysisPackagesSettings() {
     max_duration_minutes: "60",
     includes_annotated_video: false,
     includes_written_report: true,
+    includes_assessment: false,
     includes_consultation: false,
     turnaround_days: "7",
     position: "0",
@@ -129,6 +131,7 @@ export default function AnalysisPackagesSettings() {
       max_duration_minutes: String(pkg.max_duration_minutes),
       includes_annotated_video: pkg.includes_annotated_video,
       includes_written_report: pkg.includes_written_report,
+      includes_assessment: pkg.includes_assessment,
       includes_consultation: pkg.includes_consultation,
       turnaround_days: String(pkg.turnaround_days),
       position: String(pkg.position),
@@ -184,6 +187,7 @@ export default function AnalysisPackagesSettings() {
         max_duration_minutes: Number(form.max_duration_minutes),
         includes_annotated_video: form.includes_annotated_video,
         includes_written_report: form.includes_written_report,
+        includes_assessment: form.includes_assessment,
         includes_consultation: form.includes_consultation,
         turnaround_days: Number(form.turnaround_days),
         position: Number(form.position),
@@ -265,7 +269,8 @@ export default function AnalysisPackagesSettings() {
         eyebrow: "Data management",
         highlights: [
           { icon: Package, label: "Pricing and scope" },
-          { icon: ArrowUpDown, label: "Ordered display" },
+          { icon: ArrowUpDown,
+  CheckSquare, label: "Ordered display" },
           { icon: EyeOff, label: "Hide without deleting" },
         ],
         highlightsLabel: "Analysis package management features",
@@ -439,6 +444,16 @@ export default function AnalysisPackagesSettings() {
               <MessageSquare size={14} aria-hidden="true" />
               <span>Consultation call</span>
             </label>
+            <label className="analysis-packages-check">
+              <input
+                type="checkbox"
+                checked={form.includes_assessment}
+                onChange={(event) => setForm((prev) => ({ ...prev, includes_assessment: event.target.checked }))}
+                disabled={saving}
+              />
+              <CheckSquare size={14} aria-hidden="true" />
+              <span>Assessment</span>
+            </label>
           </fieldset>
 
           <div className="admin-field analysis-packages-active">
@@ -536,8 +551,7 @@ export default function AnalysisPackagesSettings() {
                     {pkg.description && <p className="analysis-packages-desc">{pkg.description}</p>}
                   </td>
                   <td>{priceLabel(pkg.price_cents)}</td>
-                  <td>
-                    <div className="analysis-packages-includes-badges">
+                  <div className="analysis-packages-includes-badges">
                       <span
                         className={`analysis-packages-include ${pkg.includes_annotated_video ? "on" : "off"}`}
                         title={pkg.includes_annotated_video ? "Includes annotated video" : "No annotated video"}
@@ -551,13 +565,18 @@ export default function AnalysisPackagesSettings() {
                         <FileText size={13} aria-hidden="true" />
                       </span>
                       <span
+                        className={`analysis-packages-include ${pkg.includes_assessment ? "on" : "off"}`}
+                        title={pkg.includes_assessment ? "Includes assessment" : "No assessment"}
+                      >
+                        <FileText size={13} aria-hidden="true" />
+                      </span>
+                      <span
                         className={`analysis-packages-include ${pkg.includes_consultation ? "on" : "off"}`}
                         title={pkg.includes_consultation ? "Includes consultation call" : "No consultation call"}
                       >
                         <MessageSquare size={13} aria-hidden="true" />
                       </span>
                     </div>
-                  </td>
                   <td className="analysis-packages-limits">
                     {pkg.max_videos} video{pkg.max_videos === 1 ? "" : "s"} · {pkg.max_duration_minutes} min ·{" "}
                     {pkg.turnaround_days}d

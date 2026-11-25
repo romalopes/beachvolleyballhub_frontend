@@ -1,6 +1,13 @@
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
-import { Video, ArrowRight, Loader2, CheckCircle, Check, Sparkles } from "lucide-react";
+import {
+  Video,
+  ArrowRight,
+  Loader2,
+  CheckCircle,
+  Check,
+  Sparkles,
+} from "lucide-react";
 import { api } from "../api";
 import { useAuth } from "../auth/AuthContext";
 import PageHeader from "../components/PageHeader";
@@ -21,6 +28,7 @@ interface AnalysisPackage {
   max_duration_minutes: number;
   includes_annotated_video: boolean;
   includes_written_report: boolean;
+  includes_assessment: boolean;
   includes_consultation: boolean;
   turnaround_days: number;
 }
@@ -44,8 +52,11 @@ const messageOf = (error: unknown, fallback: string): string => {
 
 export default function HireAnalysisPage() {
   const { login, register } = useAuth();
-  const [step, setStep] = useState<"packages" | "form" | "review" | "success">("packages");
-  const [selectedPackage, setSelectedPackage] = useState<AnalysisPackage | null>(null);
+  const [step, setStep] = useState<"packages" | "form" | "review" | "success">(
+    "packages",
+  );
+  const [selectedPackage, setSelectedPackage] =
+    useState<AnalysisPackage | null>(null);
   const [packages, setPackages] = useState<AnalysisPackage[]>([]);
   const [loadingPackages, setLoadingPackages] = useState(true);
   const [loading, setLoading] = useState(false);
@@ -81,8 +92,12 @@ export default function HireAnalysisPage() {
   });
   const [authBusy, setAuthBusy] = useState(false);
   const [authError, setAuthError] = useState<string | null>(null);
-  const [loginTurnstileToken, setLoginTurnstileToken] = useState<string | null>(null);
-  const [signupTurnstileToken, setSignupTurnstileToken] = useState<string | null>(null);
+  const [loginTurnstileToken, setLoginTurnstileToken] = useState<string | null>(
+    null,
+  );
+  const [signupTurnstileToken, setSignupTurnstileToken] = useState<
+    string | null
+  >(null);
 
   // Mirrors Subscribe.tsx: state is only touched from async callbacks, never
   // synchronously in the effect body.
@@ -108,18 +123,24 @@ export default function HireAnalysisPage() {
     const newErrors: Record<string, string> = {};
 
     if (!formData.title.trim()) newErrors.title = "Title is required";
-    if (!formData.description.trim()) newErrors.description = "Description is required";
+    if (!formData.description.trim())
+      newErrors.description = "Description is required";
 
     const isAuthenticated = Boolean(localStorage.getItem("bvb_api_token"));
     if (!isAuthenticated) {
-      if (!formData.guest_name.trim()) newErrors.guest_name = "Your name is required";
-      if (!formData.guest_email.trim()) newErrors.guest_email = "Your email is required";
-      else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.guest_email.trim())) {
+      if (!formData.guest_name.trim())
+        newErrors.guest_name = "Your name is required";
+      if (!formData.guest_email.trim())
+        newErrors.guest_email = "Your email is required";
+      else if (
+        !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.guest_email.trim())
+      ) {
         newErrors.guest_email = "Enter a valid email address";
       }
     }
 
-    if (formData.videos.length === 0) newErrors.videos = "Add at least one video";
+    if (formData.videos.length === 0)
+      newErrors.videos = "Add at least one video";
     else if (formData.videos.length > (selectedPackage?.max_videos ?? 1)) {
       newErrors.videos = `This package allows ${selectedPackage?.max_videos} video(s)`;
     }
@@ -147,7 +168,7 @@ export default function HireAnalysisPage() {
     }
 
     const video: VideoInput = { source_type: "external", url };
-    setFormData(prev => ({ ...prev, videos: [...prev.videos, video] }));
+    setFormData((prev) => ({ ...prev, videos: [...prev.videos, video] }));
     setVideoUrl("");
   };
 
@@ -164,12 +185,15 @@ export default function HireAnalysisPage() {
       return;
     }
     const video: VideoInput = { source_type: "upload", file, title: file.name };
-    setFormData(prev => ({ ...prev, videos: [...prev.videos, video] }));
+    setFormData((prev) => ({ ...prev, videos: [...prev.videos, video] }));
     e.target.value = "";
   };
 
   const removeVideo = (index: number) => {
-    setFormData(prev => ({ ...prev, videos: prev.videos.filter((_, i) => i !== index) }));
+    setFormData((prev) => ({
+      ...prev,
+      videos: prev.videos.filter((_, i) => i !== index),
+    }));
   };
 
   // The form validates first and then opens the Review step; nothing is sent to
@@ -189,31 +213,56 @@ export default function HireAnalysisPage() {
     try {
       const formDataToSend = new FormData();
       formDataToSend.append("analysis_request[title]", formData.title);
-      formDataToSend.append("analysis_request[description]", formData.description);
+      formDataToSend.append(
+        "analysis_request[description]",
+        formData.description,
+      );
       if (selectedPackage) {
-        formDataToSend.append("analysis_request[package_key]", selectedPackage.key);
+        formDataToSend.append(
+          "analysis_request[package_key]",
+          selectedPackage.key,
+        );
       }
 
       const isAuthenticated = localStorage.getItem("bvb_api_token");
       if (!isAuthenticated) {
-        formDataToSend.append("analysis_request[guest_name]", formData.guest_name);
-        formDataToSend.append("analysis_request[guest_email]", formData.guest_email);
+        formDataToSend.append(
+          "analysis_request[guest_name]",
+          formData.guest_name,
+        );
+        formDataToSend.append(
+          "analysis_request[guest_email]",
+          formData.guest_email,
+        );
       }
 
       for (let i = 0; i < formData.videos.length; i++) {
         const video = formData.videos[i];
-        formDataToSend.append(`analysis_request[analysis_request_videos_attributes][${i}][source_type]`, video.source_type);
+        formDataToSend.append(
+          `analysis_request[analysis_request_videos_attributes][${i}][source_type]`,
+          video.source_type,
+        );
         if (video.source_type === "external" && video.url) {
           // External videos carry the provider URL itself; video_id is an FK to
           // the catalogue and is never sent from this form.
-          formDataToSend.append(`analysis_request[analysis_request_videos_attributes][${i}][external_url]`, video.url);
+          formDataToSend.append(
+            `analysis_request[analysis_request_videos_attributes][${i}][external_url]`,
+            video.url,
+          );
         } else if (video.source_type === "upload" && video.file) {
-          formDataToSend.append(`analysis_request[analysis_request_videos_attributes][${i}][file]`, video.file);
+          formDataToSend.append(
+            `analysis_request[analysis_request_videos_attributes][${i}][file]`,
+            video.file,
+          );
         }
       }
 
       const response = await api.postFormData<{
-        analysis_request: { id: number; reference: string; guest_access_token?: string | null };
+        analysis_request: {
+          id: number;
+          reference: string;
+          guest_access_token?: string | null;
+        };
       }>("/analysis_requests", formDataToSend);
       setSubmitted(response.analysis_request);
       setStep("success");
@@ -224,10 +273,13 @@ export default function HireAnalysisPage() {
       if (Array.isArray(failure.errors)) {
         const newErrors: Record<string, string> = {};
         failure.errors.forEach((msg: string) => {
-          if (msg.toLowerCase().includes("guest name")) newErrors.guest_name = msg;
-          else if (msg.toLowerCase().includes("guest email")) newErrors.guest_email = msg;
+          if (msg.toLowerCase().includes("guest name"))
+            newErrors.guest_name = msg;
+          else if (msg.toLowerCase().includes("guest email"))
+            newErrors.guest_email = msg;
           else if (msg.toLowerCase().includes("title")) newErrors.title = msg;
-          else if (msg.toLowerCase().includes("description")) newErrors.description = msg;
+          else if (msg.toLowerCase().includes("description"))
+            newErrors.description = msg;
           else if (msg.toLowerCase().includes("video")) newErrors.videos = msg;
           else newErrors.form = msg;
         });
@@ -254,7 +306,12 @@ export default function HireAnalysisPage() {
     try {
       const { registered } = await api.checkEmail(email);
       setPromptEmail(email);
-      setAuthFields({ first_name: "", last_name: "", password: "", confirm: "" });
+      setAuthFields({
+        first_name: "",
+        last_name: "",
+        password: "",
+        confirm: "",
+      });
       setAuthError(null);
       setAuthPrompt(registered ? "login" : "signup");
     } catch {
@@ -275,7 +332,11 @@ export default function HireAnalysisPage() {
       }
       setAuthBusy(true);
       try {
-        const user = await login(promptEmail, authFields.password, loginTurnstileToken);
+        const user = await login(
+          promptEmail,
+          authFields.password,
+          loginTurnstileToken,
+        );
         if (!user) {
           // 202 pending_verification: no session was created.
           setAuthError(
@@ -350,12 +411,13 @@ export default function HireAnalysisPage() {
         <>
           <h2>Welcome back</h2>
           <p className="hire-auth-lede">
-            <strong>{promptEmail}</strong> already has a Beach Volleyball Hub account. Log in to
-            link this request to it — your player profile and request history stay in one place.
+            <strong>{promptEmail}</strong> already has a Beach Volleyball Hub
+            account. Log in to link this request to it — your player profile and
+            request history stay in one place.
           </p>
           <form
             className="hire-auth-fields"
-            onSubmit={e => {
+            onSubmit={(e) => {
               e.preventDefault();
               void handleAuthSubmit();
             }}
@@ -368,7 +430,12 @@ export default function HireAnalysisPage() {
                 autoComplete="current-password"
                 maxLength={72}
                 value={authFields.password}
-                onChange={e => setAuthFields(prev => ({ ...prev, password: e.target.value }))}
+                onChange={(e) =>
+                  setAuthFields((prev) => ({
+                    ...prev,
+                    password: e.target.value,
+                  }))
+                }
               />
             </div>
             {turnstileEnabled() && (
@@ -384,7 +451,12 @@ export default function HireAnalysisPage() {
               </p>
             )}
             <div className="hire-auth-actions">
-              <button type="button" className="secondary-button" onClick={continueAsGuest} disabled={authBusy}>
+              <button
+                type="button"
+                className="secondary-button"
+                onClick={continueAsGuest}
+                disabled={authBusy}
+              >
                 Continue as guest
               </button>
               <button type="submit" className="auth-submit" disabled={authBusy}>
@@ -397,13 +469,13 @@ export default function HireAnalysisPage() {
         <>
           <h2>Create your Beach Volleyball Hub account</h2>
           <p className="hire-auth-lede">
-            No account found for <strong>{promptEmail}</strong>. Create one to save your submission
-            and track its progress.
+            No account found for <strong>{promptEmail}</strong>. Create one to
+            save your submission and track its progress.
           </p>
           <div className="hire-auth-columns">
             <form
               className="hire-auth-fields"
-              onSubmit={e => {
+              onSubmit={(e) => {
                 e.preventDefault();
                 void handleAuthSubmit();
               }}
@@ -417,7 +489,12 @@ export default function HireAnalysisPage() {
                     required
                     autoComplete="given-name"
                     value={authFields.first_name}
-                    onChange={e => setAuthFields(prev => ({ ...prev, first_name: e.target.value }))}
+                    onChange={(e) =>
+                      setAuthFields((prev) => ({
+                        ...prev,
+                        first_name: e.target.value,
+                      }))
+                    }
                   />
                 </div>
                 <div className="form-group">
@@ -428,7 +505,12 @@ export default function HireAnalysisPage() {
                     required
                     autoComplete="family-name"
                     value={authFields.last_name}
-                    onChange={e => setAuthFields(prev => ({ ...prev, last_name: e.target.value }))}
+                    onChange={(e) =>
+                      setAuthFields((prev) => ({
+                        ...prev,
+                        last_name: e.target.value,
+                      }))
+                    }
                   />
                 </div>
               </div>
@@ -441,7 +523,12 @@ export default function HireAnalysisPage() {
                   minLength={8}
                   autoComplete="new-password"
                   value={authFields.password}
-                  onChange={e => setAuthFields(prev => ({ ...prev, password: e.target.value }))}
+                  onChange={(e) =>
+                    setAuthFields((prev) => ({
+                      ...prev,
+                      password: e.target.value,
+                    }))
+                  }
                 />
               </div>
               <div className="form-group">
@@ -453,7 +540,12 @@ export default function HireAnalysisPage() {
                   minLength={8}
                   autoComplete="new-password"
                   value={authFields.confirm}
-                  onChange={e => setAuthFields(prev => ({ ...prev, confirm: e.target.value }))}
+                  onChange={(e) =>
+                    setAuthFields((prev) => ({
+                      ...prev,
+                      confirm: e.target.value,
+                    }))
+                  }
                 />
               </div>
               {turnstileEnabled() && (
@@ -469,10 +561,19 @@ export default function HireAnalysisPage() {
                 </p>
               )}
               <div className="hire-auth-actions">
-                <button type="button" className="secondary-button" onClick={continueAsGuest} disabled={authBusy}>
+                <button
+                  type="button"
+                  className="secondary-button"
+                  onClick={continueAsGuest}
+                  disabled={authBusy}
+                >
                   Continue as guest
                 </button>
-                <button type="submit" className="auth-submit" disabled={authBusy}>
+                <button
+                  type="submit"
+                  className="auth-submit"
+                  disabled={authBusy}
+                >
                   {authBusy ? "Working…" : "Create account & submit"}
                 </button>
               </div>
@@ -480,26 +581,49 @@ export default function HireAnalysisPage() {
             <aside className="hire-auth-benefits">
               <h3>Why create an account?</h3>
               <ul>
-                <li>Save time – your contact details are stored for quicker future requests.</li>
-                <li>Manage requests – keep every analysis you have hired in one place.</li>
-                <li>Track progress – follow each request from submission through delivery.</li>
-                <li>Get notified – receive updates at every step of the workflow.</li>
-                <li>Access your analysis – watch the finished analysis and its deliverables anytime.</li>
-                <li>Message the team – talk directly with the crew and your coach about each request.</li>
+                <li>
+                  Save time – your contact details are stored for quicker future
+                  requests.
+                </li>
+                <li>
+                  Manage requests – keep every analysis you have hired in one
+                  place.
+                </li>
+                <li>
+                  Track progress – follow each request from submission through
+                  delivery.
+                </li>
+                <li>
+                  Get notified – receive updates at every step of the workflow.
+                </li>
+                <li>
+                  Access your analysis – watch the finished analysis and its
+                  deliverables anytime.
+                </li>
+                <li>
+                  Message the team – talk directly with the crew and your coach
+                  about each request.
+                </li>
               </ul>
             </aside>
           </div>
         </>
       )}
-      <button type="button" className="hire-auth-back" onClick={closeAuthPrompt}>
+      <button
+        type="button"
+        className="hire-auth-back"
+        onClick={closeAuthPrompt}
+      >
         ← Back to summary
       </button>
     </section>
   );
 
   const packageBadge = (pkg: AnalysisPackage) => {
-    if (pkg.price_cents === 0) return { label: "Complimentary", className: "plan-badge" };
-    if (pkg.key === "single_match") return { label: "Most popular", className: "plan-badge" };
+    if (pkg.price_cents === 0)
+      return { label: "Complimentary", className: "plan-badge" };
+    if (pkg.key === "single_match")
+      return { label: "Most popular", className: "plan-badge" };
     return null;
   };
 
@@ -508,9 +632,10 @@ export default function HireAnalysisPage() {
     const features = [
       { label: `${pkg.max_videos} video(s)`, included: true },
       { label: `Up to ${pkg.max_duration_minutes} minutes`, included: true },
+      { label: "Consultation call", included: pkg.includes_consultation },
       { label: "Written report", included: pkg.includes_written_report },
       { label: "Annotated video", included: pkg.includes_annotated_video },
-      { label: "Consultation call", included: pkg.includes_consultation },
+      { label: "Assessment session", included: pkg.includes_assessment },
       { label: `${pkg.turnaround_days}-day turnaround`, included: true },
     ];
 
@@ -525,11 +650,16 @@ export default function HireAnalysisPage() {
         </header>
 
         <p className="plan-price">{pkg.price_aud}</p>
-        {pkg.description && <p className="plan-description">{pkg.description}</p>}
+        {pkg.description && (
+          <p className="plan-description">{pkg.description}</p>
+        )}
 
         <ul className="plan-features">
           {features.map((feature) => (
-            <li key={feature.label} className={feature.included ? "" : "plan-feature-muted"}>
+            <li
+              key={feature.label}
+              className={feature.included ? "" : "plan-feature-muted"}
+            >
               {feature.included && <Check size={16} aria-hidden="true" />}
               <span>{feature.label}</span>
             </li>
@@ -590,12 +720,18 @@ export default function HireAnalysisPage() {
                 aria-label={`Step ${index + 1}: ${item.label}`}
               >
                 <span className="step-number">
-                  {isCompleted ? <Check size={16} aria-hidden="true" /> : index + 1}
+                  {isCompleted ? (
+                    <Check size={16} aria-hidden="true" />
+                  ) : (
+                    index + 1
+                  )}
                 </span>
                 <span className="step-label">{item.label}</span>
               </button>
               {index < steps.length - 1 && (
-                <div className={`step-connector ${isCompleted ? "step-connector--done" : ""}`} />
+                <div
+                  className={`step-connector ${isCompleted ? "step-connector--done" : ""}`}
+                />
               )}
             </div>
           );
@@ -612,15 +748,22 @@ export default function HireAnalysisPage() {
           description="Professional video analysis services for beach volleyball athletes and teams."
         />
         {renderStepIndicator()}
-        <section className="packages-section" aria-labelledby="packages-heading">
-          <h2 id="packages-heading" className="section-title">Choose Your Package</h2>
+        <section
+          className="packages-section"
+          aria-labelledby="packages-heading"
+        >
+          <h2 id="packages-heading" className="section-title">
+            Choose Your Package
+          </h2>
           {loadingPackages ? (
             <div className="loading-state" role="status">
               <Loader2 size={20} className="spin" aria-hidden="true" />
               <span>Loading packages…</span>
             </div>
           ) : packages.length === 0 ? (
-            <p className="hint">No packages are available right now. Please check back soon.</p>
+            <p className="hint">
+              No packages are available right now. Please check back soon.
+            </p>
           ) : (
             <div className="packages-grid">
               {packages.map(renderPackageCard)}
@@ -631,8 +774,9 @@ export default function HireAnalysisPage() {
         <p className="pricing-footnote">
           <Sparkles size={16} aria-hidden="true" />
           <span>
-            Every package includes secure video upload, a dedicated coach, and delivery through
-            your private request page. Questions? <a href="/contact">Contact us</a>.
+            Every package includes secure video upload, a dedicated coach, and
+            delivery through your private request page. Questions?{" "}
+            <a href="/contact">Contact us</a>.
           </span>
         </p>
       </div>
@@ -648,7 +792,14 @@ export default function HireAnalysisPage() {
         />
         {renderStepIndicator()}
 
-        <form onSubmit={e => { e.preventDefault(); goToReview(); }} className="submit-form" noValidate>
+        <form
+          onSubmit={(e) => {
+            e.preventDefault();
+            goToReview();
+          }}
+          className="submit-form"
+          noValidate
+        >
           <section className="form-section">
             <h3>Request Details</h3>
             <div className="form-group">
@@ -657,30 +808,44 @@ export default function HireAnalysisPage() {
                 id="title"
                 type="text"
                 value={formData.title}
-                onChange={e => setFormData(prev => ({ ...prev, title: e.target.value }))}
+                onChange={(e) =>
+                  setFormData((prev) => ({ ...prev, title: e.target.value }))
+                }
                 placeholder="e.g., Jump Serve Analysis"
                 required
               />
               {errors.title && <span className="error">{errors.title}</span>}
             </div>
             <div className="form-group">
-              <label htmlFor="description">Description / Analysis Goals *</label>
+              <label htmlFor="description">
+                Description / Analysis Goals *
+              </label>
               <textarea
                 id="description"
                 value={formData.description}
-                onChange={e => setFormData(prev => ({ ...prev, description: e.target.value }))}
+                onChange={(e) =>
+                  setFormData((prev) => ({
+                    ...prev,
+                    description: e.target.value,
+                  }))
+                }
                 placeholder="Describe what you'd like the coach to focus on..."
                 rows={4}
                 required
               />
-              {errors.description && <span className="error">{errors.description}</span>}
+              {errors.description && (
+                <span className="error">{errors.description}</span>
+              )}
             </div>
           </section>
 
-          {(!localStorage.getItem("bvb_api_token")) && (
+          {!localStorage.getItem("bvb_api_token") && (
             <section className="form-section">
               <h3>Your Information (Guest Submission)</h3>
-              <p className="hint">Logged in users will have their name/email pre-filled automatically.</p>
+              <p className="hint">
+                Logged in users will have their name/email pre-filled
+                automatically.
+              </p>
               <div className="form-row">
                 <div className="form-group">
                   <label htmlFor="guest_name">Name *</label>
@@ -688,11 +853,18 @@ export default function HireAnalysisPage() {
                     id="guest_name"
                     type="text"
                     value={formData.guest_name}
-                    onChange={e => setFormData(prev => ({ ...prev, guest_name: e.target.value }))}
+                    onChange={(e) =>
+                      setFormData((prev) => ({
+                        ...prev,
+                        guest_name: e.target.value,
+                      }))
+                    }
                     placeholder="Jane Smith"
                     required
                   />
-                  {errors.guest_name && <span className="error">{errors.guest_name}</span>}
+                  {errors.guest_name && (
+                    <span className="error">{errors.guest_name}</span>
+                  )}
                 </div>
                 <div className="form-group">
                   <label htmlFor="guest_email">Email *</label>
@@ -700,11 +872,18 @@ export default function HireAnalysisPage() {
                     id="guest_email"
                     type="email"
                     value={formData.guest_email}
-                    onChange={e => setFormData(prev => ({ ...prev, guest_email: e.target.value }))}
+                    onChange={(e) =>
+                      setFormData((prev) => ({
+                        ...prev,
+                        guest_email: e.target.value,
+                      }))
+                    }
                     placeholder="jane@example.com"
                     required
                   />
-                  {errors.guest_email && <span className="error">{errors.guest_email}</span>}
+                  {errors.guest_email && (
+                    <span className="error">{errors.guest_email}</span>
+                  )}
                 </div>
               </div>
             </section>
@@ -713,8 +892,12 @@ export default function HireAnalysisPage() {
           <section className="form-section">
             <h3>Videos *</h3>
             <p className="hint">
-              Maximum {selectedPackage?.max_videos} video(s), up to {selectedPackage?.max_duration_minutes} minutes each.
-              {selectedPackage?.includes_annotated_video && " Includes annotated video delivery."}
+              Maximum {selectedPackage?.max_videos} video(s), up to{" "}
+              {selectedPackage?.max_duration_minutes} minutes each.
+              {selectedPackage?.includes_annotated_video &&
+                " Includes annotated video delivery."}
+              {selectedPackage?.includes_assessment &&
+                " Includes assessment session."}
             </p>
 
             <div className="video-inputs">
@@ -724,8 +907,8 @@ export default function HireAnalysisPage() {
                   <input
                     type="url"
                     value={videoUrl}
-                    onChange={e => setVideoUrl(e.target.value)}
-                    onKeyDown={e => {
+                    onChange={(e) => setVideoUrl(e.target.value)}
+                    onKeyDown={(e) => {
                       if (e.key === "Enter") {
                         e.preventDefault();
                         addVideoUrl();
@@ -734,7 +917,11 @@ export default function HireAnalysisPage() {
                     placeholder="https://youtube.com/watch?v=… or https://vimeo.com/…"
                     aria-label="Video URL"
                   />
-                  <button type="button" className="secondary-button" onClick={addVideoUrl}>
+                  <button
+                    type="button"
+                    className="secondary-button"
+                    onClick={addVideoUrl}
+                  >
                     Add URL
                   </button>
                 </div>
@@ -759,11 +946,20 @@ export default function HireAnalysisPage() {
 
             {formData.videos.length > 0 && (
               <div className="selected-videos">
-                <h4>Selected Videos ({formData.videos.length}/{selectedPackage?.max_videos})</h4>
+                <h4>
+                  Selected Videos ({formData.videos.length}/
+                  {selectedPackage?.max_videos})
+                </h4>
                 <ul>
                   {formData.videos.map((video, index) => (
                     <li key={index} className="video-item">
-                      <span>{video.source_type === "external" ? "🔗" : "📁"} {video.url || video.title || video.file?.name || "Video"}</span>
+                      <span>
+                        {video.source_type === "external" ? "🔗" : "📁"}{" "}
+                        {video.url ||
+                          video.title ||
+                          video.file?.name ||
+                          "Video"}
+                      </span>
                       <button
                         type="button"
                         onClick={() => removeVideo(index)}
@@ -784,10 +980,18 @@ export default function HireAnalysisPage() {
           {errors.form && <div className="error-banner">{errors.form}</div>}
 
           <div className="form-actions">
-            <button type="button" className="secondary-button" onClick={() => setStep("packages")}>
+            <button
+              type="button"
+              className="secondary-button"
+              onClick={() => setStep("packages")}
+            >
               <ArrowRight size={16} className="reverse" /> Back
             </button>
-            <button type="submit" className="auth-submit form-actions-primary" disabled={loading}>
+            <button
+              type="submit"
+              className="auth-submit form-actions-primary"
+              disabled={loading}
+            >
               {loading ? (
                 <>
                   <Loader2 size={16} className="spin" />
@@ -815,22 +1019,42 @@ export default function HireAnalysisPage() {
           <h3>Request Summary</h3>
           <dl>
             <dt>Package</dt>
-            <dd>{selectedPackage?.name} ({selectedPackage?.price_aud})</dd>
+            <dd>
+              {selectedPackage?.name} ({selectedPackage?.price_aud})
+            </dd>
             <dt>Title</dt>
             <dd>{formData.title}</dd>
             <dt>Description</dt>
             <dd>{formData.description}</dd>
             <dt>Videos</dt>
             <dd>{formData.videos.length} video(s)</dd>
-            {formData.guest_name && <><dt>Name</dt><dd>{formData.guest_name}</dd></>}
-            {formData.guest_email && <><dt>Email</dt><dd>{formData.guest_email}</dd></>}
+            {formData.guest_name && (
+              <>
+                <dt>Name</dt>
+                <dd>{formData.guest_name}</dd>
+              </>
+            )}
+            {formData.guest_email && (
+              <>
+                <dt>Email</dt>
+                <dd>{formData.guest_email}</dd>
+              </>
+            )}
           </dl>
           {authPrompt === null ? (
             <div className="form-actions">
-              <button type="button" className="secondary-button" onClick={() => setStep("form")}>
+              <button
+                type="button"
+                className="secondary-button"
+                onClick={() => setStep("form")}
+              >
                 <ArrowRight size={16} className="reverse" /> Back
               </button>
-              <button type="button" className="auth-submit form-actions-primary" onClick={handleSubmit}>
+              <button
+                type="button"
+                className="auth-submit form-actions-primary"
+                onClick={handleSubmit}
+              >
                 Confirm & Submit
                 <ArrowRight size={16} />
               </button>
@@ -852,7 +1076,10 @@ export default function HireAnalysisPage() {
           <CheckCircle size={64} className="success-icon" />
           <h2>Your analysis request has been submitted</h2>
           {submitted?.guest_access_token ? (
-            <p>We emailed you a secure link. You can open it now on this device too.</p>
+            <p>
+              We emailed you a secure link. You can open it now on this device
+              too.
+            </p>
           ) : (
             <p>You can follow progress from your analysis requests page.</p>
           )}
@@ -869,7 +1096,10 @@ export default function HireAnalysisPage() {
               </Link>
             ) : (
               submitted && (
-                <Link className="auth-submit" to={`/analysis-requests/${submitted.id}`}>
+                <Link
+                  className="auth-submit"
+                  to={`/analysis-requests/${submitted.id}`}
+                >
                   View request
                 </Link>
               )
@@ -885,7 +1115,13 @@ export default function HireAnalysisPage() {
               setStep("packages");
               setSelectedPackage(null);
               setSubmitted(null);
-              setFormData({ title: "", description: "", guest_name: "", guest_email: "", videos: [] });
+              setFormData({
+                title: "",
+                description: "",
+                guest_name: "",
+                guest_email: "",
+                videos: [],
+              });
             }}
           >
             Submit Another Request
