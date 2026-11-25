@@ -21,6 +21,7 @@ import MobileBottomNav from "./components/MobileBottomNav";
 import { featureFlags } from "./config/featureFlags";
 import NotificationsPage from "./pages/Notifications";
 import WeatherShareReportPage from "./pages/WeatherShareReportPage";
+import AssessmentSessionSharePage from "./pages/AssessmentSessionSharePage";
 import OfflinePage from "./pages/OfflinePage";
 import Home from "./pages/Home";
 import Skills from "./pages/Skills";
@@ -339,6 +340,7 @@ export default function App() {
           <AuthProvider>
             <Routes>
               <Route path="/weather/:publicToken" element={<WeatherShareReportPage />} />
+              <Route path="/assessments/share/:shareToken" element={<AssessmentSessionSharePage />} />
               <Route element={<Layout />}>
                 <Route path="/test-access" element={<TestAccessPage />} />
                 <Route path="/login" element={<Login />} />

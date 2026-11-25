@@ -69,7 +69,7 @@ export default function AssessmentSessionInlineDetail({
         <h3>{session.name}</h3>
         <div className="assessment-inline-actions">
           <Link
-            to={`/assessment-sessions/${session.id}`}
+            to={`/assessment-sessions/${session.public_slug}`}
             className="secondary-button"
             onClick={onClose}
           >

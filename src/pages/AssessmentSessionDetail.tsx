@@ -7,6 +7,7 @@ import {
   Trash2,
   Undo2,
   User,
+  Share2,
 } from "lucide-react";
 import {
   api,
@@ -14,6 +15,7 @@ import {
   type AssessmentSessionPlayerInput,
   type AssessmentSessionScoreInput,
   type Player,
+  type AssessmentSessionVisibility,
 } from "../api";
 import EmptyState from "../components/EmptyState";
 import { useAuth } from "../auth/AuthContext";
@@ -25,6 +27,8 @@ import SessionRankingTable from "../components/assessments/SessionRankingTable";
 import SessionConsolidations from "../components/assessments/SessionConsolidations";
 import { profileDisplayName } from "../utils/profileName";
 import { queueAssessmentScores } from "../offline/domainMutations";
+import { VisibilityBadge } from "../components/assessments/VisibilityBadge";
+import { ShareModal } from "../components/assessments/ShareModal";
 
 type SessionTab = "roster" | "scores" | "ranking" | "consolidated";
 
@@ -39,7 +43,11 @@ export default function AssessmentSessionDetail() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const { user } = useAuth();
-  const sessionId = Number(id);
+  
+  // Determine if the URL param is a numeric ID or a public slug
+  const isNumericId = id ? /^\d+$/.test(id) : false;
+  const sessionId = isNumericId ? Number(id) : null;
+  const sessionSlug = isNumericId ? null : (id ?? "");
 
   const [session, setSession] = useState<AssessmentSession | null>(null);
   const [activeTab, setActiveTab] = useState<SessionTab>("roster");
@@ -55,12 +63,17 @@ export default function AssessmentSessionDetail() {
     !!user?.roles?.includes("admin") &&
     !(user as { real_admin?: unknown }).real_admin;
 
+  // Share modal state
+  const [shareModalOpen, setShareModalOpen] = useState(false);
+  const [shareUrl, setShareUrl] = useState<string | null>(null);
+
   // `loading` is derived from the id on screen instead of being synced by an
   // effect — an effect that called `setLoading` would cascade a second render on
   // every navigation. Same approach as AdminUsers.tsx.
-  const invalidId = !Number.isFinite(sessionId);
+  const invalidId = isNumericId && !Number.isFinite(sessionId!);
   const [loadedId, setLoadedId] = useState<number | null>(null);
-  const loading = !invalidId && loadedId !== sessionId;
+  const [loadedSlug, setLoadedSlug] = useState<string | null>(null);
+  const loading = (!invalidId && ((isNumericId && loadedId !== sessionId) || (!isNumericId && loadedSlug !== sessionSlug)));
 
   /**
    * Server-side player search for the roster picker. Searching on demand rather
@@ -78,10 +91,14 @@ export default function AssessmentSessionDetail() {
   };
 
   useEffect(() => {
-    if (!Number.isFinite(sessionId)) return;
+    if (invalidId) return;
     let cancelled = false;
-    api
-      .assessmentSession(sessionId)
+
+    const fetchSession = isNumericId
+      ? api.assessmentSession(sessionId!)
+      : api.assessmentSessionBySlug(sessionSlug!);
+
+    fetchSession
       .then((sessionRes) => {
         if (cancelled) return;
         setSession(sessionRes.assessment_session);
@@ -97,12 +114,29 @@ export default function AssessmentSessionDetail() {
       })
       .finally(() => {
         if (cancelled) return;
-        setLoadedId(sessionId);
+        if (isNumericId) {
+          setLoadedId(sessionId!);
+        } else {
+          setLoadedSlug(sessionSlug!);
+        }
       });
     return () => {
       cancelled = true;
     };
-  }, [sessionId]);
+  }, [sessionId, sessionSlug, isNumericId]);
+
+  // Fetch share URL for unlisted sessions when session loads
+  useEffect(() => {
+    if (!session || session.visibility !== "unlisted") return;
+    // We need to fetch the share token. Since the API doesn't expose a direct
+    // "get share URL" endpoint for management users, we'll need to handle this
+    // differently. The share URL is only returned when generating/regenerating.
+    // For now, we'll rely on the regenerate endpoint when the user opens the share modal.
+  }, [session]);
+
+  const handleShareLinkGenerated = (url: string) => {
+    setShareUrl(url);
+  };
   const handleAddPlayers = async (players: AssessmentSessionPlayerInput[]) => {
     if (!session) return;
     setActionError(null);
@@ -287,6 +321,7 @@ export default function AssessmentSessionDetail() {
           <Tag variant={session.status === "published" ? "teal" : "default"}>
             {session.status_label || session.status}
           </Tag>
+          <VisibilityBadge visibility={session.visibility as AssessmentSessionVisibility} />
           <span className="session-meta-item">
             <Calendar size={14} />
             {formatDate(session.scheduled_on)}
@@ -299,6 +334,18 @@ export default function AssessmentSessionDetail() {
             Rubric: {session.assessment_definition?.name}
           </span>
         </div>
+        {session.visibility === "unlisted" && (
+          <div className="admin-form-actions session-actions">
+            <button
+              type="button"
+              className="admin-btn admin-btn-add"
+              onClick={() => setShareModalOpen(true)}
+            >
+              <Share2 size={14} />
+              Share
+            </button>
+          </div>
+        )}
         {isDraft && (
           <div className="admin-form-actions session-actions">
             <button
@@ -436,6 +483,14 @@ export default function AssessmentSessionDetail() {
       {activeTab === "consolidated" && (
         <SessionConsolidations consolidations={session.consolidations || []} />
       )}
+      <ShareModal
+        isOpen={shareModalOpen}
+        onClose={() => setShareModalOpen(false)}
+        sessionId={session.id}
+        sessionName={session.name}
+        currentShareUrl={shareUrl}
+        onShareLinkGenerated={handleShareLinkGenerated}
+      />
     </div>
   );
 }

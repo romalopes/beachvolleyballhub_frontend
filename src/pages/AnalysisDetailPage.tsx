@@ -139,7 +139,7 @@ export default function AnalysisDetailPage() {
             {analysis.assessment_sessions.length === 0 ? <div className="analysis-empty-row">No assessment sessions are linked to this analysis.</div> : (
               <div className="analysis-linked-list analysis-assessment-panel-list">
                 {analysis.assessment_sessions.map((session) => (
-                  <Link key={session.id} to={`/assessment-sessions/${session.id}`} className="analysis-linked-item">
+                  <Link key={session.id} to={`/assessment-sessions/${session.public_slug || session.id}`} className="analysis-linked-item">
                     <span><strong>{session.name}</strong><small>{session.assessment_definition.name}{session.scheduled_on ? ` · ${formatDate(session.scheduled_on)}` : ""}</small></span>
                     <span className="analysis-linked-status">{session.status}</span>
                   </Link>
@@ -181,7 +181,7 @@ export default function AnalysisDetailPage() {
 
           {analysis.status === "draft" && <section className={`analysis-readiness ${canPublish ? "is-ready" : ""}`}><div className="analysis-readiness-title"><CheckCircle2 size={18} /><h2>{canPublish ? "Ready to publish" : "Draft checklist"}</h2></div><p>{canPublish ? "This analysis has everything required to be shared." : "Complete these items before publishing."}</p><ul><li className={analysis.video_count > 0 ? "complete" : ""}>At least one video</li><li className={analysis.participants.length > 0 ? "complete" : ""}>At least one participant</li></ul></section>}
 
-          {analysis.assessment_sessions.length > 0 && <section className="analysis-side-card"><h2>Linked assessments</h2><div className="analysis-linked-list">{analysis.assessment_sessions.map((session) => <Link key={session.id} to={`/assessment-sessions/${session.id}`}><span><strong>{session.name}</strong><small>{session.assessment_definition.name}</small></span><span className="analysis-linked-status">{session.status}</span></Link>)}</div></section>}
+          {analysis.assessment_sessions.length > 0 && <section className="analysis-side-card"><h2>Linked assessments</h2><div className="analysis-linked-list">{analysis.assessment_sessions.map((session) => <Link key={session.id} to={`/assessment-sessions/${session.public_slug || session.id}`}><span><strong>{session.name}</strong><small>{session.assessment_definition.name}</small></span><span className="analysis-linked-status">{session.status}</span></Link>)}</div></section>}
 
           {analysis.can_delete && <button type="button" className="analysis-delete-button" disabled={busy} onClick={handleDelete}><Trash2 size={15} /> {busy ? "Working…" : "Delete analysis"}</button>}
         </aside>

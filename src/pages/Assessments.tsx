@@ -155,7 +155,7 @@ export default function Assessments() {
                   {" · "}
                   <strong>Assessment session:</strong>{" "}
                   {row.assessment_session_id ? (
-                    <Link to={`/assessment-sessions/${row.assessment_session_id}`}>
+                    <Link to={`/assessment-sessions/${row.assessment_session?.public_slug || row.assessment_session_id}`}>
                       {row.assessment_session_name ||
                         row.assessment_session?.name ||
                         `Session #${row.assessment_session_id}`}

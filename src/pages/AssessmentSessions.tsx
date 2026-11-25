@@ -11,6 +11,7 @@ import {
   type Group as GroupRecord,
   type Organisation,
   type PaginationMeta,
+  type AssessmentSessionVisibility,
 } from "../api";
 import { useAuth } from "../auth/AuthContext";
 import EmptyState from "../components/EmptyState";
@@ -18,6 +19,8 @@ import LibraryHero from "../components/LibraryHero";
 import Tag from "../components/Tag";
 import Pagination from "../components/settings/Pagination";
 import { accountDisplayName, profileDisplayName } from "../utils/profileName";
+import { VisibilityBadge } from "../components/assessments/VisibilityBadge";
+import { VisibilitySelector } from "../components/assessments/VisibilitySelector";
 
 /** Page size for assessment sessions list. */
 const PER_PAGE = 20;
@@ -65,6 +68,7 @@ export default function AssessmentSessions() {
     coach_profile_id: 0,
     scheduled_on: new Date().toISOString().split("T")[0],
     notes: "",
+    visibility: "internal",
   });
 
   useEffect(() => {
@@ -240,7 +244,7 @@ export default function AssessmentSessions() {
     try {
       const res = await api.createAssessmentSession(formData);
       setIsCreating(false);
-      navigate(`/assessment-sessions/${res.assessment_session.id}`);
+      navigate(`/assessment-sessions/${res.assessment_session.public_slug}`);
     } catch (err) {
       setCreateError(err instanceof Error ? err.message : "Failed to create assessment session.");
     } finally {
@@ -319,12 +323,13 @@ export default function AssessmentSessions() {
               <span>Coach</span>
               <span>Scheduled</span>
               <span>Roster</span>
+              <span>Visibility</span>
               <span>Status</span>
             </div>
             {sessions.map((session) => (
               <Link
                 key={session.id}
-                to={`/assessment-sessions/${session.id}`}
+                to={`/assessment-sessions/${session.public_slug}`}
                 className="session-row"
               >
                 <span className="session-name">{session.name}</span>
@@ -335,6 +340,9 @@ export default function AssessmentSessions() {
                   {formatDate(session.scheduled_on)}
                 </span>
                 <span className="session-roster-count">{includedCount(session)} players</span>
+                <span className="session-visibility">
+                  <VisibilityBadge visibility={session.visibility as AssessmentSessionVisibility} size="sm" />
+                </span>
                 <Tag
                   variant={
                     session.status === "published"
@@ -606,6 +614,12 @@ export default function AssessmentSessions() {
                         value={formData.notes ?? ""}
                         onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
                         placeholder="Optional context for this session"
+                      />
+                    </div>
+                    <div className="admin-field">
+                      <VisibilitySelector
+                        value={formData.visibility as AssessmentSessionVisibility}
+                        onChange={(v) => setFormData({ ...formData, visibility: v })}
                       />
                     </div>
                     <p className="wizard-hint">

@@ -1,5 +1,5 @@
 import { useState, type FormEvent } from "react";
-import { Link, useLocation, useNavigate } from "react-router-dom";
+import { Link, useLocation, useNavigate, useSearchParams } from "react-router-dom";
 import { useAuth } from "../auth/AuthContext";
 import { api } from "../api";
 import {
@@ -14,8 +14,13 @@ export default function Signup() {
   const { register } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
+  const [searchParams] = useSearchParams();
+
+  // Handle returnTo from query param (e.g., from assessment session share page)
+  const returnToQuery = searchParams.get("returnTo");
   const from = safeInternalReturnPath(
-    (location.state as { from?: string } | null)?.from,
+    (location.state as { from?: string } | null)?.from ||
+      returnToQuery,
   );
   const [firstName, setFirstName] = useState("");
   const [lastName, setLastName] = useState("");

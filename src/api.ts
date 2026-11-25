@@ -321,6 +321,7 @@ export interface RequestAssessmentSession {
   title: string;
   status: string;
   date: string | null;
+  public_slug?: string;
 }
 
 export interface AnalysisRequestRecord {
@@ -933,6 +934,7 @@ export interface Assessment {
     id: number;
     name: string | null;
     scheduled_on: string | null;
+    public_slug?: string;
   } | null;
   /** Stable session identity fields for assessment catalogue rows. */
   assessment_session_name?: string | null;
@@ -993,6 +995,8 @@ export interface AssessmentFilters {
 }
 
 export type AssessmentSessionStatus = "draft" | "published" | "withdrawn";
+
+export type AssessmentSessionVisibility = "public" | "unlisted" | "internal" | "private";
 export type AssessmentSessionInclusion = "included" | "excluded";
 
 export interface AssessmentSessionDiscipline {
@@ -1405,6 +1409,8 @@ export interface AssessmentSessionConsolidation {
 
 export interface AssessmentSession {
   id: number;
+  public_slug: string;
+  visibility: AssessmentSessionVisibility;
   name: string;
   status: AssessmentSessionStatus;
   status_label: string;
@@ -1418,6 +1424,8 @@ export interface AssessmentSession {
     full_name: string;
     /** The linked account name, when the coach profile is claimed by an account; null for a profile-only coach. */
     account_name?: string | null;
+    /** Display name for share token responses (unlisted sessions). */
+    display_name?: string;
   };
   group_id?: number | null;
   group?: { id: number; name: string } | null;
@@ -1435,6 +1443,7 @@ export interface AssessmentSessionInput {
   group_id?: number | null;
   scheduled_on: string;
   notes?: string | null;
+  visibility?: AssessmentSessionVisibility;
 }
 
 export interface AssessmentSessionPlayerInput {
@@ -1480,6 +1489,7 @@ export interface RankingConsolidationSource {
   coach_name: string | null;
   /** The linked account name, when the coach profile is claimed by an account. */
   coach_account_name?: string | null;
+  public_slug?: string;
   /**
    * Whether this source is finished. A draft source holds the whole consolidation
    * back from being published, so the UI badges it rather than hiding it.
@@ -2707,6 +2717,7 @@ export interface AnalysisAssessmentSession {
   status: string;
   scheduled_on: string | null;
   assessment_definition: { id: number; name: string };
+  public_slug?: string;
 }
 
 export interface AnalysisInput {
@@ -4274,6 +4285,28 @@ export const api = {
       incomplete: AssessmentSessionRankingRow[];
       excluded: AssessmentSessionRankingRow[];
     }>(`/assessment_sessions/${id}/ranking`),
+
+  // --- Visibility & Sharing ---
+  /** Get session by public slug (authenticated). */
+  assessmentSessionBySlug: (publicSlug: string) =>
+    fetchAPI<{ assessment_session: AssessmentSession }>(
+      `/assessment_sessions/${publicSlug}`,
+    ),
+
+  /** Get session by share token (UNAUTHENTICATED). */
+  assessmentSessionByShareToken: (shareToken: string) =>
+    fetchAPI<{ assessment_session: AssessmentSession }>(
+      `/assessment_sessions/share/${shareToken}`,
+      { headers: {} },
+    ),
+
+  /** Regenerate share link (management only, session must be unlisted). */
+  regenerateAssessmentSessionShareLink: (id: number) =>
+    postJSON<{ share_url: string }>(
+      `/assessment_sessions/${id}/regenerate_share_link`,
+      {},
+      "POST",
+    ),
 
   // ---------- Groups (Phase A / D23) ----------
   // Full catalogue read is open to training managers; `joinable` is the narrow

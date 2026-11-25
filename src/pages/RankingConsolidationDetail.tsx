@@ -481,7 +481,7 @@ export default function RankingConsolidationDetail() {
                 <li key={s.assessment_session_id}>
                   <span className="consolidation-warning-session">
                     <Link
-                      to={`/assessment-sessions/${s.assessment_session_id}`}
+                      to={`/assessment-sessions/${s.public_slug || s.assessment_session_id}`}
                     >
                       {s.name || `Session #${s.assessment_session_id}`}
                     </Link>
@@ -519,7 +519,7 @@ export default function RankingConsolidationDetail() {
                 <li key={s.assessment_session_id}>
                   <span className="consolidation-warning-session">
                     <Link
-                      to={`/assessment-sessions/${s.assessment_session_id}`}
+                      to={`/assessment-sessions/${s.public_slug || s.assessment_session_id}`}
                     >
                       {s.name || `Session #${s.assessment_session_id}`}
                     </Link>
@@ -562,7 +562,7 @@ export default function RankingConsolidationDetail() {
                 <li key={s.assessment_session_id}>
                   <span className="consolidation-warning-session">
                     <Link
-                      to={`/assessment-sessions/${s.assessment_session_id}`}
+                      to={`/assessment-sessions/${s.public_slug || s.assessment_session_id}`}
                     >
                       {s.name || `Session #${s.assessment_session_id}`}
                     </Link>

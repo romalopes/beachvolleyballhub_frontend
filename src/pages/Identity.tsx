@@ -75,6 +75,9 @@ export default function IdentityPage() {
     return fragmentToken ?? searchParams.get("claim_token") ?? "";
   });
 
+  // Handle returnTo for login continuation (e.g., from assessment session share page)
+  const returnTo = searchParams.get("returnTo");
+
   const [account, setAccount] = useState<Account | null>(null);
 
   const canManageProfiles = Boolean(
@@ -513,7 +516,7 @@ export default function IdentityPage() {
         <Link
           className="auth-submit"
           to="/login"
-          state={{ from: invitationReturnPath }}
+          state={{ from: returnTo || invitationReturnPath }}
         >
           Sign in
         </Link>

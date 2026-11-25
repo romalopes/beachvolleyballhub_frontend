@@ -1,5 +1,5 @@
 import { useState, type FormEvent } from "react";
-import { Link, useLocation, useNavigate } from "react-router-dom";
+import { Link, useLocation, useNavigate, useSearchParams } from "react-router-dom";
 import { useAuth } from "../auth/AuthContext";
 import { api } from "../api";
 import {
@@ -14,6 +14,7 @@ export default function Login() {
   const { login } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
+  const [searchParams] = useSearchParams();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
@@ -23,8 +24,11 @@ export default function Login() {
   const [turnstileToken, setTurnstileToken] = useState<string | null>(null);
   const [resetKey, setResetKey] = useState(0);
 
+  // Handle returnTo from query param (e.g., from assessment session share page)
+  const returnToQuery = searchParams.get("returnTo");
   const from = safeInternalReturnPath(
     (location.state as { from?: string } | null)?.from ||
+      returnToQuery ||
       window.localStorage.getItem(CLAIM_INVITATION_RETURN_PATH_KEY),
   );
 
