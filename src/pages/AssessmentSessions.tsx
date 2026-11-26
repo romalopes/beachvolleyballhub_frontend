@@ -87,7 +87,8 @@ export default function AssessmentSessions() {
         if (sessionsRes.meta) setMeta(sessionsRes.meta);
         setDefinitions(definitionsRes.data || []);
         const coachList = Array.isArray(coachesRes) ? coachesRes : coachesRes.data || [];
-        setCoaches(coachList);
+        // Only keep coaches that have an Account linked
+        setCoaches(coachList.filter((coach) => coach.account));
         setGroups(groupsRes?.data || []);
 
         if (definitionsRes.data?.length > 0) {
@@ -96,13 +97,14 @@ export default function AssessmentSessions() {
             assessment_definition_id: definitionsRes.data[0].id,
           }));
         }
-        // Choose default coach based on role
+        // Choose default coach based on role (use filtered list with accounts only)
+        const filteredCoaches = coachList.filter((coach) => coach.account);
         if (canPickCoach) {
           // Curator / Admin – first coach in list is fine
-          if (coachList.length > 0) {
+          if (filteredCoaches.length > 0) {
             setFormData((prev) => ({
               ...prev,
-              coach_profile_id: coachList[0].id,
+              coach_profile_id: filteredCoaches[0].id,
             }));
           }
         } else if (isCoach) {

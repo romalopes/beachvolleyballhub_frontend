@@ -110,7 +110,7 @@ export default function AnalysisRequestDetailPage() {
     api
       .coaches({ per_page: 100 })
       .then(({ data }) => {
-        if (active) setCoaches(data);
+        if (active) setCoaches(data.filter((coach) => coach.account));
       })
       .catch(() => {
         // The coach picker degrades to unavailable rather than blocking triage.
@@ -576,7 +576,8 @@ export default function AnalysisRequestDetailPage() {
                   <option value="">Choose a coach…</option>
                   {coaches.map((coach) => (
                     <option key={coach.id} value={coach.id}>
-                      {coach.display_name ??
+                      {coach.account?.full_name ??
+                        coach.display_name ??
                         coach.full_name ??
                         `Coach #${coach.id}`}
                     </option>

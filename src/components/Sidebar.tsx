@@ -188,12 +188,6 @@ const userGroup: SidebarGroup = {
   items: [
     { path: "/identity", label: "Identity", icon: UsersRound },
     { path: "/settings", label: "Settings", icon: Settings, adminOnly: true },
-    {
-      path: "/settings/contact-messages",
-      label: "Contact Messages",
-      icon: Mail,
-      platformStaffOnly: true,
-    },
     { path: "/account", label: "Account", icon: UserCircle },
     { path: "/subscribe", label: "Plans & pricing", icon: Sparkles },
     { path: "/billing", label: "Billing", icon: CreditCard },
@@ -202,12 +196,6 @@ const userGroup: SidebarGroup = {
       label: "Subscriptions",
       icon: CreditCard,
       adminOnly: true,
-    },
-    { path: "/analyses", label: "Analysis", icon: FileText },
-    {
-      path: "/my/analysis-requests",
-      label: "My Analysis Requests",
-      icon: ClipboardList,
     },
   ],
 };

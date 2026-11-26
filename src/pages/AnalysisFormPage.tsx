@@ -105,7 +105,7 @@ export default function AnalysisFormPage() {
           analysisResponse,
         ]) => {
           if (cancelled) return;
-          setCoaches(coachPage.data);
+          setCoaches(coachPage.data.filter((coach) => coach.account));
           setOrganisations(organisationPage.data);
           setGroups(groupPage.data);
           setTrainingSessions(sessions);

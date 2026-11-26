@@ -98,8 +98,8 @@ beforeEach(() => {
   } as never);
   mockedApi.coaches.mockResolvedValue({
     data: [
-      { id: 7, full_name: "Coach Ana", status: "active" },
-      { id: 8, full_name: "Coach Will", status: "active" },
+      { id: 7, full_name: "Coach Ana", status: "active", account: { id: 50, full_name: "Ana Account" } },
+      { id: 8, full_name: "Coach Will", status: "active", account: { id: 51, full_name: "Will Account" } },
     ],
   } as never);
   mockedApi.groups.mockResolvedValue({
@@ -364,11 +364,10 @@ describe("AssessmentSessions wizard", () => {
     await openWizard(user);
 
     // The account is the real identity: the picker leads with the account name,
-    // and the profile display name only appears for an accountless profile.
+    // and coaches without an account are filtered out.
     const picker = screen.getByLabelText(/coach of record/i);
     await waitFor(() => expect(picker).toHaveDisplayValue(/Roma Lopes/));
-    expect(
-      screen.getByRole("option", { name: /Coach Will/ }),
-    ).toHaveTextContent("Coach Will · profile #8");
+    // Coach Will (no account) should not appear in the dropdown
+    expect(screen.queryByRole("option", { name: /Coach Will/ })).not.toBeInTheDocument();
   });
 });

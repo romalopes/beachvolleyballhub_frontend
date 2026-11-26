@@ -40,7 +40,7 @@ const renderPage = (route = "/analyses/new") => render(
 beforeEach(() => {
   vi.clearAllMocks();
   vi.stubGlobal("scrollTo", vi.fn());
-  mockedApi.coaches.mockResolvedValue({ data: [{ id: 4, full_name: "Coach Ana" }], meta: {} } as never);
+  mockedApi.coaches.mockResolvedValue({ data: [{ id: 4, full_name: "Coach Ana", account: { id: 10, full_name: "Ana Account" } }], meta: {} } as never);
   mockedApi.organisations.mockResolvedValue({ data: [{ id: 2, name: "Beach Club" }], meta: {} } as never);
   mockedApi.groups.mockResolvedValue({ data: [{ id: 3, name: "Elite Squad", organisation: { id: 2, name: "Beach Club" } }], meta: {} } as never);
   mockedApi.trainingSessions.mockResolvedValue([{ id: 8, title: "Tuesday Training" }] as never);
@@ -86,7 +86,7 @@ describe("AnalysisFormPage steps", () => {
     expect(screen.getByRole("heading", { name: "Review your analysis" })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: /review/i })).toHaveAttribute("aria-current", "step");
     expect(screen.getByRole("heading", { name: "Side-out review" })).toBeInTheDocument();
-    expect(screen.getByText("Coach Ana")).toBeInTheDocument();
+    expect(screen.getByText("Ana Account")).toBeInTheDocument();
     expect(screen.getByText("Jo Player")).toBeInTheDocument();
   });
 
