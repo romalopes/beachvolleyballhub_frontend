@@ -24,15 +24,39 @@ export default function TournamentFormPage() {
       .finally(() => setLoading(false));
   }, [id, isNew]);
 
-  // Creating and editing are open to every signed-in user: the server
-  // authorises each request against the organisation's owner/administrators
-  // (plus real-admin oversight), and the form only offers organisations the
-  // user may create for. A signed-out visitor never gets here — the route is
-  // wrapped in AuthenticatedRoute — but the guard keeps the page honest.
+  // Only organisation owner/administrators (plus real admins) may create or edit
+  // tournaments. The server enforces this, but we also gate the page to avoid
+  // rendering a form that would 403 on submit. The tournament payload includes
+  // `organisation.can_edit` which mirrors the server-side authority.
   if (!user) {
     return (
       <div className="page">
         <div className="admin-error">Not authorized.</div>
+      </div>
+    );
+  }
+
+  // For existing tournaments, check if the current user can edit.
+  // Mirrors TournamentDetail.tsx: the server stamps can_edit (real admin,
+  // org owner/administrator, or tournament creator). We also apply the
+  // same local fallbacks so a stale flag cannot incorrectly grant access.
+  const { impersonation } = useAuth();
+  // Real admin check: matches backend Current.real_user&.admin?
+  // - Non-impersonating admin: user has admin role AND not impersonating
+  // - Real admin impersonating: impersonation.realAdmin is populated
+  const isRealAdmin =
+    (user?.roles?.includes("admin") && !impersonation?.active) ||
+    !!impersonation?.realAdmin;
+  const canEdit = isRealAdmin ||
+    initial?.organisation?.can_edit ||
+    (initial?.created_by_account_id === user?.account_id);
+  if (!isNew && initial && !canEdit) {
+    return (
+      <div className="page">
+        <div className="admin-error">
+          You don't have permission to edit this tournament. Only the
+          organisation's owner/administrators and real admins may edit it.
+        </div>
       </div>
     );
   }

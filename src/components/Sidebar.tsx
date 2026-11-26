@@ -211,20 +211,26 @@ const userGroup: SidebarGroup = {
     },
   ],
 };
-const tournamentsLink: SidebarLink = {
-  path: "/tournaments",
-  label: "Tournaments",
-  icon: Trophy,
-};
-const trainingSessionsLink: SidebarLink = {
-  path: "/training",
-  label: "Training Sessions",
-  icon: ClipboardList,
-};
-const organisationsLink: SidebarLink = {
-  path: "/organisations",
-  label: "Organisations",
-  icon: Building2,
+// const tournamentsLink: SidebarLink = {
+//   path: "/tournaments",
+//   label: "Tournaments",
+//   icon: Trophy,
+// };
+// const trainingSessionsLink: SidebarLink = {
+//   path: "/training",
+//   label: "Training Sessions",
+//   icon: ClipboardList,
+// };
+// const organisationsLink: SidebarLink = {
+//   path: "/organisations",
+//   label: "Organisations",
+//   icon: Building2,
+// };
+
+const hireAnalysisLink: SidebarLink = {
+  path: "/hire-analysis",
+  label: "Hire Analysis",
+  icon: Sparkles,
 };
 
 /**
@@ -365,15 +371,16 @@ export default function Sidebar({
       </div>
       <nav className="sidebar-nav" aria-label="Main">
         <SidebarNavLink link={homeLink} menuCollapsed={menuCollapsed} />
-        <SidebarNavLink link={tournamentsLink} menuCollapsed={menuCollapsed} />
-        <SidebarNavLink
+        <SidebarNavLink link={hireAnalysisLink} menuCollapsed={menuCollapsed} />
+        {/*<SidebarNavLink link={tournamentsLink} menuCollapsed={menuCollapsed} />
+         <SidebarNavLink
           link={trainingSessionsLink}
           menuCollapsed={menuCollapsed}
         />
         <SidebarNavLink
           link={organisationsLink}
           menuCollapsed={menuCollapsed}
-        />
+        /> */}
         <SidebarNavLink link={contactLink} menuCollapsed={menuCollapsed} />
         {groups.map((group) => {
           const GroupIcon = group.icon;

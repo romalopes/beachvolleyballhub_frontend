@@ -20,7 +20,7 @@ export default function TournamentDetail() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const location = useLocation();
-  const { user } = useAuth();
+  const { user, impersonation } = useAuth();
   const [tournament, setTournament] = useState<Tournament | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -88,20 +88,26 @@ export default function TournamentDetail() {
   const venueName = tournament.location?.name ?? tournament.location_name;
   const formattedAddress = tournament.location?.formatted_address;
   const locationParts = [
-    venueName && formattedAddress?.toLocaleLowerCase().includes(venueName.toLocaleLowerCase())
+    venueName &&
+    formattedAddress
+      ?.toLocaleLowerCase()
+      .includes(venueName.toLocaleLowerCase())
       ? null
       : venueName,
     formattedAddress,
   ].filter(Boolean);
   const returnPath = `${location.pathname}${location.search}`;
-  const isAdmin =
-    user?.roles?.includes("admin") &&
-    !(user as { real_admin?: unknown }).real_admin;
+  // Real admin check: matches backend Current.real_user&.admin?
+  // - Non-impersonating admin: user has admin role AND not impersonating
+  // - Real admin impersonating: impersonation.realAdmin is populated
+  const isRealAdmin =
+    (user?.roles?.includes("admin") && !impersonation?.active) ||
+    !!impersonation?.realAdmin;
   // The server stamps `can_edit` on the organisation (owner/administrator, or
   // real-admin oversight). The creator check is a local fallback for accounts
   // the flag may not cover; a stale true only earns a 403 on save.
   const canEdit =
-    isAdmin ||
+    isRealAdmin ||
     tournament.organisation.can_edit ||
     tournament.created_by_account_id === user?.account_id;
   return (
@@ -178,7 +184,8 @@ export default function TournamentDetail() {
                     ? locationParts.join(", ")
                     : "Location to be confirmed"}
                   {tournament.court && ` — ${tournament.court.name}`}
-                  {tournament.location_detail && ` (${tournament.location_detail})`}
+                  {tournament.location_detail &&
+                    ` (${tournament.location_detail})`}
                 </dd>
               </div>
               {tournament.website_url && (
