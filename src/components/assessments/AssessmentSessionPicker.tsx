@@ -36,7 +36,9 @@ export function AssessmentSessionPicker({
 
   return (
     <div className="form-group">
-      <label htmlFor={inputId}>{label}</label>
+      <label className="visually-hidden" htmlFor={inputId}>
+        {label}
+      </label>
       <div className="contact-detail-actions">
         <select
           id={inputId}

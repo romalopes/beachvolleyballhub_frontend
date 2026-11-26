@@ -79,6 +79,17 @@ export default function AnalysisDetailPage() {
       .finally(() => setLoading(false));
   }, [analysisId, id]);
 
+  // Get the set of player profile IDs in this analysis
+  const analysisPlayerIds = new Set(
+    analysis?.participants.map((p) => p.player_profile_id) ?? [],
+  );
+
+  // Filter assessment sessions to only those with at least one overlapping player
+  const filteredAssessmentSessions =
+    analysis?.assessment_sessions.filter((session) =>
+      session.participant_player_profile_ids.some((pid) => analysisPlayerIds.has(pid)),
+    ) ?? [];
+
   // This effect intentionally starts a remote-data request whenever the route id changes.
   // eslint-disable-next-line react-hooks/set-state-in-effect
   useEffect(load, [load]);
@@ -342,16 +353,16 @@ export default function AnalysisDetailPage() {
                 </div>
               </div>
               <span className="analysis-count">
-                {analysis.assessment_sessions.length}
+                {filteredAssessmentSessions.length}
               </span>
             </div>
-            {analysis.assessment_sessions.length === 0 ? (
+            {filteredAssessmentSessions.length === 0 ? (
               <div className="analysis-empty-row">
                 No assessment sessions are linked to this analysis.
               </div>
             ) : (
               <div className="analysis-linked-list analysis-assessment-panel-list">
-                {analysis.assessment_sessions.map((session) => (
+                {filteredAssessmentSessions.map((session) => (
                   <div
                     key={session.id}
                     className="analysis-linked-item-wrapper"
@@ -494,11 +505,11 @@ export default function AnalysisDetailPage() {
             </section>
           )}
 
-          {analysis.assessment_sessions.length > 0 && (
+          {filteredAssessmentSessions.length > 0 && (
             <section className="analysis-side-card">
               <h2>Linked assessments</h2>
               <div className="analysis-linked-list">
-                {analysis.assessment_sessions.map((session) => (
+                {filteredAssessmentSessions.map((session) => (
                   <Link
                     key={session.id}
                     to={`/assessment-sessions/${session.public_slug || session.id}`}

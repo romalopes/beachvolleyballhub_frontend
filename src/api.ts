@@ -2719,6 +2719,7 @@ export interface AnalysisAssessmentSession {
   scheduled_on: string | null;
   assessment_definition: { id: number; name: string };
   public_slug?: string;
+  participant_player_profile_ids: number[];
 }
 
 export interface AnalysisInput {
