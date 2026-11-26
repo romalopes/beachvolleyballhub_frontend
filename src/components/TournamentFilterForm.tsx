@@ -140,7 +140,7 @@ export default function TournamentFilterForm({
           ))}
         </select>
       </div>
-      <fieldset className="form-group tournament-filter-mine">
+      <div className="form-group tournament-filter-mine">
         <legend>Your tournaments</legend>
         {/* The kinds are OR-combined server-side: ticking "Created by me" and
             "Following" shows the union. */}
@@ -165,7 +165,7 @@ export default function TournamentFilterForm({
             </label>
           ))}
         </div>
-      </fieldset>
+      </div>
       <div className="form-group">
         <label htmlFor="publication_state">Publication State</label>
         <select

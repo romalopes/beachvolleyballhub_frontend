@@ -199,11 +199,11 @@ const userGroup: SidebarGroup = {
     },
   ],
 };
-// const tournamentsLink: SidebarLink = {
-//   path: "/tournaments",
-//   label: "Tournaments",
-//   icon: Trophy,
-// };
+const tournamentsLink: SidebarLink = {
+  path: "/tournaments",
+  label: "Tournaments",
+  icon: Trophy,
+};
 // const trainingSessionsLink: SidebarLink = {
 //   path: "/training",
 //   label: "Training Sessions",
@@ -360,8 +360,8 @@ export default function Sidebar({
       <nav className="sidebar-nav" aria-label="Main">
         <SidebarNavLink link={homeLink} menuCollapsed={menuCollapsed} />
         <SidebarNavLink link={hireAnalysisLink} menuCollapsed={menuCollapsed} />
-        {/*<SidebarNavLink link={tournamentsLink} menuCollapsed={menuCollapsed} />
-         <SidebarNavLink
+        <SidebarNavLink link={tournamentsLink} menuCollapsed={menuCollapsed} />
+        {/* <SidebarNavLink
           link={trainingSessionsLink}
           menuCollapsed={menuCollapsed}
         />
