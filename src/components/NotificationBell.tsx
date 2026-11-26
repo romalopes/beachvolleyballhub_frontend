@@ -7,7 +7,7 @@ import { useAuth } from "../auth/AuthContext";
 import { emitNotificationsChanged, onNotificationsChanged } from "../services/notificationEvents";
 
 // Shared polling state to avoid duplicate API calls between NotificationBell components
-let sharedPollTimer: NodeJS.Timeout | null = null;
+let sharedPollTimer: number | null = null;
 let pollingDepth = 0;
 const POLL_INTERVAL_MS = 45_000;
 

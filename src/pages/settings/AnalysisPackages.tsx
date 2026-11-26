@@ -112,6 +112,7 @@ export default function AnalysisPackagesSettings() {
       max_duration_minutes: "60",
       includes_annotated_video: false,
       includes_written_report: true,
+      includes_assessment: false,
       includes_consultation: false,
       turnaround_days: "7",
       position: String(sortedPackages.length),
@@ -269,8 +270,7 @@ export default function AnalysisPackagesSettings() {
         eyebrow: "Data management",
         highlights: [
           { icon: Package, label: "Pricing and scope" },
-          { icon: ArrowUpDown,
-  CheckSquare, label: "Ordered display" },
+          { icon: CheckSquare, label: "Ordered display" },
           { icon: EyeOff, label: "Hide without deleting" },
         ],
         highlightsLabel: "Analysis package management features",
