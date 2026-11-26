@@ -120,6 +120,12 @@ it("lists the venues attached to the organisation", async () => {
       />,
     );
 
+    // Type in the search box to trigger the search
+    await userEvent.type(
+      screen.getByLabelText(/attach a location/i),
+      "coogee"
+    );
+
     await userEvent.click(await screen.findByRole("button", { name: "Attach" }));
 
     await waitFor(() =>
@@ -133,6 +139,12 @@ it("lists the venues attached to the organisation", async () => {
         organisation={organisation()}
         onOrganisationUpdated={vi.fn()}
       />,
+    );
+
+    // Type in the search box to trigger the search
+    await userEvent.type(
+      screen.getByLabelText(/attach a location/i),
+      "coogee"
     );
 
     await waitFor(() =>

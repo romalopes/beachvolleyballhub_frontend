@@ -64,12 +64,18 @@ export default function OrganisationLocations({
   // server refuses anything else. An empty query lists the catalogue; a typed
   // one narrows it server-side, because a club may have hundreds of venues
   // and a dropdown of all of them is unusable.
+  // Only search when user has typed at least 2 characters
   const queryActive = query.trim().length >= 2;
   useEffect(() => {
+    if (!queryActive) {
+      // Clear candidates when query is too short or empty
+      setCandidates([]);
+      return;
+    }
     let cancelled = false;
     api
       .locations({
-        q: queryActive ? query.trim() : undefined,
+        q: query.trim(),
         verification_status: "verified",
         status: "active",
         per_page: 100,
@@ -253,12 +259,12 @@ return (
               disabled={busy}
             />
           </div>
-          {attachable.length === 0 ? (
+          {!queryActive ? (
             <p className="field-hint">
-              {queryActive
-                ? "No verified location matches that search."
-                : "Every verified location is already attached."}
+              Type at least 2 characters to search for verified locations to attach.
             </p>
+          ) : attachable.length === 0 ? (
+            <p className="field-hint">No verified location matches that search.</p>
           ) : (
             <ul className="organisations-add-results">
               {attachable.map((candidate) => (
