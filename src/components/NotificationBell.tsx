@@ -6,9 +6,9 @@ import { api, type AppNotification } from "../api";
 import { useAuth } from "../auth/AuthContext";
 import { emitNotificationsChanged, onNotificationsChanged } from "../services/notificationEvents";
 
-// How often the badge refreshes while the tab is visible. Foreground polling is
-// the deliberate first-release choice (no WebSockets/Redis); the plan's 30–60s
-// band is honoured and paused when the tab is hidden.
+// Shared polling state to avoid duplicate API calls between NotificationBell components
+let sharedPollTimer: NodeJS.Timeout | null = null;
+let pollingDepth = 0;
 const POLL_INTERVAL_MS = 45_000;
 
 /**
@@ -69,15 +69,21 @@ export default function NotificationBell({
     };
     window.addEventListener("focus", onFocus);
     document.addEventListener("visibilitychange", onVisibility);
-    const timer = window.setInterval(() => {
-      if (document.visibilityState === "visible") refresh();
-    }, POLL_INTERVAL_MS);
+    // Use shared polling timer to avoid duplicate API calls between NotificationBell components
+    if (pollingDepth === 0) {
+      sharedPollTimer = window.setInterval(() => {
+        if (document.visibilityState === "visible") refresh();
+      }, POLL_INTERVAL_MS);
+    }
+    pollingDepth++;
     return () => {
-      cancelled = true;
-      unsubscribe();
-      window.removeEventListener("focus", onFocus);
-      document.removeEventListener("visibilitychange", onVisibility);
-      window.clearInterval(timer);
+      pollingDepth--;
+      if (pollingDepth === 0 && sharedPollTimer) {
+        window.clearInterval(sharedPollTimer);
+        sharedPollTimer = null;
+      }
+      window.removeEventListener('focus', onFocus);
+      document.removeEventListener('visibilitychange', onVisibility);
     };
   }, [user, location.pathname]);
 
