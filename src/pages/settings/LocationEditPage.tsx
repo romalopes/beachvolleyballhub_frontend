@@ -1,8 +1,9 @@
 import { useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { useAuth } from "../../auth/AuthContext";
-import SettingsLayout from "../../components/settings/SettingsLayout";
-import LocationEditForm from "../../components/locations/LocationEditForm";
+import BackLink from "../../components/settings/BackLink";
+import LocationForm from "../../components/locations/LocationForm";
+import LocationMap from "../../components/locations/LocationMap";
 import { api, type Location } from "../../api";
 
 export default function LocationEditPage() {
@@ -17,10 +18,6 @@ export default function LocationEditPage() {
   const canOverseeLocations = user?.roles?.some(
     (role) => role === "admin" || role === "curator",
   );
-  const canEdit =
-    !!location &&
-    location.verification_status !== "verified" &&
-    location.proposed_by_account_id === user?.account_id;
 
   useEffect(() => {
     if (!slug) return;
@@ -67,7 +64,7 @@ export default function LocationEditPage() {
     return (
       <div className="page">
         <div className="auth-flash auth-flash-error">{error}</div>
-        <a href="/locations">Back to locations</a>
+        <BackLink to="/locations" label="Back to locations" />
       </div>
     );
   }
@@ -75,18 +72,23 @@ export default function LocationEditPage() {
     return (
       <div className="page">
         <div className="auth-flash auth-flash-error">Location not found.</div>
-        <a href="/locations">Back to locations</a>
+        <BackLink to="/locations" label="Back to locations" />
       </div>
     );
   }
 
   const isOwnerProposal =
     location.proposed_by_account_id === user?.account_id;
-  const canEditProposal =
-    isOwnerProposal && location.verification_status !== "verified";
+  // The BVBH team (admin/curator) can edit any location — the API's update
+  // action authorises oversight accounts. A regular user may only edit a
+  // location they proposed, and only while it is still unverified.
+  const canEditLocation =
+    canOverseeLocations ||
+    (isOwnerProposal && location.verification_status !== "verified");
 
   return (
     <div className="page">
+      <BackLink to="/locations" label="Back to locations" />
       <h2>Edit Location</h2>
       <p>Update details for "{location.name}".</p>
       {success && (
@@ -156,8 +158,20 @@ export default function LocationEditPage() {
           </div>
         </section>
       )}
-      {canEditProposal && (
-        <LocationEditForm
+      {(location.map_url || (location.latitude !== null && location.longitude !== null)) && (
+        <section className="detail-section">
+          <h3>Map</h3>
+          <LocationMap
+            name={location.name}
+            latitude={location.latitude}
+            longitude={location.longitude}
+            externalUrl={location.map_url}
+          />
+        </section>
+      )}
+      {canEditLocation && (
+        <LocationForm
+          mode="edit"
           idPrefix="location-edit"
           location={location}
           onUpdated={(updated) => {
@@ -168,7 +182,7 @@ export default function LocationEditPage() {
           onCancel={() => navigate("/locations")}
         />
       )}
-      {!canEditProposal && !canOverseeLocations && (
+      {!canEditLocation && (
         <p>
           You cannot edit this location. Only the proposer can edit an unverified
           proposal, and only admins/curators can manage verified locations.

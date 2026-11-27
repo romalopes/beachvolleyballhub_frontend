@@ -6,7 +6,7 @@ import {
   type Organisation,
   type OrganisationLocation,
 } from "../../api";
-import LocationCreateForm from "./LocationCreateForm";
+import LocationForm from "./LocationForm";
 
 interface OrganisationLocationsProps {
   organisation: Organisation;
@@ -235,7 +235,8 @@ return (
 
       {canEdit && (
         <div className="organisations-add">
-          <LocationCreateForm
+          <LocationForm
+            mode="create"
             idPrefix="organisation-location-proposal"
             organisationId={organisation.id}
             onCreated={async (created) => {

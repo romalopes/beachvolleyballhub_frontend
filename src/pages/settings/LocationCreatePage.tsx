@@ -1,8 +1,7 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { useAuth } from "../../auth/AuthContext";
 import { MapPin, UserCircle } from "lucide-react";
-import LocationCreateForm from "../../components/locations/LocationCreateForm";
+import LocationForm from "../../components/locations/LocationForm";
 
 export default function LocationCreatePage() {
   const navigate = useNavigate();
@@ -28,7 +27,8 @@ export default function LocationCreatePage() {
           {success}
         </div>
       )}
-      <LocationCreateForm
+      <LocationForm
+        mode="create"
         idPrefix="location-create"
         defaultExpanded
         navigate={navigate}

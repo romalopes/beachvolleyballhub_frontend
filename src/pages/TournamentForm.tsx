@@ -19,7 +19,7 @@ import {
   type WatchLink,
 } from "../api";
 import { useAuth } from "../auth/AuthContext";
-import LocationCreateForm from "../components/locations/LocationCreateForm";
+import LocationForm from "../components/locations/LocationForm";
 
 interface TournamentFormProps {
   initial: Tournament | null;
@@ -587,7 +587,8 @@ export default function TournamentForm({
           {locations.map((row) => <option key={row.id} value={row.id}>{row.name}</option>)}
         </select>
       </div>
-      <LocationCreateForm
+      <LocationForm
+        mode="create"
         idPrefix="tournament-proposal"
         onCreated={(location) => {
           setLocations((current) => [location, ...current.filter((row) => row.id !== location.id)]);

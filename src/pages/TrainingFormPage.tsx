@@ -22,7 +22,7 @@ import { useAuth } from "../auth/AuthContext";
 import type { DrillDefinition } from "../components/drill/definition";
 import EmptyState from "../components/EmptyState";
 import PageHeader from "../components/PageHeader";
-import LocationCreateForm from "../components/locations/LocationCreateForm";
+import LocationForm from "../components/locations/LocationForm";
 import TrainingDrillList from "../components/training/TrainingDrillList";
 import TrainingFocusList from "../components/training/TrainingFocusList";
 import TrainingTemplateSelector from "../components/training/TrainingTemplateSelector";
@@ -886,7 +886,8 @@ export default function TrainingFormPage() {
 
         <div className="training-editor-section">
           <h3>Location details</h3>
-          <LocationCreateForm
+          <LocationForm
+            mode="create"
             idPrefix="training-proposal"
             onCreated={(createdLocation) => {
               setLocations((current) => [

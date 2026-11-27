@@ -6,18 +6,33 @@ import {
   type LocationInput,
   type LocationType,
 } from "../../api";
+import { countryOptions, timeZoneOptions } from "../../utils/locationOptions";
 
-interface LocationCreateFormProps {
+/**
+ * The one venue form behind every surface that proposes or edits a location:
+ * /locations/new, the edit page, organisation dashboards, tournament and
+ * training forms. Every field and both dropdowns live here once; the `mode`
+ * prop switches between proposing a new venue and updating an existing one.
+ */
+export type LocationFormMode = "create" | "edit";
+
+interface LocationFormProps {
   idPrefix: string;
-  onCreated: (location: Location) => void | Promise<void>;
+  /** "create" proposes a new venue; "edit" updates an existing one. */
+  mode: LocationFormMode;
+  /** edit only: the venue being updated. */
+  location?: Location;
+  /** edit only: receives the saved venue. */
+  onUpdated?: (location: Location) => void;
+  /** edit only: cancel handler (usually back to the catalogue). */
+  onCancel?: () => void;
+  /** create only: receives the newly proposed venue. */
+  onCreated?: (location: Location) => void | Promise<void>;
+  /** create only: render collapsed behind a "Propose a new venue" button. */
   defaultExpanded?: boolean;
-  /**
-   * When set, the proposal is linked to this organisation at creation: its
-   * members can see and schedule the venue while it awaits verification.
-   * Only officers (owner/administrator) of the organisation may propose for
-   * it, so this prop is only passed by organisation-scoped forms.
-   */
+  /** create only: link the proposal to this organisation at birth. */
   organisationId?: number | null;
+  /** create only: Cancel navigates here instead of folding the form. */
   navigate?: (to: string) => void;
 }
 
@@ -30,34 +45,61 @@ const LOCATION_TYPES: Array<{ value: LocationType; label: string }> = [
   { value: "other", label: "Other" },
 ];
 
-const initialInput = (): LocationInput => ({
+const toCoordinate = (value: string | number | null | undefined): number | null => {
+  if (value === null || value === undefined || value === "") return null;
+  const parsed = Number(value);
+  return Number.isFinite(parsed) ? parsed : null;
+};
+
+/** New proposals default to Australia; edits keep the stored value. */
+const blankInput = (): LocationInput => ({
   name: "",
   location_type: "beach",
   formatted_address: "",
   locality: "",
   administrative_area: "",
-  country_code: "",
+  country_code: "AU",
   timezone: Intl.DateTimeFormat().resolvedOptions().timeZone || "UTC",
   latitude: null,
   longitude: null,
 });
 
-export default function LocationCreateForm({
+const editInput = (location: Location): LocationInput => ({
+  name: location.name,
+  location_type: location.location_type,
+  formatted_address: location.formatted_address ?? "",
+  locality: location.locality ?? "",
+  administrative_area: location.administrative_area ?? "",
+  country_code: location.country_code ?? "",
+  timezone: location.timezone ?? "",
+  latitude: toCoordinate(location.latitude),
+  longitude: toCoordinate(location.longitude),
+});
+
+export default function LocationForm({
   idPrefix,
+  mode,
+  location,
+  onUpdated,
+  onCancel,
   onCreated,
   defaultExpanded = false,
   organisationId = null,
   navigate,
-}: LocationCreateFormProps) {
-  const [expanded, setExpanded] = useState(defaultExpanded);
-  const [input, setInput] = useState<LocationInput>(initialInput);
+}: LocationFormProps) {
+  const isCreate = mode === "create";
+  // Edit mode is always expanded; create mode honours defaultExpanded.
+  const [expanded, setExpanded] = useState(isCreate ? defaultExpanded : true);
+  const [input, setInput] = useState<LocationInput>(() =>
+    isCreate || !location ? blankInput() : editInput(location),
+  );
   const [saving, setSaving] = useState(false);
   const [errors, setErrors] = useState<string[]>([]);
 
   const set = <K extends keyof LocationInput>(key: K, value: LocationInput[K]) =>
     setInput((current) => ({ ...current, [key]: value }));
 
-  const create = async () => {
+  const submit = async () => {
     if (!input.name.trim()) {
       setErrors(["Name is required"]);
       return;
@@ -66,20 +108,35 @@ export default function LocationCreateForm({
     setSaving(true);
     setErrors([]);
     try {
-      const location = await api.createLocation({
-        ...input,
-        name: input.name.trim(),
-        country_code: input.country_code?.trim().toUpperCase() || null,
-        organisation_id: organisationId ?? null,
-      });
-      await onCreated(location);
-      setInput(initialInput());
-      setExpanded(false);
+      if (isCreate) {
+        const created = await api.createLocation({
+          ...input,
+          name: input.name.trim(),
+          country_code: input.country_code?.trim().toUpperCase() || null,
+          organisation_id: organisationId ?? null,
+        });
+        await onCreated?.(created);
+        setInput(blankInput());
+        setExpanded(false);
+      } else if (location) {
+        const updated = await api.updateLocation(location.id, {
+          ...input,
+          name: input.name.trim(),
+          country_code: input.country_code?.trim().toUpperCase() || null,
+        });
+        onUpdated?.(updated);
+      }
     } catch (error) {
       setErrors(
         error instanceof ApiValidationError
           ? error.errors
-          : [error instanceof Error ? error.message : "Could not create location"],
+          : [
+              error instanceof Error
+                ? error.message
+                : isCreate
+                  ? "Could not create location"
+                  : "Could not update location",
+            ],
       );
     } finally {
       setSaving(false);
@@ -97,14 +154,23 @@ export default function LocationCreateForm({
   }
 
   return (
-    <section className="admin-form-section" aria-label="Propose a new venue">
-      <h3>Propose a new venue</h3>
+    <section
+      className="admin-form-section"
+      aria-label={isCreate ? "Propose a new venue" : "Edit location"}
+    >
+      <h3>{isCreate ? "Propose a new venue" : "Edit location"}</h3>
       <p className="field-hint">
-        The venue can be selected immediately. Coordinates are resolved asynchronously
-        and the proposal remains awaiting verification
-        {organisationId
-          ? " while only this organisation's members can see and schedule it."
-          : "."}
+        {isCreate ? (
+          <>
+            The venue can be selected immediately. Coordinates are resolved asynchronously
+            and the proposal remains awaiting verification
+            {organisationId
+              ? " while only this organisation's members can see and schedule it."
+              : "."}
+          </>
+        ) : (
+          "Update the venue details. Changing the address re-resolves coordinates; setting latitude/longitude reverse-geocodes the address."
+        )}
       </p>
       <div className="admin-field-row">
         <div className="admin-field">
@@ -155,22 +221,34 @@ export default function LocationCreateForm({
         </div>
         <div className="admin-field">
           <label htmlFor={`${idPrefix}-location-country`}>Country code</label>
-          <input
+          <select
             id={`${idPrefix}-location-country`}
             value={input.country_code ?? ""}
-            maxLength={2}
-            placeholder="AU"
             onChange={(event) => set("country_code", event.target.value)}
-          />
+          >
+            <option value="">—</option>
+            {countryOptions().map((option) => (
+              <option key={option.value} value={option.value}>
+                {option.label}
+              </option>
+            ))}
+          </select>
         </div>
       </div>
       <div className="admin-field">
         <label htmlFor={`${idPrefix}-location-timezone`}>Timezone</label>
-        <input
+        <select
           id={`${idPrefix}-location-timezone`}
           value={input.timezone ?? ""}
           onChange={(event) => set("timezone", event.target.value)}
-        />
+        >
+          <option value="">—</option>
+          {timeZoneOptions().map((option) => (
+            <option key={option.value} value={option.value}>
+              {option.label}
+            </option>
+          ))}
+        </select>
       </div>
       <div className="admin-field-row">
         <div className="admin-field">
@@ -206,19 +284,41 @@ export default function LocationCreateForm({
         </div>
       )}
       <div className="admin-form-actions">
-        {navigate ? (
-          <button type="button" className="admin-btn" disabled={saving} onClick={() => navigate("/locations")}>
-            Cancel proposal
-          </button>
+        {isCreate ? (
+          navigate ? (
+            <button
+              type="button"
+              className="admin-btn"
+              disabled={saving}
+              onClick={() => navigate("/locations")}
+            >
+              Cancel proposal
+            </button>
+          ) : (
+            <button
+              type="button"
+              className="admin-btn"
+              disabled={saving}
+              onClick={() => setExpanded(false)}
+            >
+              Cancel proposal
+            </button>
+          )
         ) : (
-          <button type="button" className="admin-btn" disabled={saving} onClick={() => setExpanded(false)}>
-            Cancel proposal
+          <button type="button" className="admin-btn" disabled={saving} onClick={onCancel}>
+            Cancel
           </button>
         )}
-        <button type="button" className="admin-btn admin-btn-add" disabled={saving} onClick={create}>
-          {saving ? "Creating…" : "Create venue proposal"}
+        <button type="button" className="admin-btn admin-btn-add" disabled={saving} onClick={submit}>
+          {saving
+            ? isCreate
+              ? "Creating…"
+              : "Saving…"
+            : isCreate
+              ? "Create venue proposal"
+              : "Save changes"}
         </button>
       </div>
-    </section>
+      </section>
   );
 }

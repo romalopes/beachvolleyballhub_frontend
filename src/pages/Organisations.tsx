@@ -21,7 +21,7 @@ import {
 } from "../api";
 import { useAuth } from "../auth/AuthContext";
 import EmptyState from "../components/EmptyState";
-import LocationCreateForm from "../components/locations/LocationCreateForm";
+import LocationForm from "../components/locations/LocationForm";
 import OrganisationTreeNode, { type OrganisationTreeNodeProps } from "../components/OrganisationTreeNode";
 
 const ORGANISATION_TYPES: Array<{ value: OrganisationType; label: string }> = [
@@ -665,7 +665,8 @@ function NewOrganisationForm({
             </ul>
           )
         )}
-        <LocationCreateForm
+        <LocationForm
+          mode="create"
           idPrefix="new-organisation"
           onCreated={async (location) => {
             const verified = await api.verifyLocation(location.id);
