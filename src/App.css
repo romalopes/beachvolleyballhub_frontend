@@ -2100,6 +2100,40 @@
   background: var(--bg-secondary);
 }
 
+/* Location details grid */
+.location-details-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 1rem;
+  margin-top: 1rem;
+}
+
+.detail-item {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  padding: 1rem;
+  background: var(--bg-secondary);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+}
+
+.detail-item strong {
+  color: var(--text-primary);
+  font-weight: 600;
+  font-size: 0.875rem;
+}
+
+.detail-item a {
+  color: var(--amber-600);
+  text-decoration: none;
+  font-weight: 500;
+}
+
+.detail-item a:hover {
+  text-decoration: underline;
+}
+
 .location-map-fallback {
   display: flex;
   align-items: center;

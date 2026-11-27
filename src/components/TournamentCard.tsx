@@ -1,39 +1,50 @@
-import { useAuth } from '../auth/AuthContext';
-import type { Tournament, TournamentRelationship } from '../api';
-import { formatDate, formatTime } from '../utils/dateFormatter';
-import { tournamentRelationship } from '../utils/tournaments';
-import RelationshipBadge from './RelationshipBadge';
-import TournamentBadge from './TournamentBadge';
+import { useAuth } from "../auth/AuthContext";
+import type { Tournament, TournamentRelationship } from "../api";
+import { formatDate, formatTime } from "../utils/dateFormatter";
+import { tournamentRelationship } from "../utils/tournaments";
+import RelationshipBadge from "./RelationshipBadge";
+import TournamentBadge from "./TournamentBadge";
 
 interface TournamentCardProps {
   tournament: Tournament;
   onClick?: () => void;
 }
 
-export default function TournamentCard({ tournament, onClick }: TournamentCardProps) {
+export default function TournamentCard({
+  tournament,
+  onClick,
+}: TournamentCardProps) {
   const { user } = useAuth();
   const locationName = tournament.location?.name ?? tournament.location_name;
   const locality = tournament.location?.locality;
-  const locationLabel = [
-    locationName,
-    locality && locationName && !locationName.toLocaleLowerCase().includes(locality.toLocaleLowerCase())
-      ? locality
-      : null,
-  ].filter(Boolean).join(", ") || "Location to be confirmed";
+  const locationLabel =
+    [
+      locationName,
+      locality &&
+      locationName &&
+      !locationName.toLocaleLowerCase().includes(locality.toLocaleLowerCase())
+        ? locality
+        : null,
+    ]
+      .filter(Boolean)
+      .join(", ") || "Location to be confirmed";
   // One stripe per card, strongest tie wins — see tournamentRelationship.
-  const relationship: TournamentRelationship | null = tournamentRelationship(tournament, user?.account_id);
+  const relationship: TournamentRelationship | null = tournamentRelationship(
+    tournament,
+    user?.account_id,
+  );
 
   return (
     <div
-      className={`card tournament-card${relationship ? ` tournament-card--${relationship}` : ''}`}
+      className={`card tournament-card${relationship ? ` tournament-card--${relationship}` : ""}`}
       onClick={onClick}
-      onKeyDown={event => {
-        if (onClick && (event.key === 'Enter' || event.key === ' ')) {
+      onKeyDown={(event) => {
+        if (onClick && (event.key === "Enter" || event.key === " ")) {
           event.preventDefault();
           onClick();
         }
       }}
-      role={onClick ? 'button' : undefined}
+      role={onClick ? "button" : undefined}
       tabIndex={onClick ? 0 : undefined}
     >
       <div className="card-header">
@@ -41,22 +52,39 @@ export default function TournamentCard({ tournament, onClick }: TournamentCardPr
         <div className="tournament-badges">
           {relationship && <RelationshipBadge kind={relationship} />}
           <TournamentBadge type="scope" value={tournament.scope} />
-          <TournamentBadge type="publicationState" value={tournament.publication_state} />
+          <TournamentBadge
+            type="publicationState"
+            value={tournament.publication_state}
+          />
         </div>
       </div>
       <div className="card-body">
         <p className="tournament-organisation">
-          Organised by: <strong>{tournament.organisation.name}</strong> ({tournament.organisation.acronym})
+          Organised by: <strong>{tournament.organisation.name}</strong> (
+          {tournament.organisation.acronym})
         </p>
         <p className="tournament-dates">
-          <strong>Date:</strong> {formatDateRange(tournament.starts_at, tournament.ends_at, tournament.all_day, tournament.timezone)}
+          <strong>Date:</strong>{" "}
+          {formatDateRange(
+            tournament.starts_at,
+            tournament.ends_at,
+            tournament.all_day,
+            tournament.timezone,
+          )}
         </p>
         <p className="tournament-location">
           <strong>Location:</strong> {locationLabel}
         </p>
         {tournament.website_url && (
           <p className="tournament-website">
-            <strong>Website:</strong> <a href={tournament.website_url} target="_blank" rel="noopener noreferrer">{tournament.website_url}</a>
+            <strong>Website:</strong>{" "}
+            <a
+              href={tournament.website_url}
+              target="_blank"
+              rel="noopener noreferrer"
+            >
+              {tournament.website_url}
+            </a>
           </p>
         )}
         {tournament.description && (
@@ -65,7 +93,7 @@ export default function TournamentCard({ tournament, onClick }: TournamentCardPr
           </p>
         )}
       </div>
-      <div className="card-footer">
+      {/* <div className="card-footer">
         <div className="tournament-stats">
           <span className="stat-item">
             <strong>Divisions:</strong> {tournament.divisions.length}
@@ -77,16 +105,21 @@ export default function TournamentCard({ tournament, onClick }: TournamentCardPr
             <strong>Watch Links:</strong> {tournament.watch_links.length}
           </span>
         </div>
-      </div>
+      </div> */}
     </div>
   );
 }
 
 // Helper function to format date range
-function formatDateRange(startsAt: string, endsAt: string, allDay: boolean, timezone: string): string {
+function formatDateRange(
+  startsAt: string,
+  endsAt: string,
+  allDay: boolean,
+  timezone: string,
+): string {
   const start = new Date(startsAt);
   const end = new Date(endsAt);
-  
+
   if (allDay) {
     // Format as just dates
     if (start.toDateString() === end.toDateString()) {

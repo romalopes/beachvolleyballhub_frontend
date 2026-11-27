@@ -2,7 +2,6 @@ import { useCallback, useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "../../auth/AuthContext";
 import { MapPin, Plus, UserCircle } from "lucide-react";
-import SettingsLayout from "../../components/settings/SettingsLayout";
 import { api, type Location, type PaginationMeta } from "../../api";
 import Pagination from "../../components/settings/Pagination";
 import DeleteConfirm from "../../components/settings/DeleteConfirm";
@@ -164,10 +163,7 @@ export default function Locations() {
 
   if (canOverseeLocations) {
     return (
-      <SettingsLayout
-        title="Locations"
-        description="Manage venue/location proposals and lifecycle."
-      >
+      <div className="page">
         <header className="organisations-library-hero">
           <div className="organisations-library-hero-copy">
             <span className="analysis-eyebrow">Location network</span>
@@ -380,7 +376,7 @@ export default function Locations() {
             )}
           </>
         )}
-      </SettingsLayout>
+      </div>
     );
   }
 
