@@ -650,7 +650,7 @@ export default function IdentityPage() {
                     {canOverseeLocations ? (
                       <Link
                         className="identity-link"
-                        to={`/settings/locations/${createdLocation.slug ?? createdLocation.id}`}
+                        to={`/locations/${createdLocation.slug ?? createdLocation.id}`}
                       >
                         {content}
                       </Link>
@@ -1016,7 +1016,7 @@ export default function IdentityPage() {
                   return (
                     <li
                       key={loc.id}>
-                      <Link to={`/settings/locations/${loc.slug ?? loc.id}`} className="detail-link">
+                      <Link to={`/locations/${loc.slug ?? loc.id}`} className="detail-link">
                         <span style={{ fontWeight: "500" }}>{name}</span>
                       </Link>
                       {loc.locality && (

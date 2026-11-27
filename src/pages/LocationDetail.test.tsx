@@ -47,9 +47,9 @@ const auth: AuthContextValue = {
 function renderPage() {
   return render(
     <AuthContext.Provider value={auth}>
-      <MemoryRouter initialEntries={["/settings/locations/sydney-park"]}>
+      <MemoryRouter initialEntries={["/locations/sydney-park"]}>
         <Routes>
-          <Route path="/settings/locations/:slug" element={<LocationDetail />} />
+          <Route path="/locations/:slug" element={<LocationDetail />} />
         </Routes>
       </MemoryRouter>
     </AuthContext.Provider>,

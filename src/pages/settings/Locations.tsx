@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "../../auth/AuthContext";
+import { MapPin, Plus, UserCircle } from "lucide-react";
 import SettingsLayout from "../../components/settings/SettingsLayout";
 import { api, type Location, type PaginationMeta } from "../../api";
 import Pagination from "../../components/settings/Pagination";
@@ -24,17 +25,51 @@ export default function Locations() {
   const canOverseeLocations = user?.roles?.some(
     (role) => role === "admin" || role === "curator",
   );
+  // Regular users toggle between the public catalogue and their own proposals.
+  // `created_by_me` is only sent for the proposals view: on the API it switches
+  // the index to "only rows I proposed", so it must never filter the public
+  // catalogue.
+  const [view, setView] = useState<"public" | "mine">("public");
+
+  const switchView = (next: "public" | "mine") => {
+    setView(next);
+    setPage(1);
+  };
 
   const fetchLocations = useCallback(async () => {
-    if (!canOverseeLocations) return;
     setLoading(true);
     setError(null);
     try {
-      const res = await api.locations({
-        q: query || undefined,
-        page,
-        per_page: PER_PAGE,
-      });
+      if (canOverseeLocations) {
+        // Oversight sees the whole catalogue, proposals and archives included.
+        const res = await api.locations({
+          q: query || undefined,
+          page,
+          per_page: PER_PAGE,
+        });
+        setLocations(res.data);
+        setMeta(res.meta);
+        return;
+      }
+      // Public view: plain index call. For non-oversight accounts the API
+      // scopes it through `usable_by`, and the explicit status filters keep
+      // it to the active, verified catalogue. The proposals view is the only
+      // place `created_by_me` is used.
+      const res =
+        view === "mine"
+          ? await api.locations({
+              q: query || undefined,
+              page,
+              per_page: PER_PAGE,
+              created_by_me: true,
+            })
+          : await api.locations({
+              q: query || undefined,
+              page,
+              per_page: PER_PAGE,
+              status: "active",
+              verification_status: "verified",
+            });
       setLocations(res.data);
       setMeta(res.meta);
     } catch (e: unknown) {
@@ -42,7 +77,7 @@ export default function Locations() {
     } finally {
       setLoading(false);
     }
-  }, [canOverseeLocations, page, query]);
+  }, [canOverseeLocations, page, query, view]);
 
   const moderateLocation = async (
     location: Location,
@@ -65,17 +100,6 @@ export default function Locations() {
     }
   };
 
-  useEffect(() => {
-    // Deferred so the fetch is not started synchronously inside the effect:
-    // the setState calls it makes belong to the request, not to the mount.
-    Promise.resolve().then(fetchLocations);
-  }, [fetchLocations]);
-
-  const handleSearch = (event: React.ChangeEvent<HTMLInputElement>) => {
-    setQuery(event.target.value);
-    setPage(1);
-  };
-
   const handleDelete = async () => {
     if (!pendingDelete) return;
     setDeleting(true);
@@ -94,67 +118,71 @@ export default function Locations() {
     }
   };
 
-  if (!canOverseeLocations) {
-    return (
-      <div className="page">
-        <div className="admin-error">Not authorized.</div>
-      </div>
-    );
-  }
+  useEffect(() => {
+    // Search hits the API only when the box is empty (initial load / cleared)
+    // or once the user has typed at least three characters. Every keystroke
+    // resets the timer, so typing stays responsive without request storms.
+    const trimmed = query.trim();
+    if (trimmed.length > 0 && trimmed.length < 3) return;
+    const delay = trimmed.length === 0 ? 0 : 300;
+    const timer = setTimeout(() => {
+      void fetchLocations();
+    }, delay);
+    return () => clearTimeout(timer);
+  }, [fetchLocations]);
 
-  return (
-    <SettingsLayout
-      title="Locations"
-      description="Manage locations/venues."
-      backTo={user?.roles?.includes("admin") ? "/settings" : "/identity"}
-      backLabel={user?.roles?.includes("admin") ? "Back to Settings" : "Back to Identity"}
-    >
-      <div
-        style={{
-          display: "flex",
-          gap: "0.75rem",
-          marginBottom: "1rem",
-          alignItems: "center",
-        }}
+  const handleSearch = (event: React.ChangeEvent<HTMLInputElement>) => {
+    setQuery(event.target.value);
+    setPage(1);
+  };
+
+  if (canOverseeLocations) {
+    return (
+      <SettingsLayout
+        title="Locations"
+        description="Manage venue/location proposals and lifecycle."
       >
-        <Link to="/settings/locations/new" className="admin-btn admin-btn-add">
-          + Add New Location
-        </Link>
-        <div style={{ flex: 1, maxWidth: "400px" }}>
-          <label htmlFor="settings-location-search" className="search-label">
-            Search locations
-          </label>
+        <header className="organisations-library-hero">
+          <div className="organisations-library-hero-copy">
+            <span className="analysis-eyebrow">Location network</span>
+            <h1>Locations</h1>
+            <p>Browse verified venues and manage your proposals.</p>
+            <div className="organisations-library-highlights" aria-label="Location directory features">
+              <span><MapPin size={14} /> Browse public locations</span>
+              <span><UserCircle size={14} /> My proposals</span>
+            </div>
+          </div>
+          <Link
+            to="/locations/new"
+            className="btn-primary organisations-library-create"
+          >
+            <Plus size={17} />
+            Add New Location
+          </Link>
+        </header>
+        <div className="admin-toolbar">
           <input
-            id="settings-location-search"
-            className="search-input"
-            type="search"
+            type="text"
+            placeholder="Search locations…"
             value={query}
             onChange={handleSearch}
-            placeholder="Search by name, city, or country…"
           />
         </div>
-      </div>
-      {loading && <div className="loading">Loading...</div>}
       {error && <div className="auth-flash auth-flash-error">{error}</div>}
-      {!loading && !error && (
+      {loading ? (
+        <div className="loading">Loading…</div>
+      ) : (
         <>
-          <p className="settings-result-count">
-            {meta
-              ? `${meta.total} ${meta.total === 1 ? "location" : "locations"}`
-              : `${locations.length} ${locations.length === 1 ? "location" : "locations"}`}
-          </p>
           <table className="admin-table">
             <thead>
               <tr>
                 <th>Name</th>
                 <th>Type</th>
-                <th>City / Locality</th>
-                <th>Country</th>
-                <th>Slug</th>
+                <th>Address</th>
                 <th>Coordinates</th>
                 <th>Status</th>
                 <th>Verification</th>
-                <th className="admin-table-actions-col">Actions</th>
+                <th>Actions</th>
               </tr>
             </thead>
             <tbody>
@@ -162,24 +190,20 @@ export default function Locations() {
                 <tr key={loc.id}>
                   <td className="admin-table-name">
                     <Link
-                      to={`/settings/locations/${loc.slug ?? loc.id}`}
+                      to={`/locations/${loc.slug ?? loc.id}`}
                       className="admin-table-name-link"
                     >
                       {loc.name}
                     </Link>
                   </td>
-                  <td>{loc.location_type}</td>
-                  <td>{loc.locality ?? "—"}</td>
-                  <td>{loc.country_code ?? "—"}</td>
-                  <td>{loc.slug ?? "—"}</td>
+                  <td className="admin-table-type">{loc.location_type}</td>
+                  <td className="admin-table-address">
+                    {loc.formatted_address ?? "—"}
+                  </td>
                   <td>
-                    {loc.latitude != null && loc.longitude != null ? (
-                      <span title={`${loc.latitude}, ${loc.longitude}`}>
-                        {loc.latitude}, {loc.longitude}
-                      </span>
-                    ) : (
-                      "—"
-                    )}
+                    {loc.latitude != null && loc.longitude != null
+                      ? `${loc.latitude}, ${loc.longitude}`
+                      : "—"}
                   </td>
                   <td>
                     <span className={`status-badge status-${loc.status}`}>
@@ -222,7 +246,7 @@ export default function Locations() {
                         className="admin-btn admin-btn-add"
                         onClick={() =>
                           navigate(
-                            `/settings/locations/${loc.slug ?? loc.id}/edit`,
+                            `/locations/${loc.slug ?? loc.id}/edit`,
                           )
                         }
                       >
@@ -271,5 +295,178 @@ export default function Locations() {
         </>
       )}
     </SettingsLayout>
+    );
+  }
+
+  // Regular user mode: read-only catalogue
+  return (
+    <div className="page">
+      <header className="organisations-library-hero">
+        <div className="organisations-library-hero-copy">
+          <span className="analysis-eyebrow">Location network</span>
+          <h1>Locations</h1>
+          <p>Browse active, verified venues. Your own proposals appear under “My proposals”.</p>
+          <div className="organisations-library-highlights" aria-label="Location directory features">
+            <span><MapPin size={14} /> Browse public locations</span>
+            <span><UserCircle size={14} /> My proposals</span>
+          </div>
+        </div>
+        <Link
+          to="/locations/new"
+          className="btn-primary organisations-library-create"
+        >
+          <Plus size={17} />
+          Propose a Location
+        </Link>
+      </header>
+      <div className="admin-toolbar" role="tablist" aria-label="Location views">
+        <button
+          type="button"
+          role="tab"
+          aria-selected={view === "public"}
+          className={`admin-btn${view === "public" ? " admin-btn-add" : ""}`}
+          onClick={() => switchView("public")}
+        >
+          Public locations
+        </button>
+        <button
+          type="button"
+          role="tab"
+          aria-selected={view === "mine"}
+          className={`admin-btn${view === "mine" ? " admin-btn-add" : ""}`}
+          onClick={() => switchView("mine")}
+        >
+          My proposals
+        </button>
+      </div>
+      <div className="admin-toolbar">
+        <input
+          type="text"
+          placeholder="Search locations…"
+          value={query}
+          onChange={handleSearch}
+        />
+      </div>
+      {error && <div className="auth-flash auth-flash-error">{error}</div>}
+      {loading ? (
+        <div className="loading">Loading…</div>
+      ) : (
+        <>
+          {locations.length === 0 ? (
+            <p>
+              {view === "public"
+                ? "No active, verified locations found."
+                : "You have not proposed any locations yet. Propose one to get started."}
+            </p>
+          ) : view === "public" ? (
+            <table className="admin-table">
+              <thead>
+                <tr>
+                  <th>Name</th>
+                  <th>Type</th>
+                  <th>Address</th>
+                  <th>Coordinates</th>
+                </tr>
+              </thead>
+              <tbody>
+                {locations.map((loc) => (
+                  <tr key={loc.id}>
+                    <td className="admin-table-name">
+                      <Link
+                        to={`/locations/${loc.slug ?? loc.id}`}
+                        className="admin-table-name-link"
+                      >
+                        {loc.name}
+                      </Link>
+                    </td>
+                    <td className="admin-table-type">{loc.location_type}</td>
+                    <td className="admin-table-address">
+                      {loc.formatted_address ?? "—"}
+                    </td>
+                    <td>
+                      {loc.latitude != null && loc.longitude != null
+                        ? `${loc.latitude}, ${loc.longitude}`
+                        : "—"}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          ) : (
+            <table className="admin-table">
+              <thead>
+                <tr>
+                  <th>Name</th>
+                  <th>Coordinates</th>
+                  <th>Status</th>
+                  <th>Verification</th>
+                  <th>Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                {locations.map((loc) => {
+                  const canEdit = loc.verification_status !== "verified";
+                  return (
+                    <tr key={loc.id}>
+                      <td className="admin-table-name">
+                        <Link
+                          to={`/locations/${loc.slug ?? loc.id}`}
+                          className="admin-table-name-link"
+                        >
+                          {loc.name}
+                        </Link>
+                      </td>
+                      <td>
+                        {loc.latitude != null && loc.longitude != null
+                          ? `${loc.latitude}, ${loc.longitude}`
+                          : "—"}
+                      </td>
+                      <td>
+                        <span className={`status-badge status-${loc.status}`}>
+                          {loc.status}
+                        </span>
+                      </td>
+                      <td>
+                        <span
+                          className={`status-badge status-${loc.verification_status}`}
+                        >
+                          {loc.verification_status}
+                        </span>
+                      </td>
+                      <td className="admin-table-actions-col">
+                        <div className="admin-table-actions">
+                          {canEdit && (
+                            <button
+                              type="button"
+                              className="admin-btn admin-btn-add"
+                              onClick={() =>
+                                navigate(
+                                  `/locations/${loc.slug ?? loc.id}/edit`,
+                                )
+                              }
+                            >
+                              Edit
+                            </button>
+                          )}
+                        </div>
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          )}
+          {meta && (
+            <Pagination
+              currentPage={meta.page}
+              totalPages={meta.total_pages}
+              totalItems={meta.total}
+              itemsPerPage={PER_PAGE}
+              onPageChange={setPage}
+            />
+          )}
+        </>
+      )}
+    </div>
   );
 }

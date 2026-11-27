@@ -41,7 +41,7 @@ export default function LocationDetail() {
       <div className="page">
         <h2>Location not found</h2>
         <p>{error ?? `The location "${slug ?? ""}" could not be found.`}</p>
-        <Link to="/settings/locations" className="admin-btn">
+        <Link to="/locations" className="admin-btn">
           Back to locations
         </Link>
       </div>
@@ -52,11 +52,19 @@ export default function LocationDetail() {
     <div className="page">
       <section className="detail-section">
         <h2>{location.name}</h2>
-        <Link to="/settings/locations" className="related-item-meta">
+        <Link to="/locations" className="related-item-meta">
           <ArrowLeft size={12} aria-hidden="true" />
           Back to locations
         </Link>
-        <Link to={`/settings/locations/${location.slug ?? location.id}/edit`} className="admin-btn admin-btn-add">Edit</Link>
+        {location.verification_status !== "verified" &&
+          location.proposed_by_account_id === user?.account_id && (
+          <Link
+            to={`/locations/${location.slug ?? location.id}/edit`}
+            className="admin-btn admin-btn-add"
+          >
+            Edit
+          </Link>
+        )}
       </section>
       {location.formatted_address && <p className="related-item-meta"><strong>Address:</strong> {location.formatted_address}</p>}
       {location.locality && <p className="related-item-meta"><strong>Locality:</strong> {location.locality}</p>}
@@ -79,11 +87,11 @@ export default function LocationDetail() {
         <section className="detail-section">
           <h3>Actions</h3>
           <div style={{ display: "flex", gap: "1rem", marginTop: "0.5rem" }}>
-            <button className="admin-btn" onClick={() => navigate(`/settings/locations/${location.slug ?? location.id}/edit`)}>Edit</button>
+            <button className="admin-btn" onClick={() => navigate(`/locations/${location.slug ?? location.id}/edit`)}>Edit</button>
           </div>
         </section>
       )}
-      <footer className="page-footer"><Link to="/settings/locations" className="related-item-meta">Back to locations</Link></footer>
+      <footer className="page-footer"><Link to="/locations" className="related-item-meta">Back to locations</Link></footer>
     </div>
   );
 }

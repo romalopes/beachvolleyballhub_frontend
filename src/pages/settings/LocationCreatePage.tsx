@@ -1,46 +1,42 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../../auth/AuthContext";
-import SettingsLayout from "../../components/settings/SettingsLayout";
+import { MapPin, UserCircle } from "lucide-react";
 import LocationCreateForm from "../../components/locations/LocationCreateForm";
 
 export default function LocationCreatePage() {
-  const { user } = useAuth();
   const navigate = useNavigate();
   const [success, setSuccess] = useState<string | null>(null);
 
-  const canOverseeLocations = user?.roles?.some(
-    (role) => role === "admin" || role === "curator",
-  );
-
-  if (!canOverseeLocations) {
-    return (
-      <div className="page">
-        <div className="admin-error">Not authorized.</div>
-      </div>
-    );
-  }
-
   return (
-    <SettingsLayout
-      title="Create Location"
-      description="Propose a new venue/location."
-      backTo="/settings/locations"
-      backLabel="Back to Locations"
-    >
+    <div className="page">
+      <header className="organisations-library-hero">
+        <div className="organisations-library-hero-copy">
+          <span className="analysis-eyebrow">Create venue</span>
+          <h1>Propose a new location</h1>
+          <p>Add a new venue/location to the catalogue.</p>
+          <div className="organisations-library-highlights" aria-label="Location creation features">
+            <span><MapPin size={14} /> Add venue details</span>
+            <span><UserCircle size={14} /> Linked to organisation (optional)</span>
+          </div>
+        </div>
+      </header>
+      <h2>Propose a Location</h2>
+      <p>Propose a new venue/location.</p>
       {success && (
         <div className="auth-flash auth-flash-success" role="alert">
           {success}
         </div>
       )}
       <LocationCreateForm
-        idPrefix="settings-location"
+        idPrefix="location-create"
         defaultExpanded
+        navigate={navigate}
         onCreated={(location) => {
           setSuccess(`Location "${location.name}" created.`);
-          setTimeout(() => navigate("/settings/locations"), 1500);
+          setTimeout(() => navigate("/locations"), 1500);
         }}
       />
-    </SettingsLayout>
+    </div>
   );
 }

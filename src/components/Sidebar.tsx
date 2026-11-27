@@ -12,6 +12,7 @@ import {
   LogIn,
   LogOut,
   Mail,
+  MapPin,
   Network,
   PlayCircle,
   Settings,
@@ -111,12 +112,22 @@ const navGroups: SidebarGroup[] = [
     id: "community",
     label: "Community",
     icon: Network,
-    staffOnly: true,
     items: [
-      { path: "/players", label: "Players", icon: Users },
-      { path: "/coaches", label: "Coaches", icon: Volleyball },
+      {
+        path: "/players",
+        label: "Players",
+        icon: Users,
+        platformStaffOnly: true,
+      },
+      {
+        path: "/coaches",
+        label: "Coaches",
+        icon: Volleyball,
+        platformStaffOnly: true,
+      },
       { path: "/organisations", label: "Organisations", icon: Building2 },
       { path: "/groups", label: "Groups", icon: UsersRound },
+      { path: "/locations", label: "Locations", icon: MapPin },
     ],
   },
   {

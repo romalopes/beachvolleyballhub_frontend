@@ -17,9 +17,12 @@ export default function LocationEditPage() {
   const canOverseeLocations = user?.roles?.some(
     (role) => role === "admin" || role === "curator",
   );
+  const canEdit =
+    !!location &&
+    location.verification_status !== "verified" &&
+    location.proposed_by_account_id === user?.account_id;
 
   useEffect(() => {
-    if (!canOverseeLocations) return;
     if (!slug) return;
     api
       .location(slug)
@@ -28,7 +31,7 @@ export default function LocationEditPage() {
       })
       .catch((e: Error) => setError(e.message))
       .finally(() => setLoading(false));
-  }, [canOverseeLocations, slug]);
+  }, [slug]);
 
   const changeLifecycle = async (
     action: "verify" | "reject" | "archive" | "activate",
@@ -59,37 +62,33 @@ export default function LocationEditPage() {
     }
   };
 
-  if (!canOverseeLocations) {
-    return (
-      <div className="page">
-        <div className="admin-error">Not authorized.</div>
-      </div>
-    );
-  }
-
   if (loading) return <div className="loading">Loading...</div>;
   if (error && !location) {
     return (
-      <SettingsLayout title="Edit Location" backTo="/settings/locations" backLabel="Back to Locations">
+      <div className="page">
         <div className="auth-flash auth-flash-error">{error}</div>
-      </SettingsLayout>
+        <a href="/locations">Back to locations</a>
+      </div>
     );
   }
   if (!location) {
     return (
-      <SettingsLayout title="Edit Location" backTo="/settings/locations" backLabel="Back to Locations">
+      <div className="page">
         <div className="auth-flash auth-flash-error">Location not found.</div>
-      </SettingsLayout>
+        <a href="/locations">Back to locations</a>
+      </div>
     );
   }
 
+  const isOwnerProposal =
+    location.proposed_by_account_id === user?.account_id;
+  const canEditProposal =
+    isOwnerProposal && location.verification_status !== "verified";
+
   return (
-    <SettingsLayout
-      title="Edit Location"
-      description={`Update details for "${location.name}".`}
-      backTo="/settings/locations"
-      backLabel="Back to Locations"
-    >
+    <div className="page">
+      <h2>Edit Location</h2>
+      <p>Update details for "{location.name}".</p>
       {success && (
         <div className="auth-flash auth-flash-success" role="alert">
           {success}
@@ -100,71 +99,84 @@ export default function LocationEditPage() {
           {error}
         </div>
       )}
-      <section className="detail-section" aria-labelledby="location-lifecycle-heading">
-        <h2 id="location-lifecycle-heading">Location status</h2>
+      {canOverseeLocations && (
+        <section className="detail-section" aria-labelledby="location-lifecycle-heading">
+          <h2 id="location-lifecycle-heading">Location status</h2>
+          <p>
+            Verification:{" "}
+            <span className={`status-badge status-${location.verification_status}`}>
+              {location.verification_status}
+            </span>{" "}
+            Lifecycle:{" "}
+            <span className={`status-badge status-${location.status}`}>
+              {location.status}
+            </span>
+          </p>
+          <div className="admin-table-actions">
+            {location.verification_status !== "verified" && (
+              <button
+                type="button"
+                className="admin-btn admin-btn-add"
+                disabled={lifecycleBusy}
+                onClick={() => void changeLifecycle("verify")}
+              >
+                Verify
+              </button>
+            )}
+            {location.verification_status !== "rejected" && (
+              <button
+                type="button"
+                className="admin-btn admin-btn-remove"
+                disabled={lifecycleBusy}
+                onClick={() => void changeLifecycle("reject")}
+              >
+                Reject
+              </button>
+            )}
+            {location.status === "active" && (
+              <button
+                type="button"
+                className="admin-btn admin-btn-remove"
+                disabled={lifecycleBusy}
+                onClick={() => void changeLifecycle("archive")}
+              >
+                Make inactive
+              </button>
+            )}
+            {location.status === "archived" && (
+              <button
+                type="button"
+                className="admin-btn admin-btn-add"
+                disabled={lifecycleBusy}
+                onClick={() => void changeLifecycle("activate")}
+              >
+                Activate
+              </button>
+            )}
+          </div>
+        </section>
+      )}
+      {canEditProposal && (
+        <LocationEditForm
+          idPrefix="location-edit"
+          location={location}
+          onUpdated={(updated) => {
+            setSuccess(`Location "${updated.name}" updated.`);
+            setLocation(updated);
+            navigate(`/locations/${updated.slug ?? updated.id}/edit`, { replace: true });
+          }}
+          onCancel={() => navigate("/locations")}
+        />
+      )}
+      {!canEditProposal && !canOverseeLocations && (
         <p>
-          Verification:{" "}
-          <span className={`status-badge status-${location.verification_status}`}>
-            {location.verification_status}
-          </span>{" "}
-          Lifecycle:{" "}
-          <span className={`status-badge status-${location.status}`}>
-            {location.status}
-          </span>
+          You cannot edit this location. Only the proposer can edit an unverified
+          proposal, and only admins/curators can manage verified locations.
         </p>
-        <div className="admin-table-actions">
-          {location.verification_status !== "verified" && (
-            <button
-              type="button"
-              className="admin-btn admin-btn-add"
-              disabled={lifecycleBusy}
-              onClick={() => void changeLifecycle("verify")}
-            >
-              Verify
-            </button>
-          )}
-          {location.verification_status !== "rejected" && (
-            <button
-              type="button"
-              className="admin-btn admin-btn-remove"
-              disabled={lifecycleBusy}
-              onClick={() => void changeLifecycle("reject")}
-            >
-              Reject
-            </button>
-          )}
-          {location.status === "active" && (
-            <button
-              type="button"
-              className="admin-btn admin-btn-remove"
-              disabled={lifecycleBusy}
-              onClick={() => void changeLifecycle("archive")}
-            >
-              Make inactive
-            </button>
-          )}
-          {location.status === "archived" && (
-            <button
-              type="button"
-              className="admin-btn admin-btn-add"
-              disabled={lifecycleBusy}
-              onClick={() => void changeLifecycle("activate")}
-            >
-              Activate
-            </button>
-          )}
-        </div>
-      </section>
-      <LocationEditForm
-        idPrefix="settings-location-edit"
-        location={location}
-        onUpdated={(updated) => {
-          setSuccess(`Location "${updated.name}" updated.`);
-          setLocation(updated);
-          navigate(`/settings/locations/${updated.slug ?? updated.id}/edit`, { replace: true });
-        }}
-        onCancel={() => navigate("/settings/locations")}
-      />
-    </SettingsLayout>
+      )}
+      <p>
+        <a href="/locations">Back to locations</a>
+      </p>
+    </div>
   );
 }

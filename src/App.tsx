@@ -616,35 +616,35 @@ export default function App() {
                   }
                 />
                 <Route
-                  path="/settings/locations"
+                  path="/locations"
                   element={
-                    <LocationOversightRoute>
+                    <AuthenticatedRoute>
                       <Locations />
-                    </LocationOversightRoute>
+                    </AuthenticatedRoute>
                   }
                 />
                 <Route
-                  path="/settings/locations/new"
+                  path="/locations/new"
                   element={
-                    <LocationOversightRoute>
+                    <AuthenticatedRoute>
                       <LocationCreatePage />
-                    </LocationOversightRoute>
+                    </AuthenticatedRoute>
                   }
                 />
                 <Route
-                  path="/settings/locations/:slug/edit"
+                  path="/locations/:slug/edit"
                   element={
-                    <LocationOversightRoute>
+                    <AuthenticatedRoute>
                       <LocationEditPage />
-                    </LocationOversightRoute>
+                    </AuthenticatedRoute>
                   }
                 />
                 <Route
-                  path="/settings/locations/:slug"
+                  path="/locations/:slug"
                   element={
-                    <LocationOversightRoute>
+                    <AuthenticatedRoute>
                       <LocationDetail />
-                    </LocationOversightRoute>
+                    </AuthenticatedRoute>
                   }
                 />
                 <Route

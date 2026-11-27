@@ -18,6 +18,7 @@ interface LocationCreateFormProps {
    * it, so this prop is only passed by organisation-scoped forms.
    */
   organisationId?: number | null;
+  navigate?: (to: string) => void;
 }
 
 const LOCATION_TYPES: Array<{ value: LocationType; label: string }> = [
@@ -46,6 +47,7 @@ export default function LocationCreateForm({
   onCreated,
   defaultExpanded = false,
   organisationId = null,
+  navigate,
 }: LocationCreateFormProps) {
   const [expanded, setExpanded] = useState(defaultExpanded);
   const [input, setInput] = useState<LocationInput>(initialInput);
@@ -204,9 +206,15 @@ export default function LocationCreateForm({
         </div>
       )}
       <div className="admin-form-actions">
-        <button type="button" className="admin-btn" disabled={saving} onClick={() => setExpanded(false)}>
-          Cancel proposal
-        </button>
+        {navigate ? (
+          <button type="button" className="admin-btn" disabled={saving} onClick={() => navigate("/locations")}>
+            Cancel proposal
+          </button>
+        ) : (
+          <button type="button" className="admin-btn" disabled={saving} onClick={() => setExpanded(false)}>
+            Cancel proposal
+          </button>
+        )}
         <button type="button" className="admin-btn admin-btn-add" disabled={saving} onClick={create}>
           {saving ? "Creating…" : "Create venue proposal"}
         </button>
