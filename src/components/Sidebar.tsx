@@ -110,7 +110,7 @@ const navGroups: SidebarGroup[] = [
   },
   {
     id: "community",
-    label: "Community",
+    label: "Community & Events",
     icon: Network,
     items: [
       {
@@ -128,6 +128,7 @@ const navGroups: SidebarGroup[] = [
       { path: "/organisations", label: "Organisations", icon: Building2 },
       { path: "/groups", label: "Groups", icon: UsersRound },
       { path: "/locations", label: "Locations", icon: MapPin },
+      { path: "/tournaments", label: "Tournaments", icon: Trophy },
     ],
   },
   {
