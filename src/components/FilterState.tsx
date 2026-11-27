@@ -40,6 +40,9 @@ export default function FilterState({ filters, onReset, organisations }: FilterS
   if (filters.mine) {
     activeFilters.push({ label: 'My Tournaments', value: 'Yes' });
   }
+  if (filters.relationship?.length) {
+    activeFilters.push({ label: 'Your Tournaments', value: filters.relationship.join(', ') });
+  }
   if (filters.publication_state) {
     activeFilters.push({ label: 'Publication State', value: filters.publication_state });
   }
@@ -62,17 +65,16 @@ export default function FilterState({ filters, onReset, organisations }: FilterS
 
   return (
     <div className="filter-state">
-      <h4 className="font-semibold mb-2">Active Filters:</h4>
-      <div className="flex flex-wrap gap-2">
+      <h4 className="filter-state-title">Active Filters:</h4>
+      <div className="filter-state-chips">
         {activeFilters.map((filter, index) => (
           <span key={index} className="filter-chip">
-            <span className="filter-label">{filter.label}:</span>
-            <span className="filter-value">{filter.value}</span>
+            <span className="filter-chip-label">{filter.label}:</span>
+            <span className="filter-chip-value">{filter.value}</span>
             <button
-              className="filter-remove"
+              className="filter-chip-remove"
               onClick={(e) => {
                 e.stopPropagation();
-                // We could implement removing a specific filter, but for simplicity we reset all
                 onReset();
               }}
               title="Remove filter"
@@ -81,7 +83,7 @@ export default function FilterState({ filters, onReset, organisations }: FilterS
             </button>
           </span>
         ))}
-        <button className="reset-all-btn" onClick={onReset}>
+        <button className="filter-state-reset" onClick={onReset}>
           Clear All Filters
         </button>
       </div>

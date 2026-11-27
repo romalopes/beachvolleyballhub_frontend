@@ -1,7 +1,17 @@
 import { useEffect, useState } from "react";
-import { useNavigate, useParams } from "react-router-dom";
+import { Link, useNavigate, useParams } from "react-router-dom";
+import {
+  Activity,
+  ArrowUpRight,
+  Building2,
+  Globe,
+  Info,
+  MapPin,
+  ShieldCheck,
+} from "lucide-react";
 import { useAuth } from "../../auth/AuthContext";
 import BackLink from "../../components/settings/BackLink";
+import LibraryHero from "../../components/LibraryHero";
 import LocationForm from "../../components/locations/LocationForm";
 import LocationMap from "../../components/locations/LocationMap";
 import { api, type Location } from "../../api";
@@ -59,20 +69,30 @@ export default function LocationEditPage() {
     }
   };
 
-  if (loading) return <div className="loading">Loading...</div>;
+  if (loading) {
+    return (
+      <div className="page location-editor-page">
+        <div className="loading" role="status">Loading venue...</div>
+      </div>
+    );
+  }
   if (error && !location) {
     return (
-      <div className="page">
-        <div className="auth-flash auth-flash-error">{error}</div>
+      <div className="page location-editor-page">
         <BackLink to="/locations" label="Back to locations" />
+        <div className="auth-flash auth-flash-error" role="alert">
+          {error}
+        </div>
       </div>
     );
   }
   if (!location) {
     return (
-      <div className="page">
-        <div className="auth-flash auth-flash-error">Location not found.</div>
+      <div className="page location-editor-page">
         <BackLink to="/locations" label="Back to locations" />
+        <div className="auth-flash auth-flash-error" role="alert">
+          Location not found.
+        </div>
       </div>
     );
   }
@@ -86,13 +106,56 @@ export default function LocationEditPage() {
     canOverseeLocations ||
     (isOwnerProposal && location.verification_status !== "verified");
 
+  const addressSummary =
+    location.formatted_address ||
+    [location.locality, location.administrative_area, location.country_code]
+      .filter(Boolean)
+      .join(", ");
+  const hasCoordinates =
+    location.latitude !== null && location.longitude !== null;
+  const hasMap = Boolean(location.map_url) || hasCoordinates;
+  const rawTypeLabel = location.location_type.replace(/_/g, " ");
+  const typeLabel = rawTypeLabel.charAt(0).toUpperCase() + rawTypeLabel.slice(1);
+  const verificationLabel =
+    location.verification_status.charAt(0).toUpperCase() +
+    location.verification_status.slice(1);
+
   return (
-    <div className="page">
+    <div className="page location-editor-page">
       <BackLink to="/locations" label="Back to locations" />
-      <h2>Edit Location</h2>
-      <p>Update details for "{location.name}".</p>
+      <LibraryHero
+        eyebrow="Venue workspace"
+        title={`Edit ${location.name}`}
+        description={
+          addressSummary ||
+          "No address on file yet — add one below so the venue pin resolves correctly."
+        }
+        highlights={[
+          { icon: Building2, label: typeLabel },
+          {
+            icon: MapPin,
+            label:
+              location.locality ||
+              location.administrative_area ||
+              "Locality pending",
+          },
+          { icon: ShieldCheck, label: verificationLabel },
+        ]}
+        highlightsLabel="Venue summary"
+        theme="library-hero--locations"
+        action={
+          <Link
+            to={`/locations/${location.slug ?? location.id}`}
+            className="location-editor-hero-action"
+          >
+            <ArrowUpRight size={16} aria-hidden="true" />
+            View venue
+          </Link>
+        }
+      />
+
       {success && (
-        <div className="auth-flash auth-flash-success" role="alert">
+        <div className="auth-flash auth-flash-success" role="status">
           {success}
         </div>
       )}
@@ -101,96 +164,179 @@ export default function LocationEditPage() {
           {error}
         </div>
       )}
-      {canOverseeLocations && (
-        <section className="detail-section" aria-labelledby="location-lifecycle-heading">
-          <h2 id="location-lifecycle-heading">Location status</h2>
-          <p>
-            Verification:{" "}
-            <span className={`status-badge status-${location.verification_status}`}>
-              {location.verification_status}
-            </span>{" "}
-            Lifecycle:{" "}
-            <span className={`status-badge status-${location.status}`}>
-              {location.status}
-            </span>
-          </p>
-          <div className="admin-table-actions">
-            {location.verification_status !== "verified" && (
-              <button
-                type="button"
-                className="admin-btn admin-btn-add"
-                disabled={lifecycleBusy}
-                onClick={() => void changeLifecycle("verify")}
-              >
-                Verify
-              </button>
-            )}
-            {location.verification_status !== "rejected" && (
-              <button
-                type="button"
-                className="admin-btn admin-btn-remove"
-                disabled={lifecycleBusy}
-                onClick={() => void changeLifecycle("reject")}
-              >
-                Reject
-              </button>
-            )}
-            {location.status === "active" && (
-              <button
-                type="button"
-                className="admin-btn admin-btn-remove"
-                disabled={lifecycleBusy}
-                onClick={() => void changeLifecycle("archive")}
-              >
-                Make inactive
-              </button>
-            )}
-            {location.status === "archived" && (
-              <button
-                type="button"
-                className="admin-btn admin-btn-add"
-                disabled={lifecycleBusy}
-                onClick={() => void changeLifecycle("activate")}
-              >
-                Activate
-              </button>
-            )}
-          </div>
-        </section>
-      )}
-      {(location.map_url || (location.latitude !== null && location.longitude !== null)) && (
-        <section className="detail-section">
-          <h3>Map</h3>
-          <LocationMap
-            name={location.name}
-            latitude={location.latitude}
-            longitude={location.longitude}
-            externalUrl={location.map_url}
-          />
-        </section>
-      )}
-      {canEditLocation && (
-        <LocationForm
-          mode="edit"
-          idPrefix="location-edit"
-          location={location}
-          onUpdated={(updated) => {
-            setSuccess(`Location "${updated.name}" updated.`);
-            setLocation(updated);
-            navigate(`/locations/${updated.slug ?? updated.id}/edit`, { replace: true });
-          }}
-          onCancel={() => navigate("/locations")}
-        />
-      )}
-      {!canEditLocation && (
-        <p>
-          You cannot edit this location. Only the proposer can edit an unverified
-          proposal, and only admins/curators can manage verified locations.
-        </p>
-      )}
-      <p>
-        <a href="/locations">Back to locations</a>
-      </p>
+
+      <div className="location-editor-layout">
+        <div className="location-editor-main">
+          {canEditLocation ? (
+            <div className="location-editor-panel">
+              <LocationForm
+                mode="edit"
+                idPrefix="location-edit"
+                heading="Venue details"
+                location={location}
+                onUpdated={(updated) => {
+                  setSuccess(`Location "${updated.name}" updated.`);
+                  setLocation(updated);
+                  navigate(`/locations/${updated.slug ?? updated.id}/edit`, {
+                    replace: true,
+                  });
+                }}
+                onCancel={() => navigate("/locations")}
+              />
+            </div>
+          ) : (
+            <div className="location-editor-notice" role="status">
+              <Info size={18} aria-hidden="true" />
+              <div>
+                <strong>This venue is read-only for you.</strong>
+                <p>
+                  Only the account that proposed a venue can edit it before
+                  verification, and only admins or curators can manage verified
+                  venues.
+                </p>
+              </div>
+            </div>
+          )}
+
+          {hasMap && (
+            <section
+              className="location-editor-card"
+              aria-labelledby="location-edit-map-heading"
+            >
+              <h2 id="location-edit-map-heading">
+                <MapPin size={16} aria-hidden="true" /> Map
+              </h2>
+              <LocationMap
+                name={location.name}
+                latitude={location.latitude}
+                longitude={location.longitude}
+                externalUrl={location.map_url}
+              />
+            </section>
+          )}
+        </div>
+
+
+        <aside className="location-editor-sidebar" aria-label="Venue status">
+          {canOverseeLocations && (
+            <section
+              className="location-editor-card"
+              aria-labelledby="location-lifecycle-heading"
+            >
+              <h2 id="location-lifecycle-heading">
+                <Activity size={16} aria-hidden="true" /> Location status
+              </h2>
+              <dl className="location-editor-status-list">
+                <div>
+                  <dt>Verification</dt>
+                  <dd>
+                    <span
+                      className={`status-badge status-${location.verification_status}`}
+                    >
+                      {location.verification_status}
+                    </span>
+                  </dd>
+                </div>
+                <div>
+                  <dt>Lifecycle</dt>
+                  <dd>
+                    <span className={`status-badge status-${location.status}`}>
+                      {location.status}
+                    </span>
+                  </dd>
+                </div>
+              </dl>
+              <div className="location-editor-card-actions">
+                {location.verification_status !== "verified" && (
+                  <button
+                    type="button"
+                    className="admin-btn admin-btn-add"
+                    disabled={lifecycleBusy}
+                    onClick={() => void changeLifecycle("verify")}
+                  >
+                    Verify
+                  </button>
+                )}
+                {location.verification_status !== "rejected" && (
+                  <button
+                    type="button"
+                    className="admin-btn admin-btn-remove"
+                    disabled={lifecycleBusy}
+                    onClick={() => void changeLifecycle("reject")}
+                  >
+                    Reject
+                  </button>
+                )}
+                {location.status === "active" && (
+                  <button
+                    type="button"
+                    className="admin-btn admin-btn-remove"
+                    disabled={lifecycleBusy}
+                    onClick={() => void changeLifecycle("archive")}
+                  >
+                    Make inactive
+                  </button>
+                )}
+                {location.status === "archived" && (
+                  <button
+                    type="button"
+                    className="admin-btn admin-btn-add"
+                    disabled={lifecycleBusy}
+                    onClick={() => void changeLifecycle("activate")}
+                  >
+                    Activate
+                  </button>
+                )}
+              </div>
+            </section>
+          )}
+
+
+          {!canOverseeLocations && (
+            <section className="location-editor-card">
+              <h2>
+                <ShieldCheck size={16} aria-hidden="true" /> Review status
+              </h2>
+              <p className="location-editor-card-copy">
+                This venue is{" "}
+                <span
+                  className={`status-badge status-${location.verification_status}`}
+                >
+                  {location.verification_status}
+                </span>
+                {location.verification_status === "proposed"
+                  ? ". You can keep editing it until the BVBH team verifies it."
+                  : "."}
+              </p>
+            </section>
+          )}
+
+          <section className="location-editor-card">
+            <h2>
+              <Globe size={16} aria-hidden="true" /> Venue snapshot
+            </h2>
+            <dl className="location-editor-status-list">
+              <div>
+                <dt>Type</dt>
+                <dd>{typeLabel}</dd>
+              </div>
+              <div>
+                <dt>Timezone</dt>
+                <dd>{location.timezone || "—"}</dd>
+              </div>
+              <div>
+                <dt>Coordinates</dt>
+                <dd className="location-editor-coordinates">
+                  {hasCoordinates
+                    ? `${location.latitude}, ${location.longitude}`
+                    : "Not set"}
+                </dd>
+              </div>
+            </dl>
+          </section>
+        </aside>
+      </div>
     </div>
   );
 }
+

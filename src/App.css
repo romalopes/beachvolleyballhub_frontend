@@ -3091,6 +3091,13 @@
   color: var(--teal-600);
 }
 
+.auth-flash-success {
+  background: var(--teal-50);
+  border: 1px solid var(--teal-100);
+  color: var(--teal-600);
+  font-weight: 600;
+}
+
 .verify-steps {
   margin: 0 0 0.5rem;
   padding-left: 1.25rem;
@@ -13502,12 +13509,76 @@
   justify-content: flex-end;
 }
 
-/* Tournament create/edit fields share the full available page width. */
-.admin-form.tournament-editor {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(min(100%, 240px), 1fr));
-  max-width: none;
-  align-items: start;
+/* ===== Tournament Filter Form — Enhanced =====
+   Scoped to the aside (.tournaments-filters) so the shared .filter-form
+   grid stays intact on other pages. */
+.tournaments-filters {
+  background: var(--bg-secondary);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+}
+
+.tournaments-filters > h2 {
+  margin: 0;
+  padding: 1rem 1.25rem;
+  font-size: 1rem;
+  font-weight: 700;
+  color: var(--charcoal);
+  background: var(--bg-tertiary);
+  border-bottom: 1px solid var(--border-light);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+}
+
+.filter-toggle-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  background: var(--white);
+  color: var(--charcoal);
+  cursor: pointer;
+  transition: background var(--transition), border-color var(--transition), color var(--transition);
+  flex-shrink: 0;
+}
+
+.filter-toggle-btn:hover {
+  background: var(--bg-tertiary);
+  border-color: var(--border-dark);
+  color: var(--amber-600);
+}
+
+.filter-toggle-btn:focus-visible {
+  outline: 2px solid var(--amber-500);
+  outline-offset: 2px;
+}
+
+.tournaments-filters .tournament-filter-form {
+  margin-bottom: 0;
+  padding: 1.25rem;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+}
+
+.tournaments-filters .tournament-filter-form > .form-group {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+}
+
+.tournaments-filters .tournament-filter-form > .form-group label {
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--text-secondary);
 }
 
 .tournament-editor > .admin-field-row {
@@ -14332,6 +14403,21 @@
     #f7f5fb 0%,
     #e8e4f3 58%,
     #b3aad4 145%
+  );
+}
+
+.library-hero--locations {
+  --hero-border: #cfe3dd;
+  --hero-glow: rgba(31, 82, 69, 0.09);
+  --hero-chip-border: rgba(31, 101, 82, 0.13);
+  --hero-chip-text: #356b5c;
+  --hero-copy-text: #4e655e;
+  --hero-shadow: rgba(27, 105, 82, 0.2);
+  --hero-gradient: linear-gradient(
+    125deg,
+    #f3fbf8 0%,
+    #d9eee7 58%,
+    #8fc9b8 145%
   );
 }
 
@@ -17606,3 +17692,372 @@
     justify-content: space-between;
   }
 }
+
+/* ===== Location editor (create / edit venue) =====
+   /locations/new and /locations/:slug/edit share a workbench: a themed hero,
+   the venue form in a card, and an aside carrying status, guidance and map
+   context. Everything is scoped to .location-editor-page so the shared
+   .admin-form-* primitives stay compact on embedded surfaces. */
+.location-editor-page {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+.location-editor-page > .back-link {
+  margin-bottom: 0;
+}
+
+.location-editor-page > .auth-flash {
+  margin-bottom: 0;
+}
+
+.location-editor-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(260px, 320px);
+  align-items: start;
+  gap: 1.5rem;
+}
+
+.location-editor-main,
+.location-editor-sidebar {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+  min-width: 0;
+}
+
+.location-editor-sidebar {
+  position: sticky;
+  top: 1.5rem;
+  gap: 1.15rem;
+}
+
+.location-editor-panel,
+.location-editor-card {
+  border: 1px solid var(--border-light);
+  border-radius: var(--radius-lg);
+  background: var(--bg-secondary);
+  box-shadow: var(--shadow-sm);
+}
+
+.location-editor-panel {
+  padding: 1.6rem 1.75rem;
+}
+
+.location-editor-card {
+  padding: 1.35rem 1.4rem;
+}
+
+.location-editor-card > h2 {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin: 0 0 0.9rem;
+  font-size: 1rem;
+  font-weight: 650;
+}
+
+.location-editor-card > h2 svg {
+  color: var(--teal-600);
+}
+
+
+/* ---- Venue form ---- */
+.location-editor-page .admin-form-section {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  margin-top: 0;
+  padding-top: 0;
+  border-top: 0;
+}
+
+.location-editor-page .admin-form-section > h3 {
+  margin: 0;
+  font-size: 1.2rem;
+  letter-spacing: -0.02em;
+}
+
+.location-editor-page .admin-form-section > .field-hint {
+  max-width: 68ch;
+  margin: 0;
+}
+
+.location-editor-page .admin-field-row {
+  gap: 1rem 1.15rem;
+}
+
+.location-editor-page .admin-field {
+  gap: 0.45rem;
+}
+
+.location-editor-page .admin-field label {
+  color: var(--text-secondary);
+  font-size: 0.78rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.location-editor-page .admin-field input,
+.location-editor-page .admin-field select {
+  padding: 0.7rem 0.85rem;
+  border-radius: var(--radius-md);
+  background: var(--white);
+  font-size: 0.9375rem;
+}
+
+.location-editor-page .admin-field input:focus,
+.location-editor-page .admin-field select:focus {
+  border-color: var(--teal-500);
+  box-shadow: 0 0 0 3px var(--teal-100);
+}
+
+.location-editor-page .admin-form-actions {
+  align-items: center;
+  justify-content: flex-end;
+  gap: 0.65rem;
+  margin-top: 0.35rem;
+  padding-top: 1.15rem;
+  border-top: 1px solid var(--border-light);
+}
+
+.location-editor-page .admin-form-actions .admin-btn {
+  padding: 0.6rem 1.05rem;
+  border-radius: var(--radius-md);
+  font-size: 0.85rem;
+}
+
+.location-editor-page .admin-form-actions .admin-btn:disabled {
+  cursor: progress;
+  opacity: 0.65;
+}
+
+/* Location status pills; the catalogue's moderation tables reuse them. */
+.status-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.18rem 0.55rem;
+  border: 1px solid transparent;
+  border-radius: 999px;
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  line-height: 1.5;
+  text-transform: capitalize;
+  white-space: nowrap;
+}
+
+.status-badge::before {
+  width: 0.375rem;
+  height: 0.375rem;
+  border-radius: 50%;
+  background: currentColor;
+  content: "";
+  opacity: 0.7;
+}
+
+.status-active,
+.status-verified {
+  border-color: var(--teal-100);
+  background: var(--teal-50);
+  color: var(--teal-600);
+}
+
+.status-archived,
+.status-merged {
+  border-color: var(--sand-200);
+  background: var(--sand-100);
+  color: var(--slate-500);
+}
+
+.status-proposed {
+  border-color: var(--amber-100);
+  background: var(--amber-50);
+  color: var(--amber-600);
+}
+
+.status-rejected {
+  border-color: #fecaca;
+  background: #fef2f2;
+  color: #b91c1c;
+}
+
+
+/* ---- Status and snapshot cards ---- */
+.location-editor-status-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  margin: 0;
+}
+
+.location-editor-status-list > div {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  padding: 0.6rem 0;
+  border-bottom: 1px dashed var(--border-light);
+  font-size: 0.85rem;
+}
+
+.location-editor-status-list > div:last-child {
+  padding-bottom: 0;
+  border-bottom: 0;
+}
+
+.location-editor-status-list dt {
+  color: var(--text-secondary);
+  font-weight: 500;
+}
+
+.location-editor-status-list dd {
+  margin: 0;
+  color: var(--charcoal);
+  font-weight: 650;
+  text-align: right;
+  overflow-wrap: anywhere;
+}
+
+.location-editor-coordinates {
+  font-variant-numeric: tabular-nums;
+  font-size: 0.8rem;
+}
+
+.location-editor-card-actions {
+  display: grid;
+  gap: 0.5rem;
+  margin-top: 1rem;
+}
+
+.location-editor-card-actions .admin-btn {
+  justify-content: center;
+  width: 100%;
+  padding: 0.55rem 0.85rem;
+  font-size: 0.82rem;
+}
+
+.location-editor-card-copy {
+  margin: 0;
+  color: var(--text-secondary);
+  font-size: 0.84rem;
+  line-height: 1.6;
+}
+
+.location-editor-card-copy .status-badge {
+  vertical-align: 1px;
+}
+
+/* ---- Proposal guidance ---- */
+.location-editor-steps {
+  display: grid;
+  gap: 0.8rem;
+  margin: 0;
+  padding: 0;
+  counter-reset: location-step;
+  list-style: none;
+}
+
+.location-editor-steps > li {
+  position: relative;
+  padding-left: 2rem;
+  color: var(--text-secondary);
+  font-size: 0.84rem;
+  line-height: 1.55;
+}
+
+.location-editor-steps > li::before {
+  position: absolute;
+  top: 0;
+  left: 0;
+  display: grid;
+  place-items: center;
+  width: 1.4rem;
+  height: 1.4rem;
+  border: 1px solid var(--teal-100);
+  border-radius: 50%;
+  background: var(--teal-50);
+  color: var(--teal-600);
+  font-size: 0.68rem;
+  font-weight: 800;
+  content: counter(location-step);
+  counter-increment: location-step;
+}
+
+/* ---- Read-only notice ---- */
+.location-editor-notice {
+  display: flex;
+  gap: 0.75rem;
+  padding: 1rem 1.15rem;
+  border: 1px solid var(--amber-100);
+  border-radius: var(--radius-md);
+  background: var(--amber-50);
+  color: var(--amber-700);
+  font-size: 0.9rem;
+  line-height: 1.55;
+}
+
+.location-editor-notice svg {
+  flex-shrink: 0;
+  margin-top: 0.1rem;
+}
+
+.location-editor-notice p {
+  max-width: 62ch;
+  margin: 0.25rem 0 0;
+  color: inherit;
+  font-size: inherit;
+  line-height: inherit;
+}
+
+/* ---- Hero action ---- */
+.location-editor-hero-action {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.45rem;
+  min-width: 10.5rem;
+  padding: 0.7rem 1.1rem;
+  border: 1px solid rgba(31, 101, 82, 0.2);
+  border-radius: 999px;
+  background: var(--white);
+  color: #1f6552;
+  font-size: 0.85rem;
+  font-weight: 700;
+  box-shadow: 0 8px 18px rgba(27, 105, 82, 0.18);
+  transition: background var(--transition), transform var(--transition);
+}
+
+.location-editor-hero-action:hover {
+  background: #f3fbf8;
+  transform: translateY(-1px);
+}
+
+@media (max-width: 1024px) {
+  .location-editor-layout {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .location-editor-sidebar {
+    position: static;
+  }
+}
+
+@media (max-width: 720px) {
+  .location-editor-panel {
+    padding: 1.25rem;
+  }
+
+  .location-editor-page .admin-form-actions {
+    flex-direction: column-reverse;
+    align-items: stretch;
+  }
+
+  .location-editor-page .admin-form-actions .admin-btn {
+    width: 100%;
+  }
+}
+

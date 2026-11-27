@@ -34,6 +34,12 @@ interface LocationFormProps {
   organisationId?: number | null;
   /** create only: Cancel navigates here instead of folding the form. */
   navigate?: (to: string) => void;
+  /**
+   * Optional heading for the form section. Full-page surfaces provide their
+   * own hero title and pass a shorter heading ("Venue details"); embedded
+   * surfaces keep the mode wording by omitting it.
+   */
+  heading?: string;
 }
 
 const LOCATION_TYPES: Array<{ value: LocationType; label: string }> = [
@@ -86,6 +92,7 @@ export default function LocationForm({
   defaultExpanded = false,
   organisationId = null,
   navigate,
+  heading,
 }: LocationFormProps) {
   const isCreate = mode === "create";
   // Edit mode is always expanded; create mode honours defaultExpanded.
@@ -158,7 +165,7 @@ export default function LocationForm({
       className="admin-form-section"
       aria-label={isCreate ? "Propose a new venue" : "Edit location"}
     >
-      <h3>{isCreate ? "Propose a new venue" : "Edit location"}</h3>
+      <h3>{heading ?? (isCreate ? "Propose a new venue" : "Edit location")}</h3>
       <p className="field-hint">
         {isCreate ? (
           <>
